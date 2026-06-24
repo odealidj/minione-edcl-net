@@ -10,11 +10,12 @@ Berikut adalah gambaran besar bagaimana komponen-komponen dalam EDCL Mini berint
 
 ```mermaid
 graph TD
-    Client(["📱 Mobile Client (Driver)"])
+    DriverClient(["📱 Mobile Client (Driver)"])
+    WebClient(["💻 Web Client (Admin/AppUser)"])
     Gateway["🚪 API Gateway (YARP)\n:5293\n─────────────────\nRouting & Reverse Proxy\nSingle Point of Entry"]
     
     subgraph API_Monolith [EDCL.Api - Modular Monolith]
-        Auth["🔐 Auth Module\n(JWT, Login, Token)"]
+        Auth["🔐 Auth Module\n(JWT, Roles, Users, Drivers)"]
         Job["🚚 Job Module\n(Route, Stop, Kanban)"]
         Cargo["📦 Cargo Module\n(Manifest, Parts)"]
         Notif["🔔 Notification Module\n(Alerts, Messages)"]
@@ -31,17 +32,18 @@ graph TD
     end
 
     %% Client Interactions
-    Client -->|HTTP/REST| Gateway
-    Gateway -->|HTTP Internal| Auth
-    Gateway -->|HTTP Internal| Job
-    Gateway -->|HTTP Internal| Cargo
-    Gateway -->|HTTP Internal| Notif
+    DriverClient -->|HTTP/REST| Gateway
+    WebClient -->|HTTP/REST| Gateway
+    Gateway -->|"HTTP Internal"| Auth
+    Gateway -->|"HTTP Internal"| Job
+    Gateway -->|"HTTP Internal"| Cargo
+    Gateway -->|"HTTP Internal"| Notif
 
-    %% Module DB Interactions (Strict Boundaries)
-    Auth -.->|Read/Write Schema: Auth| SQL
-    Job -.->|Read/Write Schema: Job| SQL
-    Cargo -.->|Read/Write Schema: Cargo| SQL
-    Notif -.->|Read/Write Schema: Notif| SQL
+    %% Module DB Interactions (Strict Boundaries, No Cross-Schema FKs)
+    Auth -.->|Read/Write Schema: auth| SQL
+    Job -.->|Read/Write Schema: job| SQL
+    Cargo -.->|Read/Write Schema: ingestion| SQL
+    Notif -.->|Read/Write Schema: notification| SQL
 
     %% Cache & Idempotency
     Job -.->|Cache/Idempotency| Redis
@@ -75,9 +77,9 @@ Bertindak sebagai **Single Point of Entry**. Klien (Mobile App) tidak bisa meneb
 
 ### B. EDCL.Api (Modular Monolith)
 Aplikasi inti yang membungkus beberapa modul independen (`Auth`, `Job`, `Cargo`, `Notification`).
-- **Strict Boundaries**: Modul tidak boleh me-*reference* modul lain secara langsung. Jika Modul A butuh data Modul B, mereka harus berkomunikasi melalui *Interface* yang disediakan di `Shared.Kernel` atau melalui *Event Driven* (RabbitMQ).
+- **Strict Boundaries**: Modul tidak boleh me-*reference* modul lain secara langsung. Komunikasi silang (*cross-domain*) dilakukan secara elegan melalui interface/port di *Shared Kernel* (contoh: `IDriverPort`, `ISupplierPort`). Di fase monolith, ini dieksekusi secara *in-memory* via *Dependency Injection*. Saat migrasi ke *microservices*, port tersebut cukup di-inject dengan *HTTP/gRPC Client* tanpa mengubah *business logic* dari modul pemanggil.
 - **CQRS**: Menggunakan `MediatR` untuk memisahkan *Command* (operasi tulis/ubah data) dan *Query* (operasi baca data). Hal ini mempercepat performa *read* dan mengamankan *write*.
-- **Database Schema per Module**: Meski secara fisik menggunakan 1 Database (`EDCLMini`), setiap modul memiliki skema (*schema*) SQL Server yang terpisah (contoh: `auth.Users`, `job.PickupOrders`).
+- **Database Schema per Module (Microservices Ready)**: Meski secara fisik menggunakan 1 Database (`EDCLMini`), setiap modul memiliki skema (*schema*) SQL Server yang terpisah (contoh: `auth`, `job`, `ingestion`, `notification`). Yang paling krusial, **tidak ada Foreign Key constraint antar skema** (misal: Modul Job hanya menyimpan `long DriverId` bukan navigasi objek relasional ke skema Auth). Hal ini membuat migrasi ke *microservices* semudah mengekspor skema ke database fisik terpisah.
 
 ### C. Infrastruktur Pendukung
 - **SQL Server**: Relational Database Management System utama.

@@ -1,1 +1,8 @@
-bin/\nobj/\n.env\n*.pid\n*.log\n.idea/\n.vscode/
+bin/
+obj/
+.env
+*.pid
+*.log
+.idea/
+.vscode/
+docs/contoh/
