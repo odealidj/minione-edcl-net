@@ -8,7 +8,7 @@ Dokumen ini memetakan tampilan antarmuka (UI) aplikasi klien (Mobile/Web) dengan
 
 Tampilan ini muncul ketika *Driver* mengetuk notifikasi "Kerjaan Baru", atau ketika mereka membuka detail rute dari dashboard. Layar ini menampilkan daftar *Supplier* beserta estimasi kedatangan (Arrival Plan).
 
-<img src="/home/aliube/.gemini/antigravity-ide/brain/a38d3d11-0c93-48f5-afb8-b27d23ed8214/media__1782340993881.png" width="300" alt="Notification New Job UI" />
+<img src="../assets/images/notification-new-job.png" width="300" alt="Notification New Job UI" />
 
 ### API Endpoints Terkait
 
