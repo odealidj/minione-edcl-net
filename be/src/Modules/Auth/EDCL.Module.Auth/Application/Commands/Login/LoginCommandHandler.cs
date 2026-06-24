@@ -1,6 +1,7 @@
 using EDCL.Module.Auth.Application.Ports;
 using EDCL.Module.Auth.Domain.Entities;
 using EDCL.Shared.Kernel.Common;
+using EDCL.Shared.Kernel.Ports;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -10,6 +11,7 @@ public sealed class LoginCommandHandler(
     IDriverRepository driverRepository,
     IRefreshTokenRepository refreshTokenRepository,
     IJwtTokenService jwtService,
+    ICachePort cachePort,
     ILogger<LoginCommandHandler> logger)
     : IRequestHandler<LoginCommand, Result<LoginResponse>>
 {
@@ -24,14 +26,20 @@ public sealed class LoginCommandHandler(
         if (driver is null)
             return Error.NotFound("Driver", request.PhoneNumber);
 
-        // ── 2. Verify PIN ─────────────────────────────────────────────────
-        if (!BCrypt.Net.BCrypt.Verify(request.Pin, driver.PinHash))
+        // ── 2. Verify PIN (OTP via Redis) ─────────────────────────────────
+        var cacheKey = CacheKeys.OtpVerification(request.PhoneNumber);
+        var storedPin = await cachePort.GetAsync<string>(cacheKey, cancellationToken);
+
+        if (string.IsNullOrWhiteSpace(storedPin) || storedPin != request.Pin)
         {
             logger.LogWarning(
-                "Failed login attempt for phone: {Phone}. Incorrect PIN.", request.PhoneNumber);
+                "Failed login attempt for phone: {Phone}. Incorrect or expired PIN.", request.PhoneNumber);
             return Error.Unauthorized("Auth.InvalidCredentials",
-                "Nomor HP atau PIN tidak valid.");
+                "Nomor HP atau PIN tidak valid atau sudah kedaluwarsa.");
         }
+
+        // Successfully verified, remove OTP from cache to prevent replay
+        await cachePort.RemoveAsync(cacheKey, cancellationToken);
 
         // ── 3. Issue Access Token ─────────────────────────────────────────
         var (accessToken, accessExpiry) = jwtService.GenerateAccessToken(driver);

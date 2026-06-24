@@ -12,7 +12,23 @@ namespace EDCL.Module.Auth.Api;
 [Produces("application/json", "application/x-msgpack")]
 public sealed class AuthController(ISender mediator) : ControllerBase
 {
-    /// <summary>Login driver menggunakan nomor HP dan PIN.</summary>
+    /// <summary>Meminta pengiriman kode OTP ke nomor HP.</summary>
+    [HttpPost("request-otp")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(ApiResponse<object>), 200)]
+    public async Task<IActionResult> RequestOtp(
+        [FromBody] Application.Commands.RequestOtp.RequestOtpCommand command,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(command, cancellationToken);
+        var traceId = HttpContext.GetTraceId();
+
+        return result.Match<IActionResult>(
+            onSuccess: _ => Ok(ApiResponse<object>.Success(null, traceId, message: "OTP sent.")),
+            onFailure: error => BadRequest(ApiResponse<object>.Fail(error.Message, traceId, 400)));
+    }
+
+    /// <summary>Login driver menggunakan nomor HP dan PIN atau OTP.</summary>
     /// <remarks>
     /// Mengembalikan access token (15 menit) dan refresh token (30 hari).
     /// Simpan refresh token di secure storage dan gunakan untuk memperbarui

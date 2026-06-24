@@ -35,6 +35,7 @@ public static class CacheKeys
     public static string Supplier(long supplierId)              => $"supplier:{supplierId}";
     public static string SupplierByCode(string code)            => $"supplier:code:{code}";
     public static string Idempotency(long driverId, string key) => $"idempotency:{driverId}:{key}";
+    public static string OtpVerification(string phone)          => $"otp:driver:{phone}";
 }
 
 /// <summary>
@@ -42,11 +43,12 @@ public static class CacheKeys
 /// </summary>
 public static class CacheTtl
 {
-    public static readonly TimeSpan DriverProfile  = TimeSpan.FromMinutes(5);
-    public static readonly TimeSpan Dashboard      = TimeSpan.FromSeconds(30);
-    public static readonly TimeSpan JobStops       = TimeSpan.FromMinutes(2);
-    public static readonly TimeSpan StopManifests  = TimeSpan.FromSeconds(10);
-    public static readonly TimeSpan ManifestParts  = TimeSpan.FromMinutes(5);
-    public static readonly TimeSpan MasterData     = TimeSpan.FromHours(1);
-    public static readonly TimeSpan Idempotency    = TimeSpan.FromHours(24);
+    public static readonly TimeSpan DriverProfile   = TimeSpan.FromMinutes(5);
+    public static readonly TimeSpan Dashboard       = TimeSpan.FromSeconds(30);
+    public static readonly TimeSpan JobStops        = TimeSpan.FromMinutes(2);
+    public static readonly TimeSpan StopManifests   = TimeSpan.FromSeconds(10);
+    public static readonly TimeSpan ManifestParts   = TimeSpan.FromMinutes(5);
+    public static readonly TimeSpan MasterData      = TimeSpan.FromHours(1);
+    public static readonly TimeSpan Idempotency     = TimeSpan.FromHours(24);
+    public static readonly TimeSpan OtpVerification = TimeSpan.FromMinutes(3);
 }

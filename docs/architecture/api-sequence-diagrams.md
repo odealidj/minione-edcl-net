@@ -17,8 +17,8 @@ Agar mudah dipahami, dokumentasi ini dikelompokkan berdasarkan **Module**.
 ## 1. Module Auth
 Module ini bertanggung jawab atas pembuatan token JWT, registrasi pengguna, dan manajemen sesi.
 
-### 1.1. Driver Login
-**Endpoint:** `POST /api/v1/auth/login`
+### 1.1. Driver Login (2-Step OTP Verification)
+**Endpoints:** `POST /api/v1/auth/request-otp` & `POST /api/v1/auth/login`
 
 ```mermaid
 sequenceDiagram
@@ -27,41 +27,60 @@ sequenceDiagram
     participant Gateway as API Gateway (YARP)
     participant Ctrl as AuthController
     participant MediatR as MediatR Pipeline
-    participant Hndl as LoginCommandHandler
+    participant Hndl as CommandHandlers
     participant Repo as DriverRepository
+    participant Cache as Redis (ICachePort)
     participant Jwt as JwtTokenService
     participant DB as SQL Server (Auth)
 
-    Driver->>Gateway: POST /login (Phone, Password)
+    rect rgb(240, 248, 255)
+    Note over Driver, DB: Step 1: Request OTP
+    Driver->>Gateway: POST /request-otp (PhoneNumber)
+    Gateway->>Ctrl: Forward Request
+    Ctrl->>MediatR: Send(RequestOtpCommand)
+    MediatR->>Hndl: Handle()
+    Hndl->>Repo: FindActiveByPhoneAsync()
+    Repo-->>Hndl: Return Driver Entity
+    Hndl->>Hndl: Generate 4-digit PIN
+    Hndl->>Cache: SetAsync(OtpKey, PIN, TTL: 3 mins)
+    Cache-->>Hndl: OK
+    Hndl->>Hndl: Log / Mock Send SMS/WA
+    Hndl-->>Ctrl: Success Result
+    Ctrl-->>Gateway: HTTP 200 OK (OTP sent)
+    Gateway-->>Driver: HTTP 200 OK
+    end
+
+    rect rgb(255, 250, 240)
+    Note over Driver, DB: Step 2: Verify PIN & Login
+    Driver->>Gateway: POST /login (PhoneNumber, PIN)
     Gateway->>Ctrl: Forward Request
     Ctrl->>MediatR: Send(LoginCommand)
     MediatR->>Hndl: Handle()
-    Hndl->>Repo: GetByPhone()
-    Repo->>DB: Query Driver
-    DB-->>Repo: Return Driver Entity
+    Hndl->>Repo: FindActiveByPhoneAsync()
     Repo-->>Hndl: Return Driver Entity
-    Hndl->>Hndl: Verify Password Hash (BCrypt)
+    Hndl->>Cache: GetAsync(OtpKey)
+    Cache-->>Hndl: Return stored PIN
     
-    alt Password Invalid
-        Hndl-->>MediatR: Error (Invalid Credentials)
-        MediatR-->>Ctrl: Error Result
+    alt PIN Invalid / Expired
+        Hndl-->>Ctrl: Error Result (Invalid Credentials)
         Ctrl-->>Gateway: HTTP 401 Unauthorized
         Gateway-->>Driver: HTTP 401 Unauthorized
-    else Password Valid
+    else PIN Valid
+        Hndl->>Cache: RemoveAsync(OtpKey)
         Hndl->>Jwt: GenerateAccessToken(Claims, Role: Driver)
         Jwt-->>Hndl: Access Token
         Hndl->>Jwt: GenerateRefreshToken()
         Jwt-->>Hndl: Refresh Token
         Hndl->>Repo: SaveRefreshToken(Hash, Expiry)
         Repo->>DB: Insert/Update Token
-        Hndl-->>MediatR: AuthResponse
-        MediatR-->>Ctrl: Success Result
+        Hndl-->>Ctrl: Success Result
         Ctrl-->>Gateway: HTTP 200 OK
         Gateway-->>Driver: HTTP 200 OK (Tokens)
     end
+    end
 ```
 **Penjelasan:**
-- Driver login menggunakan Nomor HP dan Password. Sistem memverifikasi kredensial menggunakan BCrypt.
+- Driver meminta OTP (berlaku 3 menit) yang disimpan di Redis, lalu memverifikasinya melalui endpoint login.
 - Jika sukses, sistem meng-generate *Access Token* (umur pendek, misal 15 menit) dan *Refresh Token* (umur panjang, misal 30 hari).
 - Refresh Token di-hash dan disimpan di database untuk mencegah pencurian token, sehingga bisa di-*revoke* (cabut akses) kapan saja.
 

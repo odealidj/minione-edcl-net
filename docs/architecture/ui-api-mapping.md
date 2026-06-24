@@ -7,6 +7,20 @@ Dokumen ini memetakan tampilan antarmuka (UI) aplikasi klien (Mobile/Web) dengan
 ## 1. Driver Login
 
 Tampilan awal aplikasi untuk Driver masuk ke dalam sistem. Saat ini UI hanya menampilkan input "Nomor Handphone", namun API secara aktual membutuhkan parameter tambahan berupa "PIN" atau "Password".
+## 1. Driver Login (2-Step OTP Verification)
+
+**Tampilan:** Layar Login Aplikasi Mobile Driver
+**Endpoint:**
+- **Step 1 (Request OTP):** `POST /api/v1/auth/request-otp`
+- **Step 2 (Verify PIN):** `POST /api/v1/auth/login`
+
+**Deskripsi Alur:**
+1. Driver memasukkan Nomor HP.
+2. Aplikasi memanggil `POST /request-otp`. Backend membuat 4-digit PIN acak, menyimpannya di Redis (TTL 3 menit), dan mengirimkannya via SMS/WA/Notifikasi (saat ini *mocked* di log console).
+3. Driver menerima PIN dan memasukkannya di layar aplikasi.
+4. Aplikasi memanggil `POST /login` dengan Nomor HP & PIN tersebut.
+5. Backend memverifikasi PIN dengan Redis. Jika cocok, PIN dihapus dari Redis dan Backend menerbitkan JWT Access Token & Refresh Token.
+*(Catatan Frontend: Mengingat desain UI saat ini hanya memiliki input "Nomor Handphone", tim Frontend perlu memastikan dengan desainer apakah ada layar/step kedua untuk input PIN/OTP, atau jika ini versi *mockup*, pastikan parameter `pin` tetap dikirim).*
 
 <img src="../assets/images/login-driver.png" width="300" alt="Driver Login UI" />
 
@@ -26,7 +40,6 @@ Endpoint ini akan memverifikasi kredensial driver dan mengembalikan Access Token
   "pin": "123456" 
 }
 ```
-*(Catatan Frontend: Mengingat desain UI saat ini hanya memiliki input "Nomor Handphone", tim Frontend perlu memastikan dengan desainer apakah ada layar/step kedua untuk input PIN/OTP, atau jika ini versi *mockup*, pastikan parameter `pin` tetap dikirim).*
 
 **Contoh Response (Success):**
 ```json
