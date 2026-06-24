@@ -32,10 +32,10 @@ graph TD
 
     %% Client Interactions
     Client -->|HTTP/REST| Gateway
-    Gateway -->|HTTP (Internal)| Auth
-    Gateway -->|HTTP (Internal)| Job
-    Gateway -->|HTTP (Internal)| Cargo
-    Gateway -->|HTTP (Internal)| Notif
+    Gateway -->|HTTP Internal| Auth
+    Gateway -->|HTTP Internal| Job
+    Gateway -->|HTTP Internal| Cargo
+    Gateway -->|HTTP Internal| Notif
 
     %% Module DB Interactions (Strict Boundaries)
     Auth -.->|Read/Write Schema: Auth| SQL
@@ -48,7 +48,7 @@ graph TD
     Cargo -.->|Cache| Redis
 
     %% Outbox & Event Publishing
-    Job -->|Insert Outbox (Same TX)| SQL
+    Job -->|Insert Outbox Same TX| SQL
     W_Outbox -->|1. Poll Outbox Table| SQL
     W_Outbox -->|2. Publish Domain Events| RabbitMQ
     
