@@ -17,38 +17,38 @@ Agar mudah dipahami, dokumentasi ini dikelompokkan berdasarkan **Module**.
 ## 1. Module Auth
 Module ini bertanggung jawab atas pembuatan token JWT, registrasi pengguna, dan manajemen sesi.
 
-### 1.1. Driver Login & AppUser Login
-**Endpoint:** `POST /api/v1/auth/login` (Driver) | `POST /api/v1/auth/users/login` (AppUser)
+### 1.1. Driver Login
+**Endpoint:** `POST /api/v1/auth/login`
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Client
+    actor Driver
     participant Gateway as API Gateway (YARP)
     participant Ctrl as AuthController
     participant MediatR as MediatR Pipeline
     participant Hndl as LoginCommandHandler
-    participant Repo as Driver/UserRepository
+    participant Repo as DriverRepository
     participant Jwt as JwtTokenService
     participant DB as SQL Server (Auth)
 
-    Client->>Gateway: POST /login (Username/Phone, Password)
+    Driver->>Gateway: POST /login (Phone, Password)
     Gateway->>Ctrl: Forward Request
     Ctrl->>MediatR: Send(LoginCommand)
     MediatR->>Hndl: Handle()
-    Hndl->>Repo: GetByUsernameOrPhone()
-    Repo->>DB: Query User/Driver
-    DB-->>Repo: Return Entity
-    Repo-->>Hndl: Return Entity
+    Hndl->>Repo: GetByPhone()
+    Repo->>DB: Query Driver
+    DB-->>Repo: Return Driver Entity
+    Repo-->>Hndl: Return Driver Entity
     Hndl->>Hndl: Verify Password Hash (BCrypt)
     
     alt Password Invalid
         Hndl-->>MediatR: Error (Invalid Credentials)
         MediatR-->>Ctrl: Error Result
         Ctrl-->>Gateway: HTTP 401 Unauthorized
-        Gateway-->>Client: HTTP 401 Unauthorized
+        Gateway-->>Driver: HTTP 401 Unauthorized
     else Password Valid
-        Hndl->>Jwt: GenerateAccessToken(Claims, Role)
+        Hndl->>Jwt: GenerateAccessToken(Claims, Role: Driver)
         Jwt-->>Hndl: Access Token
         Hndl->>Jwt: GenerateRefreshToken()
         Jwt-->>Hndl: Refresh Token
@@ -57,15 +57,62 @@ sequenceDiagram
         Hndl-->>MediatR: AuthResponse
         MediatR-->>Ctrl: Success Result
         Ctrl-->>Gateway: HTTP 200 OK
-        Gateway-->>Client: HTTP 200 OK (Tokens)
+        Gateway-->>Driver: HTTP 200 OK (Tokens)
     end
 ```
 **Penjelasan:**
-- Login driver dan web user memiliki alur yang identik. Sistem memverifikasi kredensial menggunakan BCrypt.
+- Driver login menggunakan Nomor HP dan Password. Sistem memverifikasi kredensial menggunakan BCrypt.
 - Jika sukses, sistem meng-generate *Access Token* (umur pendek, misal 15 menit) dan *Refresh Token* (umur panjang, misal 30 hari).
 - Refresh Token di-hash dan disimpan di database untuk mencegah pencurian token, sehingga bisa di-*revoke* (cabut akses) kapan saja.
 
-### 1.2. Refresh Token
+### 1.2. AppUser Login (Web Admin)
+**Endpoint:** `POST /api/v1/auth/users/login`
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor AppUser
+    participant Gateway as API Gateway (YARP)
+    participant Ctrl as AppUsersController
+    participant MediatR as MediatR Pipeline
+    participant Hndl as LoginAppUserCommandHandler
+    participant Repo as AppUserRepository
+    participant Jwt as JwtTokenService
+    participant DB as SQL Server (Auth)
+
+    AppUser->>Gateway: POST /users/login (Username, Password)
+    Gateway->>Ctrl: Forward Request
+    Ctrl->>MediatR: Send(LoginAppUserCommand)
+    MediatR->>Hndl: Handle()
+    Hndl->>Repo: GetByUsername()
+    Repo->>DB: Query AppUser
+    DB-->>Repo: Return AppUser Entity
+    Repo-->>Hndl: Return AppUser Entity
+    Hndl->>Hndl: Verify Password Hash (BCrypt)
+    
+    alt Password Invalid
+        Hndl-->>MediatR: Error (Invalid Credentials)
+        MediatR-->>Ctrl: Error Result
+        Ctrl-->>Gateway: HTTP 401 Unauthorized
+        Gateway-->>AppUser: HTTP 401 Unauthorized
+    else Password Valid
+        Hndl->>Jwt: GenerateAccessToken(Claims, AppUser.Role)
+        Jwt-->>Hndl: Access Token
+        Hndl->>Jwt: GenerateRefreshToken()
+        Jwt-->>Hndl: Refresh Token
+        Hndl->>Repo: SaveRefreshToken(Hash, Expiry)
+        Repo->>DB: Insert/Update Token
+        Hndl-->>MediatR: AuthResponse
+        MediatR-->>Ctrl: Success Result
+        Ctrl-->>Gateway: HTTP 200 OK
+        Gateway-->>AppUser: HTTP 200 OK (Tokens)
+    end
+```
+**Penjelasan:**
+- Login untuk pengguna Web Admin (AppUser) menggunakan *Username* dan Password. 
+- Alur intinya identik dengan login Driver, namun diarahkan ke `AppUsersController` dan tabel `app_users` untuk menjaga separasi entitas. Role code (misal: `ADMIN`) akan di-inject ke dalam JWT Claims.
+
+### 1.3. Refresh Token
 **Endpoint:** `POST /api/v1/auth/refresh`
 
 ```mermaid
