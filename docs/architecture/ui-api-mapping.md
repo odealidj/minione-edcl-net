@@ -4,7 +4,56 @@ Dokumen ini memetakan tampilan antarmuka (UI) aplikasi klien (Mobile/Web) dengan
 
 ---
 
-## 1. Notification: New Job / Job Details
+## 1. Driver Login
+
+Tampilan awal aplikasi untuk Driver masuk ke dalam sistem. Saat ini UI hanya menampilkan input "Nomor Handphone", namun API secara aktual membutuhkan parameter tambahan berupa "PIN" atau "Password".
+
+<img src="../assets/images/login-driver.png" width="300" alt="Driver Login UI" />
+
+### API Endpoints Terkait
+
+#### A. Eksekusi Login
+Endpoint ini akan memverifikasi kredensial driver dan mengembalikan Access Token serta Refresh Token.
+
+- **URL:** `POST /api/v1/auth/login`
+- **Method:** `POST`
+- **Auth:** *(None / Public)*
+
+**Request Body:**
+```json
+{
+  "phoneNumber": "08123456789",
+  "pin": "123456" 
+}
+```
+*(Catatan Frontend: Mengingat desain UI saat ini hanya memiliki input "Nomor Handphone", tim Frontend perlu memastikan dengan desainer apakah ada layar/step kedua untuk input PIN/OTP, atau jika ini versi *mockup*, pastikan parameter `pin` tetap dikirim).*
+
+**Contoh Response (Success):**
+```json
+{
+  "success": true,
+  "traceId": "0HN...:00000003",
+  "data": {
+    "driverId": 1,
+    "name": "LISTIONO",
+    "nik": "DRV-001",
+    "photoUrl": "https://...",
+    "transporterName": "PT. BINTANG",
+    "accessToken": "eyJhbGci...",
+    "refreshToken": "d2FkYm...",
+    "accessTokenExpiresAt": "2024-04-21T10:15:00Z",
+    "refreshTokenExpiresAt": "2024-05-21T10:00:00Z"
+  }
+}
+```
+**Mapping ke UI:**
+- Input `Nomor Handphone` ➡️ Dimasukkan ke *payload* `phoneNumber` pada request API.
+- Tombol `MASUK` ➡️ Memicu request POST ke server.
+- **Handling Token:** Parameter `accessToken` dan `refreshToken` dari respons wajib disimpan dengan aman di sisi klien (contoh: *Encrypted SharedPreferences* di Android atau *Keychain* di iOS) untuk dipanggil sebagai `Authorization: Bearer` pada layar berikutnya.
+
+---
+
+## 2. Notification: New Job / Job Details
 
 Tampilan ini muncul ketika *Driver* mengetuk notifikasi "Kerjaan Baru", atau ketika mereka membuka detail rute dari dashboard. Layar ini menampilkan daftar *Supplier* beserta estimasi kedatangan (Arrival Plan).
 
