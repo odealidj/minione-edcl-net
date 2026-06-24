@@ -17,12 +17,11 @@ Tampilan awal aplikasi untuk Driver masuk ke dalam sistem. Saat ini UI hanya men
 **Deskripsi Alur:**
 1. Driver memasukkan Nomor HP.
 2. Aplikasi memanggil `POST /request-otp`. Backend membuat 4-digit PIN acak, menyimpannya di Redis (TTL 3 menit), dan mengirimkannya via SMS/WA/Notifikasi (saat ini *mocked* di log console).
-3. Driver menerima PIN dan memasukkannya di layar aplikasi.
+3. Driver menerima PIN dan memasukkannya di layar aplikasi pada input "PIN OTP".
 4. Aplikasi memanggil `POST /login` dengan Nomor HP & PIN tersebut.
 5. Backend memverifikasi PIN dengan Redis. Jika cocok, PIN dihapus dari Redis dan Backend menerbitkan JWT Access Token & Refresh Token.
-*(Catatan Frontend: Mengingat desain UI saat ini hanya memiliki input "Nomor Handphone", tim Frontend perlu memastikan dengan desainer apakah ada layar/step kedua untuk input PIN/OTP, atau jika ini versi *mockup*, pastikan parameter `pin` tetap dikirim).*
 
-<img src="../assets/images/login-driver.png" width="300" alt="Driver Login UI" />
+<img src="../assets/images/login-driver-otp.png" width="300" alt="Driver Login UI (OTP)" />
 
 ### API Endpoints Terkait
 
