@@ -27,3 +27,4 @@
 /home/aliube/Workspace/Project-Personal/Net/gemini/edcl-mini/be/src/Modules/Driver/EDCL.Module.Driver/obj/Debug/net10.0/staticwebassets.development.json
 /home/aliube/Workspace/Project-Personal/Net/gemini/edcl-mini/be/src/Modules/Driver/EDCL.Module.Driver/obj/Debug/net10.0/staticwebassets.build.endpoints.json
 /home/aliube/Workspace/Project-Personal/Net/gemini/edcl-mini/be/src/Modules/Driver/EDCL.Module.Driver/obj/Debug/net10.0/swae.build.ex.cache
+/home/aliube/Workspace/Project-Personal/Net/gemini/edcl-mini/be/src/Modules/Driver/EDCL.Module.Driver/obj/Debug/net10.0/EDCL.Module.Driver.sourcelink.json

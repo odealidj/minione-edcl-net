@@ -30,3 +30,4 @@
 /home/aliube/Workspace/Project-Personal/Net/gemini/edcl-mini/be/src/Modules/Notification/EDCL.Module.Notification/obj/Debug/net10.0/staticwebassets.build.endpoints.json
 /home/aliube/Workspace/Project-Personal/Net/gemini/edcl-mini/be/src/Modules/Notification/EDCL.Module.Notification/obj/Debug/net10.0/swae.build.ex.cache
 /home/aliube/Workspace/Project-Personal/Net/gemini/edcl-mini/be/src/Modules/Notification/EDCL.Module.Notification/obj/Debug/net10.0/EDCL.Mod.BE2A5710.Up2Date
+/home/aliube/Workspace/Project-Personal/Net/gemini/edcl-mini/be/src/Modules/Notification/EDCL.Module.Notification/obj/Debug/net10.0/EDCL.Module.Notification.sourcelink.json

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -167,7 +167,7 @@ namespace EDCL.Infrastructure.Persistence.Migrations
                 table: "drivers",
                 column: "PhoneNumber",
                 unique: true,
-                filter: "[is_active] = 1");
+                filter: "[IsActive] = 1");
 
             migrationBuilder.CreateIndex(
                 name: "UQ_drivers_nik",

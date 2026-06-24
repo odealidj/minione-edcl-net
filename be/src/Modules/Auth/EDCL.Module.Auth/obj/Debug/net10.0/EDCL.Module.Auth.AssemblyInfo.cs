@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("EDCL.Module.Auth")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+3668eab73e297db91957a3662181e1967cb657c6")]
 [assembly: System.Reflection.AssemblyProductAttribute("EDCL.Module.Auth")]
 [assembly: System.Reflection.AssemblyTitleAttribute("EDCL.Module.Auth")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

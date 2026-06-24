@@ -33,6 +33,8 @@ public static class AuthModuleRegistration
         // ── Repositories ──────────────────────────────────────────────────
         services.AddScoped<IDriverRepository, DriverRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+        services.AddScoped<IAppUserRepository, AppUserRepository>();
+        services.AddScoped<IRoleRepository, RoleRepository>();
 
         // ── Domain Services ───────────────────────────────────────────────
         services.AddScoped<IJwtTokenService, JwtTokenService>();

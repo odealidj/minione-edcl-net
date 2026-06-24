@@ -218,6 +218,10 @@
           }
         },
         "centralPackageVersions": {
+          "AspNetCore.HealthChecks.Rabbitmq": "9.0.0",
+          "AspNetCore.HealthChecks.Redis": "9.0.0",
+          "AspNetCore.HealthChecks.SqlServer": "9.0.0",
+          "AspNetCore.HealthChecks.UI.Client": "9.0.0",
           "AspNetCoreRateLimit": "5.0.0",
           "BCrypt.Net-Next": "4.0.3",
           "coverlet.collector": "6.0.4",

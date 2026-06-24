@@ -24,3 +24,4 @@
 /home/aliube/Workspace/Project-Personal/Net/gemini/edcl-mini/be/src/Shared/EDCL.Shared.Infrastructure/obj/Debug/net10.0/refint/EDCL.Shared.Infrastructure.dll
 /home/aliube/Workspace/Project-Personal/Net/gemini/edcl-mini/be/src/Shared/EDCL.Shared.Infrastructure/obj/Debug/net10.0/EDCL.Shared.Infrastructure.pdb
 /home/aliube/Workspace/Project-Personal/Net/gemini/edcl-mini/be/src/Shared/EDCL.Shared.Infrastructure/obj/Debug/net10.0/ref/EDCL.Shared.Infrastructure.dll
+/home/aliube/Workspace/Project-Personal/Net/gemini/edcl-mini/be/src/Shared/EDCL.Shared.Infrastructure/obj/Debug/net10.0/EDCL.Shared.Infrastructure.sourcelink.json

@@ -72,3 +72,21 @@ public sealed class DriverPortAdapter(AuthDbContext db) : IDriverPort
             IsActive: driver.IsActive);
     }
 }
+
+public sealed class AppUserRepository(AuthDbContext db) : IAppUserRepository
+{
+    public Task<AppUser?> FindByEmailAsync(string email, CancellationToken ct)
+        => db.AppUsers.FirstOrDefaultAsync(u => u.Email == email && !u.IsDeleted, ct);
+
+    public async Task AddAsync(AppUser user, CancellationToken ct)
+        => await db.AppUsers.AddAsync(user, ct);
+
+    public Task SaveChangesAsync(CancellationToken ct)
+        => db.SaveChangesAsync(ct);
+}
+
+public sealed class RoleRepository(AuthDbContext db) : IRoleRepository
+{
+    public Task<Role?> FindByCodeAsync(string code, CancellationToken ct)
+        => db.Roles.FirstOrDefaultAsync(r => r.Code == code && r.IsActive && !r.IsDeleted, ct);
+}

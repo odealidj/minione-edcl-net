@@ -10,3 +10,4 @@
 /home/aliube/Workspace/Project-Personal/Net/gemini/edcl-mini/be/src/Shared/EDCL.Shared.Kernel/obj/Debug/net10.0/refint/EDCL.Shared.Kernel.dll
 /home/aliube/Workspace/Project-Personal/Net/gemini/edcl-mini/be/src/Shared/EDCL.Shared.Kernel/obj/Debug/net10.0/EDCL.Shared.Kernel.pdb
 /home/aliube/Workspace/Project-Personal/Net/gemini/edcl-mini/be/src/Shared/EDCL.Shared.Kernel/obj/Debug/net10.0/ref/EDCL.Shared.Kernel.dll
+/home/aliube/Workspace/Project-Personal/Net/gemini/edcl-mini/be/src/Shared/EDCL.Shared.Kernel/obj/Debug/net10.0/EDCL.Shared.Kernel.sourcelink.json

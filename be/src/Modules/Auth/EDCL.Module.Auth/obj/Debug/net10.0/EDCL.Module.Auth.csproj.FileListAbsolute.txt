@@ -78,3 +78,4 @@
 /home/aliube/Workspace/Project-Personal/Net/gemini/edcl-mini/be/src/Modules/Auth/EDCL.Module.Auth/bin/Debug/net10.0/BuildHost-netcore/zh-Hant/System.CommandLine.resources.dll
 /home/aliube/Workspace/Project-Personal/Net/gemini/edcl-mini/be/src/Modules/Auth/EDCL.Module.Auth/bin/Debug/net10.0/EDCL.Module.Auth.runtimeconfig.json
 /home/aliube/Workspace/Project-Personal/Net/gemini/edcl-mini/be/src/Modules/Auth/EDCL.Module.Auth/obj/Debug/net10.0/EDCL.Module.Auth.genruntimeconfig.cache
+/home/aliube/Workspace/Project-Personal/Net/gemini/edcl-mini/be/src/Modules/Auth/EDCL.Module.Auth/obj/Debug/net10.0/EDCL.Module.Auth.sourcelink.json

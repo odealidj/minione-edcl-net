@@ -14,14 +14,36 @@ Accept: application/json
 ### AUTHENTICATION MODULE
 ### ──────────────────────────────────────────────
 
-### 1. Login
-# @name login
+### 1. Driver Login
+# @name driver_login
 POST {{GatewayUrl}}/auth/login
 Content-Type: application/json
 
 {
   "phoneNumber": "08123456789",
   "pin": "123456"
+}
+
+### 1a. AppUser Register
+# @name appuser_register
+POST {{GatewayUrl}}/auth/users/register
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "Password123!",
+  "fullName": "Super Admin",
+  "roleCode": "ADMIN"
+}
+
+### 1b. AppUser Login
+# @name appuser_login
+POST {{GatewayUrl}}/auth/users/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "Password123!"
 }
 
 ### 2. Refresh Token

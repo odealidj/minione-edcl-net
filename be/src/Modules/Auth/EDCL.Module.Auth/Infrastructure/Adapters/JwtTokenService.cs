@@ -24,6 +24,42 @@ public sealed class JwtTokenService(IConfiguration configuration) : IJwtTokenSer
 
     public (string AccessToken, DateTime ExpiresAt) GenerateAccessToken(Driver driver)
     {
+        var claims = new[]
+        {
+            new Claim(JwtRegisteredClaimNames.Sub,  driver.Id.ToString()),
+            new Claim("driver_id",                  driver.Id.ToString()),
+            new Claim("name",                       driver.Name),
+            new Claim("nik",                        driver.Nik),
+            new Claim(ClaimTypes.Role,              "DRIVER"),
+            new Claim(JwtRegisteredClaimNames.Jti,  Guid.NewGuid().ToString()),
+            new Claim(JwtRegisteredClaimNames.Iat,
+                new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds().ToString(),
+                ClaimValueTypes.Integer64)
+        };
+
+        return GenerateToken(claims);
+    }
+
+    public (string AccessToken, DateTime ExpiresAt) GenerateAccessToken(AppUser user)
+    {
+        var claims = new[]
+        {
+            new Claim(JwtRegisteredClaimNames.Sub,  user.Id.ToString()),
+            new Claim("user_id",                    user.Id.ToString()),
+            new Claim("name",                       user.Name),
+            new Claim("email",                      user.Email),
+            new Claim(ClaimTypes.Role,              user.Role.Code),
+            new Claim(JwtRegisteredClaimNames.Jti,  Guid.NewGuid().ToString()),
+            new Claim(JwtRegisteredClaimNames.Iat,
+                new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds().ToString(),
+                ClaimValueTypes.Integer64)
+        };
+
+        return GenerateToken(claims);
+    }
+
+    private (string AccessToken, DateTime ExpiresAt) GenerateToken(Claim[] claims)
+    {
         var secret    = _jwtConfig["AccessTokenSecret"]!;
         var issuer    = _jwtConfig["Issuer"]!;
         var audience  = _jwtConfig["Audience"]!;
@@ -32,18 +68,6 @@ public sealed class JwtTokenService(IConfiguration configuration) : IJwtTokenSer
 
         var key   = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-        var claims = new[]
-        {
-            new Claim(JwtRegisteredClaimNames.Sub,  driver.Id.ToString()),
-            new Claim("driver_id",                  driver.Id.ToString()),
-            new Claim("name",                       driver.Name),
-            new Claim("nik",                        driver.Nik),
-            new Claim(JwtRegisteredClaimNames.Jti,  Guid.NewGuid().ToString()),
-            new Claim(JwtRegisteredClaimNames.Iat,
-                new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds().ToString(),
-                ClaimValueTypes.Integer64)
-        };
 
         var token = new JwtSecurityToken(
             issuer: issuer,

@@ -256,3 +256,10 @@
 /home/aliube/Workspace/Project-Personal/Net/gemini/edcl-mini/be/src/Host/EDCL.Api/bin/Debug/net10.0/zh-Hant/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll
 /home/aliube/Workspace/Project-Personal/Net/gemini/edcl-mini/be/src/Host/EDCL.Api/bin/Debug/net10.0/runtimes/win/lib/net9.0/System.Windows.Extensions.dll
 /home/aliube/Workspace/Project-Personal/Net/gemini/edcl-mini/be/src/Host/EDCL.Api/bin/Debug/net10.0/Dapper.dll
+/home/aliube/Workspace/Project-Personal/Net/gemini/edcl-mini/be/src/Host/EDCL.Api/obj/Debug/net10.0/EDCL.Api.sourcelink.json
+/home/aliube/Workspace/Project-Personal/Net/gemini/edcl-mini/be/src/Host/EDCL.Api/bin/Debug/net10.0/HealthChecks.Rabbitmq.dll
+/home/aliube/Workspace/Project-Personal/Net/gemini/edcl-mini/be/src/Host/EDCL.Api/bin/Debug/net10.0/HealthChecks.Redis.dll
+/home/aliube/Workspace/Project-Personal/Net/gemini/edcl-mini/be/src/Host/EDCL.Api/bin/Debug/net10.0/HealthChecks.SqlServer.dll
+/home/aliube/Workspace/Project-Personal/Net/gemini/edcl-mini/be/src/Host/EDCL.Api/bin/Debug/net10.0/HealthChecks.UI.Client.dll
+/home/aliube/Workspace/Project-Personal/Net/gemini/edcl-mini/be/src/Host/EDCL.Api/bin/Debug/net10.0/HealthChecks.UI.Core.dll
+/home/aliube/Workspace/Project-Personal/Net/gemini/edcl-mini/be/src/Host/EDCL.Api/bin/Debug/net10.0/RabbitMQ.Client.dll

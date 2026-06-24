@@ -24,7 +24,22 @@ public interface IRefreshTokenRepository
 public interface IJwtTokenService
 {
     (string AccessToken, DateTime ExpiresAt) GenerateAccessToken(Driver driver);
+    (string AccessToken, DateTime ExpiresAt) GenerateAccessToken(AppUser user);
     (string RawToken, string HashedToken)    GenerateRefreshToken();
     bool TryValidateRefreshToken(string hashedToken, string rawToken);
     int RefreshTokenExpiryDays { get; }
+}
+
+/// <summary>Repository port for AppUser domain operations.</summary>
+public interface IAppUserRepository
+{
+    Task<AppUser?> FindByEmailAsync(string email, CancellationToken ct = default);
+    Task AddAsync(AppUser user, CancellationToken ct = default);
+    Task SaveChangesAsync(CancellationToken ct = default);
+}
+
+/// <summary>Repository port for Role domain operations.</summary>
+public interface IRoleRepository
+{
+    Task<Role?> FindByCodeAsync(string code, CancellationToken ct = default);
 }

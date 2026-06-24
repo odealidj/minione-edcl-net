@@ -78,3 +78,4 @@
 /home/aliube/Workspace/Project-Personal/Net/gemini/edcl-mini/be/src/Modules/Job/EDCL.Module.Job/bin/Debug/net10.0/BuildHost-netcore/zh-Hant/System.CommandLine.resources.dll
 /home/aliube/Workspace/Project-Personal/Net/gemini/edcl-mini/be/src/Modules/Job/EDCL.Module.Job/bin/Debug/net10.0/EDCL.Module.Job.runtimeconfig.json
 /home/aliube/Workspace/Project-Personal/Net/gemini/edcl-mini/be/src/Modules/Job/EDCL.Module.Job/obj/Debug/net10.0/EDCL.Module.Job.genruntimeconfig.cache
+/home/aliube/Workspace/Project-Personal/Net/gemini/edcl-mini/be/src/Modules/Job/EDCL.Module.Job/obj/Debug/net10.0/EDCL.Module.Job.sourcelink.json

@@ -30,3 +30,4 @@
 /home/aliube/Workspace/Project-Personal/Net/gemini/edcl-mini/be/src/Modules/Cargo/EDCL.Module.Cargo/obj/Debug/net10.0/staticwebassets.build.endpoints.json
 /home/aliube/Workspace/Project-Personal/Net/gemini/edcl-mini/be/src/Modules/Cargo/EDCL.Module.Cargo/obj/Debug/net10.0/swae.build.ex.cache
 /home/aliube/Workspace/Project-Personal/Net/gemini/edcl-mini/be/src/Modules/Cargo/EDCL.Module.Cargo/obj/Debug/net10.0/EDCL.Mod.6F1311C3.Up2Date
+/home/aliube/Workspace/Project-Personal/Net/gemini/edcl-mini/be/src/Modules/Cargo/EDCL.Module.Cargo/obj/Debug/net10.0/EDCL.Module.Cargo.sourcelink.json

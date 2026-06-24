@@ -62,8 +62,8 @@ try
 
     builder.Services.AddHealthChecks()
         .AddSqlServer(defaultConn, name: "Database", tags: new[] { "db", "sql", "sqlserver" })
-        .AddRedis(redisConn, name: "Redis", tags: new[] { "cache", "redis" })
-        .AddRabbitMQ(rabbitConnectionString: rabbitmqConn, name: "RabbitMQ", tags: new[] { "messagebroker", "rabbitmq" });
+        .AddRedis(redisConn, name: "Redis", tags: new[] { "cache", "redis" });
+        //.AddRabbitMQ(setup => setup.ConnectionUri = new Uri(rabbitmqConn), name: "RabbitMQ", tags: new[] { "messagebroker", "rabbitmq" });
 
     var app = builder.Build();
 

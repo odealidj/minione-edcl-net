@@ -30,7 +30,7 @@ internal sealed class DriverConfiguration : IEntityTypeConfiguration<Driver>
         // Partial unique index: only 1 active phone per driver
         builder.HasIndex(d => d.PhoneNumber)
             .IsUnique()
-            .HasFilter("[is_active] = 1")
+            .HasFilter("[IsActive] = 1")
             .HasDatabaseName("UIX_drivers_active_phone");
 
         // Performance index for dashboard queries
@@ -140,5 +140,106 @@ internal sealed class RefreshTokenConfiguration : IEntityTypeConfiguration<Refre
         builder.HasIndex(rt => rt.Token).HasDatabaseName("IX_refresh_tokens_token");
         builder.HasIndex(rt => new { rt.DriverId, rt.IsRevoked })
             .HasDatabaseName("IX_refresh_tokens_driver_active");
+    }
+}
+
+internal sealed class RoleConfiguration : IEntityTypeConfiguration<Role>
+{
+    public void Configure(EntityTypeBuilder<Role> builder)
+    {
+        builder.ToTable("roles");
+        builder.HasKey(r => r.Id);
+        builder.Property(r => r.Id).UseIdentityColumn();
+        
+        builder.Property(r => r.Code).HasMaxLength(50).IsRequired();
+        builder.Property(r => r.Name).HasMaxLength(150).IsRequired();
+        builder.Property(r => r.Description).HasMaxLength(500);
+        builder.Property(r => r.IsActive).HasDefaultValue(true);
+
+        ConfigureAuditColumns(builder);
+
+        builder.HasIndex(r => r.Code).IsUnique().HasDatabaseName("UQ_roles_code");
+
+        // Seed Default Admin Role
+        builder.HasData(
+            new
+            {
+                Id = 1L,
+                Code = "ADMIN",
+                Name = "System Administrator",
+                Description = "Has full access to all features",
+                IsActive = true,
+                CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                CreatedBy = "SYSTEM",
+                IsDeleted = false
+            },
+            new
+            {
+                Id = 2L,
+                Code = "USER",
+                Name = "Standard User",
+                Description = "Standard access for web client",
+                IsActive = true,
+                CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                CreatedBy = "SYSTEM",
+                IsDeleted = false
+            }
+        );
+    }
+
+    private static void ConfigureAuditColumns<T>(EntityTypeBuilder<T> builder)
+        where T : AuditableEntity
+    {
+        builder.Property(e => e.CreatedAt).HasColumnName("created_at")
+            .HasColumnType("datetime2(7)").HasDefaultValueSql("GETUTCDATE()").IsRequired();
+        builder.Property(e => e.CreatedBy).HasColumnName("created_by").HasMaxLength(100).IsRequired();
+        builder.Property(e => e.UpdatedAt).HasColumnName("updated_at").HasColumnType("datetime2(7)");
+        builder.Property(e => e.UpdatedBy).HasColumnName("updated_by").HasMaxLength(100);
+        builder.Property(e => e.IsDeleted).HasColumnName("is_deleted").HasDefaultValue(false);
+        builder.Property(e => e.DeletedAt).HasColumnName("deleted_at").HasColumnType("datetime2(7)");
+        builder.Property(e => e.DeletedBy).HasColumnName("deleted_by").HasMaxLength(100);
+        builder.Property(e => e.RowVersion).HasColumnName("row_version").IsRowVersion();
+        builder.Property(e => e.TraceId).HasColumnName("trace_id").HasMaxLength(64);
+        builder.HasQueryFilter(e => !e.IsDeleted);
+    }
+}
+
+internal sealed class AppUserConfiguration : IEntityTypeConfiguration<AppUser>
+{
+    public void Configure(EntityTypeBuilder<AppUser> builder)
+    {
+        builder.ToTable("app_users");
+        builder.HasKey(u => u.Id);
+        builder.Property(u => u.Id).UseIdentityColumn();
+
+        builder.Property(u => u.Name).HasMaxLength(150).IsRequired();
+        builder.Property(u => u.Email).HasMaxLength(150).IsRequired();
+        builder.Property(u => u.PasswordHash).HasMaxLength(255).IsRequired();
+        builder.Property(u => u.IsActive).HasDefaultValue(true);
+
+        ConfigureAuditColumns(builder);
+
+        builder.HasIndex(u => u.Email).IsUnique().HasDatabaseName("UQ_app_users_email");
+
+        builder.HasOne(u => u.Role)
+            .WithMany(r => r.Users)
+            .HasForeignKey(u => u.RoleId)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+
+    private static void ConfigureAuditColumns<T>(EntityTypeBuilder<T> builder)
+        where T : AuditableEntity
+    {
+        builder.Property(e => e.CreatedAt).HasColumnName("created_at")
+            .HasColumnType("datetime2(7)").HasDefaultValueSql("GETUTCDATE()").IsRequired();
+        builder.Property(e => e.CreatedBy).HasColumnName("created_by").HasMaxLength(100).IsRequired();
+        builder.Property(e => e.UpdatedAt).HasColumnName("updated_at").HasColumnType("datetime2(7)");
+        builder.Property(e => e.UpdatedBy).HasColumnName("updated_by").HasMaxLength(100);
+        builder.Property(e => e.IsDeleted).HasColumnName("is_deleted").HasDefaultValue(false);
+        builder.Property(e => e.DeletedAt).HasColumnName("deleted_at").HasColumnType("datetime2(7)");
+        builder.Property(e => e.DeletedBy).HasColumnName("deleted_by").HasMaxLength(100);
+        builder.Property(e => e.RowVersion).HasColumnName("row_version").IsRowVersion();
+        builder.Property(e => e.TraceId).HasColumnName("trace_id").HasMaxLength(64);
+        builder.HasQueryFilter(e => !e.IsDeleted);
     }
 }
