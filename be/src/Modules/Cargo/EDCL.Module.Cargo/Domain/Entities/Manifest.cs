@@ -16,9 +16,14 @@ public class Manifest : AuditableEntity
     // Status can be Pending, Scanned, etc.
     public string Status { get; private set; } = "Pending";
 
-    // Navigations
     private readonly List<ManifestPart> _parts = new();
     public IReadOnlyCollection<ManifestPart> Parts => _parts.AsReadOnly();
+
+    private readonly List<ManifestKanban> _kanbans = new();
+    public IReadOnlyCollection<ManifestKanban> Kanbans => _kanbans.AsReadOnly();
+
+    private readonly List<ManifestSkid> _skids = new();
+    public IReadOnlyCollection<ManifestSkid> Skids => _skids.AsReadOnly();
 
     protected Manifest() { } // EF Core
 

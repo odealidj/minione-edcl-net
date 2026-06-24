@@ -133,6 +133,11 @@ GET {{GatewayUrl}}/manifests/1/parts
 Authorization: Bearer {{AccessToken}}
 Accept: application/json
 
+### 11a. Get Manifest Kanbans (Paginated)
+GET {{GatewayUrl}}/manifests/1/kanbans?pageNumber=1&pageSize=10
+Authorization: Bearer {{AccessToken}}
+Accept: application/json
+
 
 ### ──────────────────────────────────────────────
 ### NOTIFICATION MODULE

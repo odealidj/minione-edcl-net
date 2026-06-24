@@ -39,4 +39,21 @@ public sealed class CargoController(IMediator mediator, ICurrentUserService curr
             err => NotFound(ApiResponse<object>.Fail(err.Message, traceId, 404))
         );
     }
+
+    [HttpGet("{manifestId}/kanbans")]
+    public async Task<IActionResult> GetManifestKanbans(
+        long manifestId, 
+        [FromQuery] int pageNumber = 1, 
+        [FromQuery] int pageSize = 10,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new EDCL.Module.Cargo.Application.Queries.GetManifestKanbanDetails.GetManifestKanbanDetailsQuery(manifestId, pageNumber, pageSize);
+        var result = await mediator.Send(query, cancellationToken);
+        var traceId = currentUserService.CurrentTraceId ?? HttpContext.TraceIdentifier;
+
+        return result.Match<IActionResult>(
+            ok => Ok(ApiResponse<EDCL.Module.Cargo.Application.Queries.GetManifestKanbanDetails.PaginatedResult<EDCL.Module.Cargo.Application.Queries.GetManifestKanbanDetails.ManifestKanbanDto>>.Success(ok, traceId)),
+            err => NotFound(ApiResponse<object>.Fail(err.Message, traceId, 404))
+        );
+    }
 }

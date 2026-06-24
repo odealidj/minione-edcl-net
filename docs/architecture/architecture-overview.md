@@ -17,7 +17,7 @@ graph TD
     subgraph API_Monolith [EDCL.Api - Modular Monolith]
         Auth["🔐 Auth Module\n(JWT, Roles, Users, Drivers)"]
         Job["🚚 Job Module\n(Route, Stop, Kanban)"]
-        Cargo["📦 Cargo Module\n(Manifest, Parts)"]
+        Cargo["📦 Cargo Module\n(Manifest, Parts, Skid, Kanban)"]
         Notif["🔔 Notification Module\n(Alerts, Messages)"]
     end
     

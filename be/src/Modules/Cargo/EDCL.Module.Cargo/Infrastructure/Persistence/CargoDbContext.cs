@@ -8,6 +8,8 @@ public class CargoDbContext(DbContextOptions<CargoDbContext> options) : DbContex
 {
     public DbSet<Manifest> Manifests => Set<Manifest>();
     public DbSet<ManifestPart> ManifestParts => Set<ManifestPart>();
+    public DbSet<ManifestKanban> ManifestKanbans => Set<ManifestKanban>();
+    public DbSet<ManifestSkid> ManifestSkids => Set<ManifestSkid>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -28,6 +30,16 @@ public class CargoDbContext(DbContextOptions<CargoDbContext> options) : DbContex
              .WithOne(p => p.Manifest)
              .HasForeignKey(p => p.ManifestId)
              .OnDelete(DeleteBehavior.Cascade);
+
+            b.HasMany(x => x.Kanbans)
+             .WithOne(k => k.Manifest)
+             .HasForeignKey(k => k.ManifestId)
+             .OnDelete(DeleteBehavior.Cascade);
+
+            b.HasMany(x => x.Skids)
+             .WithOne(s => s.Manifest)
+             .HasForeignKey(s => s.ManifestId)
+             .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<ManifestPart>(b =>
@@ -38,6 +50,21 @@ public class CargoDbContext(DbContextOptions<CargoDbContext> options) : DbContex
             b.Property(x => x.PartName).HasMaxLength(100).IsRequired();
             b.Property(x => x.KanbanNo).HasMaxLength(50).IsRequired();
             b.Property(x => x.Status).HasMaxLength(20).IsRequired();
+        });
+
+        modelBuilder.Entity<ManifestKanban>(b =>
+        {
+            b.ToTable("manifest_kanbans");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.PartNo).HasMaxLength(50).IsRequired();
+            b.Property(x => x.KanbanCd).HasMaxLength(100).IsRequired();
+        });
+
+        modelBuilder.Entity<ManifestSkid>(b =>
+        {
+            b.ToTable("manifest_skids");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.SkidNo).HasMaxLength(50).IsRequired();
         });
 
         base.OnModelCreating(modelBuilder);
