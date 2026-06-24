@@ -1,0 +1,66 @@
+@GatewayUrl = http://localhost:5293/api/v1
+@ApiUrl = http://localhost:5140/api/v1
+@AccessToken = <your_token_here>
+@IdempotencyKey = {{$guid}}
+
+### 1. Auth - Login
+# @name login
+POST {{GatewayUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "phoneNumber": "08123456789",
+  "pin": "123456"
+}
+
+### Store the access token for subsequent requests
+# You can manually copy the token from the response above and replace <your_token_here>
+
+### 2. Job - Get Dashboard
+GET {{GatewayUrl}}/jobs/dashboard
+Authorization: Bearer {{AccessToken}}
+Accept: application/json
+
+### 3. Job - Start Job
+POST {{GatewayUrl}}/jobs/1/start
+Authorization: Bearer {{AccessToken}}
+X-Idempotency-Key: {{IdempotencyKey}}
+Content-Type: application/json
+
+{}
+
+### 4. Job - Get Route Stops
+GET {{GatewayUrl}}/jobs/1/stops
+Authorization: Bearer {{AccessToken}}
+Accept: application/json
+
+### 5. Job - Scan Kanban
+POST {{GatewayUrl}}/jobs/stops/1/manifests/1/kanban
+Authorization: Bearer {{AccessToken}}
+X-Idempotency-Key: {{IdempotencyKey}}
+Content-Type: application/json
+
+{
+  "kanbanCode": "KB-12345"
+}
+
+### 6. Job - Complete Stop
+POST {{GatewayUrl}}/jobs/stops/1/complete
+Authorization: Bearer {{AccessToken}}
+X-Idempotency-Key: {{IdempotencyKey}}
+Content-Type: application/json
+
+{
+  "forceComplete": false,
+  "reason": ""
+}
+
+### 7. Notification - Get Notifications
+GET {{GatewayUrl}}/notifications
+Authorization: Bearer {{AccessToken}}
+Accept: application/json
+
+### 8. Cargo - Get Manifests
+GET {{GatewayUrl}}/manifests/stops/1
+Authorization: Bearer {{AccessToken}}
+Accept: application/json

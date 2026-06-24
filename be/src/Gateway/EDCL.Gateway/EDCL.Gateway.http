@@ -1,0 +1,129 @@
+@GatewayUrl = http://localhost:5293/api/v1
+@AccessToken = <your_token_here>
+@IdempotencyKey = {{$guid}}
+
+### ──────────────────────────────────────────────
+### HEALTH CHECK
+### ──────────────────────────────────────────────
+
+### 0. Health Check (API, DB, Redis, RabbitMQ)
+GET http://localhost:5293/health
+Accept: application/json
+
+### ──────────────────────────────────────────────
+### AUTHENTICATION MODULE
+### ──────────────────────────────────────────────
+
+### 1. Login
+# @name login
+POST {{GatewayUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "phoneNumber": "08123456789",
+  "pin": "123456"
+}
+
+### 2. Refresh Token
+POST {{GatewayUrl}}/auth/refresh-token
+Content-Type: application/json
+
+{
+  "refreshToken": "<your_refresh_token>"
+}
+
+### 3. Revoke Token
+POST {{GatewayUrl}}/auth/revoke-token
+Authorization: Bearer {{AccessToken}}
+Content-Type: application/json
+
+{
+  "refreshToken": "<your_refresh_token>"
+}
+
+
+### ──────────────────────────────────────────────
+### JOB MODULE
+### ──────────────────────────────────────────────
+
+### 4. Get Dashboard
+GET {{GatewayUrl}}/jobs/dashboard
+Authorization: Bearer {{AccessToken}}
+Accept: application/json
+
+### 5. Start Job
+POST {{GatewayUrl}}/jobs/1/start
+Authorization: Bearer {{AccessToken}}
+X-Idempotency-Key: {{IdempotencyKey}}
+Content-Type: application/json
+
+{}
+
+### 6. Get Route Stops
+GET {{GatewayUrl}}/jobs/1/route-stops
+Authorization: Bearer {{AccessToken}}
+Accept: application/json
+
+### 7. Scan Kanban
+POST {{GatewayUrl}}/jobs/stops/1/manifests/1/kanban
+Authorization: Bearer {{AccessToken}}
+X-Idempotency-Key: {{IdempotencyKey}}
+Content-Type: application/json
+
+{
+  "kanbanCode": "KB-12345"
+}
+
+### 8. Complete Stop
+POST {{GatewayUrl}}/jobs/stops/1/complete
+Authorization: Bearer {{AccessToken}}
+X-Idempotency-Key: {{IdempotencyKey}}
+Content-Type: application/json
+
+{
+  "forceComplete": false,
+  "reason": ""
+}
+
+### 9. End Job
+POST {{GatewayUrl}}/jobs/1/end
+Authorization: Bearer {{AccessToken}}
+X-Idempotency-Key: {{IdempotencyKey}}
+Content-Type: application/json
+
+{
+  "latitude": -6.200000,
+  "longitude": 106.816666
+}
+
+
+### ──────────────────────────────────────────────
+### CARGO MODULE
+### ──────────────────────────────────────────────
+
+### 10. Get Manifests by Stop ID
+GET {{GatewayUrl}}/manifests/stops/1
+Authorization: Bearer {{AccessToken}}
+Accept: application/json
+
+### 11. Get Manifest Parts
+GET {{GatewayUrl}}/manifests/1/parts
+Authorization: Bearer {{AccessToken}}
+Accept: application/json
+
+
+### ──────────────────────────────────────────────
+### NOTIFICATION MODULE
+### ──────────────────────────────────────────────
+
+### 12. Get Notifications
+GET {{GatewayUrl}}/notifications
+Authorization: Bearer {{AccessToken}}
+Accept: application/json
+
+### 13. Mark Notification as Read
+POST {{GatewayUrl}}/notifications/1/read
+Authorization: Bearer {{AccessToken}}
+Content-Type: application/json
+
+{}

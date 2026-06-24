@@ -1,0 +1,98 @@
+version: '3.8'
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: edcl_sqlserver
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "${SA_PASSWORD}"
+    ports:
+      - "${SQL_SERVER_PORT}:1433"
+    volumes:
+      - sql_data:/var/opt/mssql
+
+  redis:
+    image: redis:7-alpine
+    container_name: edcl_redis
+    ports:
+      - "${REDIS_PORT}:6379"
+    volumes:
+      - redis_data:/data
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: edcl_rabbitmq
+    ports:
+      - "${RABBITMQ_PORT}:5672"
+      - "${RABBITMQ_UI_PORT}:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+  edcl-api:
+    build:
+      context: .
+      dockerfile: src/Host/EDCL.Api/Dockerfile
+    container_name: edcl_api
+    depends_on:
+      - sqlserver
+      - redis
+      - rabbitmq
+    environment:
+      - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=EDCLMini;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;
+      - ConnectionStrings__RedisConnection=redis:6379,abortConnect=false
+      - ASPNETCORE_ENVIRONMENT=Development
+
+  edcl-gateway:
+    build:
+      context: .
+      dockerfile: src/Gateway/EDCL.Gateway/Dockerfile
+    container_name: edcl_gateway
+    depends_on:
+      - edcl-api
+    environment:
+      - ReverseProxy__Clusters__edcl-api-cluster__Destinations__destination1__Address=http://edcl-api:8080
+      - ASPNETCORE_ENVIRONMENT=Development
+    ports:
+      - "${GATEWAY_PORT}:8080"
+
+  edcl-worker-ingestion:
+    build:
+      context: .
+      dockerfile: workers/EDCL.Worker.Ingestion/Dockerfile
+    container_name: edcl_worker_ingestion
+    depends_on:
+      - sqlserver
+      - rabbitmq
+    environment:
+      - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=EDCLMini;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;
+      - DOTNET_ENVIRONMENT=Development
+
+  edcl-worker-outbox:
+    build:
+      context: .
+      dockerfile: workers/EDCL.Worker.Outbox/Dockerfile
+    container_name: edcl_worker_outbox
+    depends_on:
+      - sqlserver
+      - rabbitmq
+    environment:
+      - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=EDCLMini;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;
+      - DOTNET_ENVIRONMENT=Development
+
+  edcl-worker-reporter:
+    build:
+      context: .
+      dockerfile: workers/EDCL.Worker.Reporter/Dockerfile
+    container_name: edcl_worker_reporter
+    depends_on:
+      - sqlserver
+      - rabbitmq
+    environment:
+      - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=EDCLMini;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;
+      - DOTNET_ENVIRONMENT=Development
+
+volumes:
+  sql_data:
+  redis_data:
+  rabbitmq_data:

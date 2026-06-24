@@ -1,0 +1,10 @@
+**/.git
+**/bin/
+**/obj/
+**/.vs/
+**/.vscode/
+**/tests/
+**/docs/
+*.md
+.env
+docker-compose.yml

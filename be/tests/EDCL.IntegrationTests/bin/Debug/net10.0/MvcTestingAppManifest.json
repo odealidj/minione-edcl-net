@@ -1,0 +1,11 @@
+{
+  "EDCL.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "\/home\/aliube\/Workspace\/Project-Personal\/Net\/gemini\/edcl-mini\/be\/src\/Host\/EDCL.Api",
+  "EDCL.Module.Auth, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "\/home\/aliube\/Workspace\/Project-Personal\/Net\/gemini\/edcl-mini\/be\/src\/Modules\/Auth\/EDCL.Module.Auth",
+  "EDCL.Module.Cargo, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "\/home\/aliube\/Workspace\/Project-Personal\/Net\/gemini\/edcl-mini\/be\/src\/Modules\/Cargo\/EDCL.Module.Cargo",
+  "EDCL.Module.Driver, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "\/home\/aliube\/Workspace\/Project-Personal\/Net\/gemini\/edcl-mini\/be\/src\/Modules\/Driver\/EDCL.Module.Driver",
+  "EDCL.Module.Job, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "\/home\/aliube\/Workspace\/Project-Personal\/Net\/gemini\/edcl-mini\/be\/src\/Modules\/Job\/EDCL.Module.Job",
+  "EDCL.Module.Notification, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "\/home\/aliube\/Workspace\/Project-Personal\/Net\/gemini\/edcl-mini\/be\/src\/Modules\/Notification\/EDCL.Module.Notification",
+  "EDCL.Shared.Http, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "\/home\/aliube\/Workspace\/Project-Personal\/Net\/gemini\/edcl-mini\/be\/src\/Shared\/EDCL.Shared.Http",
+  "EDCL.Shared.Infrastructure, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "\/home\/aliube\/Workspace\/Project-Personal\/Net\/gemini\/edcl-mini\/be\/src\/Shared\/EDCL.Shared.Infrastructure",
+  "EDCL.Shared.Kernel, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "\/home\/aliube\/Workspace\/Project-Personal\/Net\/gemini\/edcl-mini\/be\/src\/Shared\/EDCL.Shared.Kernel"
+}

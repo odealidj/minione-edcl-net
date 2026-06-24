@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <UserSecretsId>edcl-worker-ingestion</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup Label="NuGet Packages">
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="MassTransit" />
+    <PackageReference Include="MassTransit.RabbitMQ" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
+    <PackageReference Include="Serilog.AspNetCore" />
+    <PackageReference Include="Polly" />
+  </ItemGroup>
+
+  <ItemGroup Label="Project References">
+    <ProjectReference Include="..\..\src\Shared\EDCL.Shared.Kernel\EDCL.Shared.Kernel.csproj" />
+    <ProjectReference Include="..\..\src\Shared\EDCL.Shared.Infrastructure\EDCL.Shared.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

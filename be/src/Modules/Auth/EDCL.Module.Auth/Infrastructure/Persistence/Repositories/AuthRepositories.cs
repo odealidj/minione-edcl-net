@@ -1,0 +1,74 @@
+using EDCL.Module.Auth.Application.Ports;
+using EDCL.Module.Auth.Domain.Entities;
+using EDCL.Shared.Kernel.Ports;
+using Microsoft.EntityFrameworkCore;
+
+namespace EDCL.Module.Auth.Infrastructure.Persistence.Repositories;
+
+public sealed class DriverRepository(AuthDbContext db) : IDriverRepository
+{
+    public Task<Driver?> FindActiveByPhoneAsync(string phoneNumber, CancellationToken ct)
+        => db.Drivers
+            .Include(d => d.Transporter)
+            .FirstOrDefaultAsync(d => d.PhoneNumber == phoneNumber && d.IsActive, ct);
+
+    public Task<Driver?> FindByIdAsync(long id, CancellationToken ct)
+        => db.Drivers
+            .Include(d => d.Transporter)
+            .FirstOrDefaultAsync(d => d.Id == id, ct);
+
+    public Task UpdateAsync(Driver driver, CancellationToken ct)
+    {
+        db.Drivers.Update(driver);
+        return Task.CompletedTask;
+    }
+
+    public Task SaveChangesAsync(CancellationToken ct)
+        => db.SaveChangesAsync(ct);
+}
+
+public sealed class RefreshTokenRepository(AuthDbContext db) : IRefreshTokenRepository
+{
+    public Task<RefreshToken?> FindByHashedTokenAsync(string hashedToken, CancellationToken ct)
+        => db.RefreshTokens
+            .Include(rt => rt.Driver).ThenInclude(d => d!.Transporter)
+            .FirstOrDefaultAsync(rt => rt.Token == hashedToken, ct);
+
+    public Task<IList<RefreshToken>> GetActiveTokensByDriverAsync(long driverId, CancellationToken ct)
+        => db.RefreshTokens
+            .Where(rt => rt.DriverId == driverId && !rt.IsRevoked)
+            .ToListAsync(ct)
+            .ContinueWith(t => (IList<RefreshToken>)t.Result, ct);
+
+    public async Task AddAsync(RefreshToken token, CancellationToken ct)
+        => await db.RefreshTokens.AddAsync(token, ct);
+
+    public Task SaveChangesAsync(CancellationToken ct)
+        => db.SaveChangesAsync(ct);
+}
+
+/// <summary>
+/// Implements IDriverPort (Shared.Kernel contract) so other modules
+/// can get driver info without directly referencing Auth's DbContext.
+/// </summary>
+public sealed class DriverPortAdapter(AuthDbContext db) : IDriverPort
+{
+    public async Task<DriverInfo?> GetActiveDriverByIdAsync(long driverId, CancellationToken ct)
+    {
+        var driver = await db.Drivers
+            .Include(d => d.Transporter)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(d => d.Id == driverId && d.IsActive, ct);
+
+        if (driver is null) return null;
+
+        return new DriverInfo(
+            Id: driver.Id,
+            Nik: driver.Nik,
+            Name: driver.Name,
+            PhoneNumber: driver.PhoneNumber,
+            PhotoUrl: driver.PhotoUrl,
+            TransporterName: driver.Transporter?.Name,
+            IsActive: driver.IsActive);
+    }
+}

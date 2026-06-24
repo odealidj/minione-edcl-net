@@ -1,0 +1,39 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/Gateway/">
+    <Project Path="src/Gateway/EDCL.Gateway/EDCL.Gateway.csproj" />
+  </Folder>
+  <Folder Name="/src/Host/">
+    <Project Path="src/Host/EDCL.Api/EDCL.Api.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/" />
+  <Folder Name="/src/Modules/Auth/">
+    <Project Path="src/Modules/Auth/EDCL.Module.Auth/EDCL.Module.Auth.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Cargo/">
+    <Project Path="src/Modules/Cargo/EDCL.Module.Cargo/EDCL.Module.Cargo.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Driver/">
+    <Project Path="src/Modules/Driver/EDCL.Module.Driver/EDCL.Module.Driver.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Job/">
+    <Project Path="src/Modules/Job/EDCL.Module.Job/EDCL.Module.Job.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Notification/">
+    <Project Path="src/Modules/Notification/EDCL.Module.Notification/EDCL.Module.Notification.csproj" />
+  </Folder>
+  <Folder Name="/src/Shared/">
+    <Project Path="src/Shared/EDCL.Shared.Http/EDCL.Shared.Http.csproj" />
+    <Project Path="src/Shared/EDCL.Shared.Infrastructure/EDCL.Shared.Infrastructure.csproj" />
+    <Project Path="src/Shared/EDCL.Shared.Kernel/EDCL.Shared.Kernel.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/EDCL.IntegrationTests/EDCL.IntegrationTests.csproj" />
+    <Project Path="tests/EDCL.UnitTests/EDCL.UnitTests.csproj" />
+  </Folder>
+  <Folder Name="/workers/">
+    <Project Path="workers/EDCL.Worker.Ingestion/EDCL.Worker.Ingestion.csproj" />
+    <Project Path="workers/EDCL.Worker.Outbox/EDCL.Worker.Outbox.csproj" />
+    <Project Path="workers/EDCL.Worker.Reporter/EDCL.Worker.Reporter.csproj" />
+  </Folder>
+</Solution>

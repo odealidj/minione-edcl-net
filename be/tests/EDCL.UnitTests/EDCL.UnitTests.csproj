@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup Label="Test Packages">
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Moq" />
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="MediatR" />
+  </ItemGroup>
+
+  <ItemGroup Label="Project References">
+    <ProjectReference Include="..\..\src\Shared\EDCL.Shared.Kernel\EDCL.Shared.Kernel.csproj" />
+    <ProjectReference Include="..\..\src\Shared\EDCL.Shared.Infrastructure\EDCL.Shared.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Shared\EDCL.Shared.Http\EDCL.Shared.Http.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Auth\EDCL.Module.Auth\EDCL.Module.Auth.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Job\EDCL.Module.Job\EDCL.Module.Job.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Cargo\EDCL.Module.Cargo\EDCL.Module.Cargo.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Notification\EDCL.Module.Notification\EDCL.Module.Notification.csproj" />
+  </ItemGroup>
+
+</Project>

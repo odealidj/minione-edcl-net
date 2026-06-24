@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup Label="NuGet Packages">
+    <PackageReference Include="AspNetCore.HealthChecks.Rabbitmq" />
+    <PackageReference Include="AspNetCore.HealthChecks.Redis" />
+    <PackageReference Include="AspNetCore.HealthChecks.SqlServer" />
+    <PackageReference Include="AspNetCore.HealthChecks.UI.Client" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Serilog.AspNetCore" />
+    <PackageReference Include="Scalar.AspNetCore" />
+    <PackageReference Include="MessagePack.AspNetCoreMvcFormatter" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+    <PackageReference Include="StackExchange.Redis" />
+  </ItemGroup>
+
+  <ItemGroup Label="Project References">
+    <ProjectReference Include="..\..\Shared\EDCL.Shared.Kernel\EDCL.Shared.Kernel.csproj" />
+    <ProjectReference Include="..\..\Shared\EDCL.Shared.Infrastructure\EDCL.Shared.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Shared\EDCL.Shared.Http\EDCL.Shared.Http.csproj" />
+    <ProjectReference Include="..\..\Modules\Auth\EDCL.Module.Auth\EDCL.Module.Auth.csproj" />
+    <ProjectReference Include="..\..\Modules\Driver\EDCL.Module.Driver\EDCL.Module.Driver.csproj" />
+    <ProjectReference Include="..\..\Modules\Job\EDCL.Module.Job\EDCL.Module.Job.csproj" />
+    <ProjectReference Include="..\..\Modules\Cargo\EDCL.Module.Cargo\EDCL.Module.Cargo.csproj" />
+    <ProjectReference Include="..\..\Modules\Notification\EDCL.Module.Notification\EDCL.Module.Notification.csproj" />
+  </ItemGroup>
+
+</Project>

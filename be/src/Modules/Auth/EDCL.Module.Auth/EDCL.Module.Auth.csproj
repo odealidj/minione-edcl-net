@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsPublishable>false</IsPublishable>
+    <OutputType>Library</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup Label="NuGet Packages">
+    <PackageReference Include="BCrypt.Net-Next" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+    <PackageReference Include="MediatR" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" />
+  </ItemGroup>
+
+  <ItemGroup Label="Project References">
+    <ProjectReference Include="..\..\..\Shared\EDCL.Shared.Kernel\EDCL.Shared.Kernel.csproj" />
+    <ProjectReference Include="..\..\..\Shared\EDCL.Shared.Infrastructure\EDCL.Shared.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\Shared\EDCL.Shared.Http\EDCL.Shared.Http.csproj" />
+  </ItemGroup>
+
+</Project>
