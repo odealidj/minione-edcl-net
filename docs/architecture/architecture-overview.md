@@ -13,7 +13,7 @@ graph TD
     Client(["📱 Mobile Client (Driver)"])
     Gateway["🚪 API Gateway (YARP)\n:5293\n─────────────────\nRouting & Reverse Proxy\nSingle Point of Entry"]
     
-    subgraph "EDCL.Api (Modular Monolith)"
+    subgraph API_Monolith [EDCL.Api - Modular Monolith]
         Auth["🔐 Auth Module\n(JWT, Login, Token)"]
         Job["🚚 Job Module\n(Route, Stop, Kanban)"]
         Cargo["📦 Cargo Module\n(Manifest, Parts)"]
@@ -24,7 +24,7 @@ graph TD
     Redis[("🔴 Redis\n:6399\n─────────────────\nDistributed Cache\nIdempotency Keys")]
     RabbitMQ[["📨 RabbitMQ\n:5672\n─────────────────\nMessage Broker\n(MassTransit)"]]
     
-    subgraph "Background Workers (Headless)"
+    subgraph Background_Workers [Background Workers - Headless]
         W_Ingest["📥 Worker.Ingestion\n(Tarik data dari Legacy TMS)"]
         W_Outbox["📤 Worker.Outbox\n(Polling Outbox -> RabbitMQ)"]
         W_Report["📊 Worker.Reporter\n(Consume Events -> Read Models)"]
