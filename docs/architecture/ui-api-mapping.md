@@ -65,7 +65,53 @@ Endpoint ini akan memverifikasi kredensial driver dan mengembalikan Access Token
 
 ---
 
-## 2. Notification: New Job / Job Details
+## 2. Home / Dashboard (Single Source of Truth)
+
+Tampilan ini adalah halaman utama aplikasi (Home Screen) setelah Driver berhasil login. Layar ini bertanggung jawab untuk selalu menarik data pekerjaan terkini, sehingga menjadi perlindungan utama jika Push Notification terlewat/hilang.
+
+*(Gambar Mockup Dashboard/Home Screen belum tersedia)*
+
+### API Endpoints Terkait
+
+#### A. Fetching Dashboard Data (Read)
+Endpoint ini digunakan untuk memuat data profil driver, pekerjaan saat ini (Current Job), dan pekerjaan selanjutnya (Next Job). Aplikasi **wajib** memanggil endpoint ini setiap kali halaman utama dibuka atau di-refresh.
+
+- **URL:** `GET /api/v1/jobs/dashboard`
+- **Method:** `GET`
+- **Auth:** Bearer Token (Driver)
+
+**Contoh Response:**
+```json
+{
+  "success": true,
+  "traceId": "0HN...:00000002",
+  "data": {
+    "profile": {
+      "name": "LISTIONO",
+      "photoUrl": "https://...",
+      "transporterName": "PT. BINTANG"
+    },
+    "currentJob": {
+      "pickupOrderId": 1,
+      "routeCode": "RD23",
+      "cycle": "01",
+      "deliveryNo": "R202402010081",
+      "time": "14:00",
+      "truckPlate": "B 1234 CD"
+    },
+    "nextJob": null
+  }
+}
+```
+
+**Mapping ke UI:**
+- Saat aplikasi dibuka, panggil endpoint ini.
+- Tampilkan `currentJob` di kotak "Tugas Saat Ini". Jika driver mengetuk (tap) kotak tersebut, arahkan driver ke **Halaman Detail Rute/Notifikasi** (Lanjut ke Poin 3).
+- Jika ada notifikasi masuk, setelah diklik, arahkan juga ke Poin 3.
+
+---
+
+## 3. Notification Detail / Route Summary
 
 Tampilan ini muncul ketika *Driver* mengetuk notifikasi "Kerjaan Baru", atau ketika mereka membuka detail rute dari dashboard. Layar ini menampilkan daftar *Supplier* beserta estimasi kedatangan (Arrival Plan).
 
