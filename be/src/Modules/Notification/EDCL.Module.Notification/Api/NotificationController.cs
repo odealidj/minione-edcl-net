@@ -7,14 +7,27 @@ using EDCL.Shared.Http.Responses;
 using EDCL.Shared.Infrastructure.Persistence;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
+/// <summary>
+/// Controller for managing driver notifications.
+/// </summary>
 [ApiController]
 [Route("api/v1/notifications")]
 [Authorize]
 public sealed class NotificationController(IMediator mediator, ICurrentUserService currentUserService) : ControllerBase
 {
+    /// <summary>
+    /// Retrieves all notifications for the currently authenticated driver.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A list of notifications.</returns>
     [HttpGet]
+    [ProducesResponseType(typeof(ApiResponse<NotificationsResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetNotifications(CancellationToken cancellationToken)
     {
         if (currentUserService.DriverId == null)
@@ -30,7 +43,17 @@ public sealed class NotificationController(IMediator mediator, ICurrentUserServi
         );
     }
 
+    /// <summary>
+    /// Marks a specific notification as read.
+    /// </summary>
+    /// <param name="notificationId">The ID of the notification.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>True if successful.</returns>
     [HttpPost("{notificationId}/read")]
+    [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> MarkAsRead(long notificationId, CancellationToken cancellationToken)
     {
         if (currentUserService.DriverId == null)

@@ -23,7 +23,9 @@ public sealed class AppUsersController(IMediator mediator) : ControllerBase
     [AllowAnonymous] // TODO: Change to [Authorize(Roles = "ADMIN")] after initial setup
     [ProducesResponseType(typeof(ApiResponse<RegisterAppUserResponse>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> RegisterAppUser(
         [FromBody] RegisterAppUserCommand command,
         CancellationToken cancellationToken)
@@ -49,6 +51,8 @@ public sealed class AppUsersController(IMediator mediator) : ControllerBase
     [AllowAnonymous]
     [ProducesResponseType(typeof(ApiResponse<EDCL.Module.Auth.Application.Commands.Login.LoginAppUserResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> LoginAppUser(
         [FromBody] EDCL.Module.Auth.Application.Commands.Login.LoginAppUserCommand command,
         CancellationToken cancellationToken)

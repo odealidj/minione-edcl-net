@@ -8,6 +8,10 @@
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <RootNamespace>EDCL</RootNamespace>
+    <!-- Documentation -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591;NU1109</NoWarn>
+    <OpenApiGenerateDocuments>false</OpenApiGenerateDocuments>
     <!-- Reproducible builds -->
     <Deterministic>true</Deterministic>
     <!-- Analysis -->
