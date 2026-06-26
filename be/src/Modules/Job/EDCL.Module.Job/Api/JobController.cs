@@ -57,9 +57,9 @@ public sealed class JobController(IMediator mediator, ICurrentUserService curren
     }
 
     [HttpPost("stops/{stopId}/complete")]
-    public async Task<IActionResult> CompleteStop(long stopId, CancellationToken cancellationToken)
+    public async Task<IActionResult> CompleteStop(long stopId, [FromBody] CompleteStopRequest request, CancellationToken cancellationToken)
     {
-        var command = new CompleteStopCommand(stopId, DriverId);
+        var command = new CompleteStopCommand(stopId, DriverId, request.Latitude, request.Longitude);
         var result = await mediator.Send(command, cancellationToken);
         var traceId = currentUserService.CurrentTraceId ?? HttpContext.TraceIdentifier;
         return result.Match<IActionResult>(
@@ -95,3 +95,4 @@ public sealed class JobController(IMediator mediator, ICurrentUserService curren
 
 public sealed record ScanKanbanRequest(string KanbanCode);
 public sealed record EndJobRequest(double Latitude, double Longitude);
+public sealed record CompleteStopRequest(double Latitude, double Longitude);

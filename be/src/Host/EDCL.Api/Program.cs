@@ -1,5 +1,6 @@
 using EDCL.Module.Auth;
 using EDCL.Module.Job;
+using EDCL.Module.Driver;
 using EDCL.Module.Cargo;
 using EDCL.Module.Notification;
 using EDCL.Shared.Http;
@@ -47,6 +48,7 @@ try
 
     // ── Modules ───────────────────────────────────────────────────────────────
     builder.Services.AddEdclModuleAuth(builder.Configuration);
+    builder.Services.AddEdclModuleDriver(builder.Configuration);
     builder.Services.AddEdclModuleJob(builder.Configuration);
     builder.Services.AddEdclModuleCargo(builder.Configuration);
     builder.Services.AddEdclModuleNotification(builder.Configuration);
@@ -84,6 +86,7 @@ try
 
     // ── Apply Migrations on Startup ───────────────────────────────────────────
     await app.Services.ApplyAuthMigrationsAsync();
+    await app.Services.ApplyDriverMigrationsAsync();
     await app.Services.ApplyJobMigrationsAsync();
     await app.Services.ApplyCargoMigrationsAsync();
     await app.Services.ApplyNotificationMigrationsAsync();

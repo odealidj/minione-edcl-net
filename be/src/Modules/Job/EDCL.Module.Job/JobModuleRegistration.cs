@@ -18,10 +18,11 @@ public static class JobModuleRegistration
 
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(JobModuleRegistration).Assembly));
 
-        // Register dummy ports to pass DI validation
+        // Register dummy notification port (real implementation will come with Outbox Pattern)
         services.AddSingleton<EDCL.Module.Job.Application.Ports.IJobNotificationPort, DummyJobNotificationPort>();
-        services.AddSingleton<EDCL.Shared.Kernel.Ports.ITruckPort, DummyTruckPort>();
-        services.AddSingleton<EDCL.Shared.Kernel.Ports.ISupplierPort, DummySupplierPort>();
+
+        // NOTE: ISupplierPort and ITruckPort are now registered by DriverModuleRegistration
+        // with real database-backed implementations.
 
         return services;
     }
@@ -40,13 +41,3 @@ internal sealed class DummyJobNotificationPort : EDCL.Module.Job.Application.Por
     public Task NotifyDriverJobCompletedAsync(long driverId, long pickupOrderId, CancellationToken cancellationToken = default) => Task.CompletedTask;
 }
 
-internal sealed class DummyTruckPort : EDCL.Shared.Kernel.Ports.ITruckPort
-{
-    public Task<EDCL.Shared.Kernel.Ports.TruckInfo?> GetTruckByIdAsync(long truckId, CancellationToken ct = default) => Task.FromResult<EDCL.Shared.Kernel.Ports.TruckInfo?>(null);
-}
-
-internal sealed class DummySupplierPort : EDCL.Shared.Kernel.Ports.ISupplierPort
-{
-    public Task<EDCL.Shared.Kernel.Ports.SupplierInfo?> GetSupplierByIdAsync(long supplierId, CancellationToken ct = default) => Task.FromResult<EDCL.Shared.Kernel.Ports.SupplierInfo?>(null);
-    public Task<EDCL.Shared.Kernel.Ports.SupplierInfo?> GetSupplierByCodeAsync(string supplierCode, CancellationToken ct = default) => Task.FromResult<EDCL.Shared.Kernel.Ports.SupplierInfo?>(null);
-}

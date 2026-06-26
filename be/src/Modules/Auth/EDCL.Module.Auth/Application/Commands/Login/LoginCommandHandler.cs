@@ -11,7 +11,6 @@ public sealed class LoginCommandHandler(
     IDriverRepository driverRepository,
     IRefreshTokenRepository refreshTokenRepository,
     IJwtTokenService jwtService,
-    ICachePort cachePort,
     ILogger<LoginCommandHandler> logger)
     : IRequestHandler<LoginCommand, Result<LoginResponse>>
 {
@@ -26,20 +25,24 @@ public sealed class LoginCommandHandler(
         if (driver is null)
             return Error.NotFound("Driver", request.PhoneNumber);
 
-        // ── 2. Verify PIN (OTP via Redis) ─────────────────────────────────
-        var cacheKey = CacheKeys.OtpVerification(request.PhoneNumber);
-        var storedPin = await cachePort.GetAsync<string>(cacheKey, cancellationToken);
-
-        if (string.IsNullOrWhiteSpace(storedPin) || storedPin != request.Pin)
+        // ── 2. Verify PIN (Permanent via DB Hash) ─────────────────────────
+        bool isPinValid = false;
+        try
         {
-            logger.LogWarning(
-                "Failed login attempt for phone: {Phone}. Incorrect or expired PIN.", request.PhoneNumber);
-            return Error.Unauthorized("Auth.InvalidCredentials",
-                "Nomor HP atau PIN tidak valid atau sudah kedaluwarsa.");
+            isPinValid = BCrypt.Net.BCrypt.Verify(request.Pin, driver.PinHash);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to verify PIN hash for driver {DriverId}", driver.Id);
         }
 
-        // Successfully verified, remove OTP from cache to prevent replay
-        await cachePort.RemoveAsync(cacheKey, cancellationToken);
+        if (!isPinValid)
+        {
+            logger.LogWarning(
+                "Failed login attempt for phone: {Phone}. Incorrect PIN.", request.PhoneNumber);
+            return Error.Unauthorized("Auth.InvalidCredentials",
+                "Nomor HP atau PIN tidak valid.");
+        }
 
         // ── 3. Issue Access Token ─────────────────────────────────────────
         var (accessToken, accessExpiry) = jwtService.GenerateAccessToken(driver);

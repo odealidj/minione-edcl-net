@@ -5,17 +5,21 @@ using FluentAssertions;
 using Moq;
 using Xunit;
 
+using EDCL.Shared.Kernel.Ports;
+
 namespace EDCL.UnitTests.Modules.Job;
 
 public class CompleteStopCommandHandlerTests
 {
     private readonly Mock<IPickupOrderRepository> _repositoryMock;
+    private readonly Mock<ISupplierPort> _supplierPortMock;
     private readonly CompleteStopCommandHandler _handler;
 
     public CompleteStopCommandHandlerTests()
     {
         _repositoryMock = new Mock<IPickupOrderRepository>();
-        _handler = new CompleteStopCommandHandler(_repositoryMock.Object);
+        _supplierPortMock = new Mock<ISupplierPort>();
+        _handler = new CompleteStopCommandHandler(_repositoryMock.Object, _supplierPortMock.Object);
     }
 
     [Fact]
@@ -25,7 +29,7 @@ public class CompleteStopCommandHandlerTests
         _repositoryMock.Setup(x => x.GetStopByIdWithKanbansAsync(It.IsAny<long>(), default))
             .ReturnsAsync((PickupOrderDetail?)null);
 
-        var command = new CompleteStopCommand(StopId: 1, DriverId: 100);
+        var command = new CompleteStopCommand(StopId: 1, DriverId: 100, Latitude: -6.2, Longitude: 106.8);
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
