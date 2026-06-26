@@ -20,5 +20,6 @@ public sealed record JobCardDto(
     string RouteCode,
     string Cycle,
     string DeliveryNo,
+    string PickupDate,
     string Time,
     string TruckPlate);

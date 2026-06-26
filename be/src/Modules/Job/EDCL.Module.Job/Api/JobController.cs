@@ -5,6 +5,7 @@ using EDCL.Module.Job.Application.Commands.StartJob;
 using EDCL.Module.Job.Application.Queries.GetDashboard;
 using EDCL.Module.Job.Application.Queries.GetRouteStops;
 using EDCL.Shared.Http;
+using EDCL.Shared.Http.Filters;
 using EDCL.Shared.Http.Responses;
 using EDCL.Shared.Infrastructure.Persistence;
 using MediatR;
@@ -51,9 +52,11 @@ public sealed class JobController(IMediator mediator, ICurrentUserService curren
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Boolean indicating success.</returns>
     [HttpPost("{id}/start")]
+    [TypeFilter(typeof(IdempotencyFilterAttribute))]
     [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> StartJob(long id, CancellationToken cancellationToken)
     {

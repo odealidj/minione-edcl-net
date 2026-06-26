@@ -69,7 +69,7 @@ Endpoint ini akan memverifikasi kredensial driver dan mengembalikan Access Token
 
 Tampilan ini adalah halaman utama aplikasi (Home Screen) setelah Driver berhasil login. Layar ini bertanggung jawab untuk selalu menarik data pekerjaan terkini, sehingga menjadi perlindungan utama jika Push Notification terlewat/hilang.
 
-*(Gambar Mockup Dashboard/Home Screen belum tersedia)*
+<img src="../assets/images/home-dashboard.png" width="300" alt="Home Dashboard UI" />
 
 ### API Endpoints Terkait
 
@@ -96,8 +96,9 @@ Endpoint ini digunakan untuk memuat data profil driver, pekerjaan saat ini (Curr
       "routeCode": "RD23",
       "cycle": "01",
       "deliveryNo": "R202402010081",
-      "time": "14:00",
-      "truckPlate": "B 1234 CD"
+      "pickupDate": "25 Apr 2024",
+      "time": "01 Feb 2024, 01:00",
+      "truckPlate": "B 9607 PXT"
     },
     "nextJob": null
   }
@@ -122,7 +123,7 @@ Tampilan ini muncul ketika *Driver* mengetuk notifikasi "Kerjaan Baru", atau ket
 #### A. Fetching Data Rute & Supplier (Read)
 Endpoint ini digunakan untuk memuat keseluruhan teks pada card (Pickup Date, Route, Cycle, dan List Supplier).
 
-- **URL:** `GET /api/v1/jobs/{PickupOrderId}/routes`
+- **URL:** `GET /api/v1/jobs/{id}/route-stops`
 - **Method:** `GET`
 - **Auth:** Bearer Token (Driver)
 

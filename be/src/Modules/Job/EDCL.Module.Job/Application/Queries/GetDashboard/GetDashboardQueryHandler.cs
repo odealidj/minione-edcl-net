@@ -54,7 +54,8 @@ public sealed class GetDashboardQueryHandler(
             RouteCode: routeCode,
             Cycle: cycle,
             DeliveryNo: job.PoNo,
-            Time: job.CreatedAt.ToString("HH:mm"),
+            PickupDate: job.CreatedAt.ToString("dd MMM yyyy"),
+            Time: job.CreatedAt.ToString("dd MMM yyyy, HH:mm"),
             TruckPlate: truckPlate);
     }
 }
