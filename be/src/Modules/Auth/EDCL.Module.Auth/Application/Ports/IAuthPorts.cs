@@ -7,6 +7,8 @@ public interface IDriverRepository
 {
     Task<Driver?> FindActiveByPhoneAsync(string phoneNumber, CancellationToken ct = default);
     Task<Driver?> FindByIdAsync(long id, CancellationToken ct = default);
+    Task<Driver?> FindByNikAsync(string nik, CancellationToken ct = default);
+    Task AddAsync(Driver driver, CancellationToken ct = default);
     Task UpdateAsync(Driver driver, CancellationToken ct = default);
     Task SaveChangesAsync(CancellationToken ct = default);
 }

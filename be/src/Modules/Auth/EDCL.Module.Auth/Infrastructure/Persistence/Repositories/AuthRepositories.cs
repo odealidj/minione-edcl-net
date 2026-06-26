@@ -17,6 +17,13 @@ public sealed class DriverRepository(AuthDbContext db) : IDriverRepository
             .Include(d => d.Transporter)
             .FirstOrDefaultAsync(d => d.Id == id, ct);
 
+    public Task<Driver?> FindByNikAsync(string nik, CancellationToken ct)
+        => db.Drivers
+            .FirstOrDefaultAsync(d => d.Nik == nik && !d.IsDeleted, ct);
+
+    public async Task AddAsync(Driver driver, CancellationToken ct)
+        => await db.Drivers.AddAsync(driver, ct);
+
     public Task UpdateAsync(Driver driver, CancellationToken ct)
     {
         db.Drivers.Update(driver);

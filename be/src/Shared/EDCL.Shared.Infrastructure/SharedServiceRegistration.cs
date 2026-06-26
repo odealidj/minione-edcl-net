@@ -21,24 +21,29 @@ public static class SharedInfrastructureRegistration
         services.AddSingleton<IConnectionMultiplexer>(_ =>
         {
             var redisConfig = configuration.GetSection("Redis");
-            var masterName  = redisConfig["MasterName"] ?? "edcl-master";
-            var endpoints   = redisConfig.GetSection("SentinelEndpoints").Get<string[]>()
-                           ?? ["localhost:26379"];
+            var useSentinel = (redisConfig["UseSentinel"] ?? "false").ToLower() == "true";
             var password    = redisConfig["Password"];
 
             var options = new ConfigurationOptions
             {
-                ServiceName        = masterName,
-                CommandMap          = CommandMap.Sentinel,
                 ConnectTimeout     = int.Parse(redisConfig["ConnectTimeout"] ?? "5000"),
                 SyncTimeout        = int.Parse(redisConfig["SyncTimeout"]    ?? "5000"),
                 AbortOnConnectFail = false,
                 Password            = password
             };
-            foreach (var ep in endpoints)
-                options.EndPoints.Add(ep);
 
-            return ConnectionMultiplexer.SentinelConnect(options);
+            if (useSentinel)
+            {
+                options.ServiceName = redisConfig["MasterName"] ?? "edcl-master";
+                options.CommandMap  = CommandMap.Sentinel;
+                var endpoints = redisConfig.GetSection("SentinelEndpoints").Get<string[]>() ?? ["localhost:26379"];
+                foreach (var ep in endpoints)
+                    options.EndPoints.Add(ep);
+                return ConnectionMultiplexer.SentinelConnect(options);
+            }
+            
+            options.EndPoints.Add(redisConfig["Endpoint"] ?? "localhost:6379");
+            return ConnectionMultiplexer.Connect(options);
         });
 
         services.AddScoped<ICachePort, RedisCacheAdapter>();

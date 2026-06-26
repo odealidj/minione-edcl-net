@@ -1,4 +1,6 @@
 using EDCL.Module.Auth.Application.Commands.RegisterAppUser;
+using EDCL.Shared.Http.Middlewares;
+using EDCL.Shared.Http.Responses;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -19,23 +21,25 @@ public sealed class AppUsersController(IMediator mediator) : ControllerBase
     /// </remarks>
     [HttpPost("register")]
     [AllowAnonymous] // TODO: Change to [Authorize(Roles = "ADMIN")] after initial setup
-    [ProducesResponseType(typeof(RegisterAppUserResponse), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ApiResponse<RegisterAppUserResponse>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> RegisterAppUser(
         [FromBody] RegisterAppUserCommand command,
         CancellationToken cancellationToken)
     {
         var result = await mediator.Send(command, cancellationToken);
+        var traceId = HttpContext.GetTraceId();
+
         if (result.IsFailure)
         {
             if (result.Error.Code == "AppUser.EmailInUse")
-                return Conflict(result.Error);
+                return Conflict(ApiResponse<object>.Fail(result.Error.Message, traceId, StatusCodes.Status409Conflict));
                 
-            return BadRequest(result.Error);
+            return BadRequest(ApiResponse<object>.Fail(result.Error.Message, traceId, StatusCodes.Status400BadRequest));
         }
 
-        return Created(string.Empty, result.Value);
+        return Created(string.Empty, ApiResponse<RegisterAppUserResponse>.Created(result.Value, traceId));
     }
 
     /// <summary>
@@ -43,16 +47,18 @@ public sealed class AppUsersController(IMediator mediator) : ControllerBase
     /// </summary>
     [HttpPost("login")]
     [AllowAnonymous]
-    [ProducesResponseType(typeof(EDCL.Module.Auth.Application.Commands.Login.LoginAppUserResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<EDCL.Module.Auth.Application.Commands.Login.LoginAppUserResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> LoginAppUser(
         [FromBody] EDCL.Module.Auth.Application.Commands.Login.LoginAppUserCommand command,
         CancellationToken cancellationToken)
     {
         var result = await mediator.Send(command, cancellationToken);
-        if (result.IsFailure)
-            return BadRequest(result.Error);
+        var traceId = HttpContext.GetTraceId();
 
-        return Ok(result.Value);
+        if (result.IsFailure)
+            return BadRequest(ApiResponse<object>.Fail(result.Error.Message, traceId, StatusCodes.Status400BadRequest));
+
+        return Ok(ApiResponse<EDCL.Module.Auth.Application.Commands.Login.LoginAppUserResponse>.Success(result.Value, traceId));
     }
 }

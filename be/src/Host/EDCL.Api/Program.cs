@@ -27,6 +27,14 @@ try
     builder.Services.Configure<HostOptions>(o =>
         o.ShutdownTimeout = TimeSpan.FromSeconds(30));
 
+    // ── Forwarded Headers (for YARP Gateway) ──────────────────────────────────
+    builder.Services.Configure<Microsoft.AspNetCore.Builder.ForwardedHeadersOptions>(options =>
+    {
+        options.ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor | Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto | Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedHost;
+        options.KnownNetworks.Clear();
+        options.KnownProxies.Clear();
+    });
+
     // ── Shared Infrastructure (Redis Sentinel, EF Interceptors) ──────────────
     builder.Services.AddEdclSharedInfrastructure(builder.Configuration);
 
@@ -52,6 +60,12 @@ try
         opts.OutputFormatters.Add(new MessagePackOutputFormatter());
     });
 
+    // ── CORS ────────────────────────────────────────────────────────────────
+    builder.Services.AddCors(opts =>
+    {
+        opts.AddPolicy("AllowAll", b => b.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+    });
+
     // ── OpenAPI / Scalar / Swagger ────────────────────────────────────────────
     builder.Services.AddOpenApi();
     builder.Services.AddEndpointsApiExplorer();
@@ -75,6 +89,7 @@ try
     await app.Services.ApplyNotificationMigrationsAsync();
 
     // ── Middleware Pipeline ───────────────────────────────────────────────────
+    app.UseForwardedHeaders();
     app.UseSerilogRequestLogging(opts =>
     {
         opts.EnrichDiagnosticContext = (diag, ctx) =>
@@ -87,6 +102,7 @@ try
     app.UseMiddleware<EDCL.Shared.Http.Middlewares.TraceIdMiddleware>();
     app.UseMiddleware<EDCL.Shared.Http.Middlewares.GlobalExceptionHandlerMiddleware>();
 
+    app.UseCors("AllowAll");
     app.UseAuthentication();
     app.UseAuthorization();
 
