@@ -52,8 +52,9 @@ try
         opts.OutputFormatters.Add(new MessagePackOutputFormatter());
     });
 
-    // ── OpenAPI / Scalar ──────────────────────────────────────────────────────
+    // ── OpenAPI / Scalar / Swagger ────────────────────────────────────────────
     builder.Services.AddOpenApi();
+    builder.Services.AddEndpointsApiExplorer();
 
     // ── Health Checks ─────────────────────────────────────────────────────────
     var defaultConn = builder.Configuration.GetConnectionString("DefaultConnection") ?? "";
@@ -95,9 +96,14 @@ try
         ResponseWriter = HealthChecks.UI.Client.UIResponseWriter.WriteHealthCheckUIResponse
     });
 
-    // Scalar UI (dev only or configurable)
+    // Swagger UI & Scalar UI (dev only or configurable)
     if (app.Environment.IsDevelopment())
     {
+        app.UseSwaggerUI(c =>
+        {
+            c.SwaggerEndpoint("/openapi/v1.json", "EDCL Mini API v1");
+        });
+
         app.MapOpenApi();
         app.MapScalarApiReference(opts =>
         {
