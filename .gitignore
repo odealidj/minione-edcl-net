@@ -1,5 +1,7 @@
-bin/
-obj/
+[Bb]in/
+[Oo]bj/
+**/[Bb]in/
+**/[Oo]bj/
 .env
 *.pid
 *.log
