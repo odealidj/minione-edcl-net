@@ -90,9 +90,31 @@ public class Worker : BackgroundService
         if (!payload.TryGetProperty("after", out var after))
             return;
 
-        if (table?.Equals("Manifests", StringComparison.OrdinalIgnoreCase) == true)
+        _logger.LogInformation($"Received CDC event for table: {table}");
+
+        if (table?.Equals("Manifests", StringComparison.OrdinalIgnoreCase) == true
+            || table?.Equals("manifests", StringComparison.OrdinalIgnoreCase) == true)
         {
             await ProcessManifestAsync(after);
+        }
+        else if (table?.Equals("ManifestParts", StringComparison.OrdinalIgnoreCase) == true
+            || table?.Equals("manifest_parts", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            await ProcessManifestPartAsync(after);
+        }
+        else if (table?.Equals("ManifestKanbans", StringComparison.OrdinalIgnoreCase) == true
+            || table?.Equals("manifest_kanbans", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            await ProcessManifestKanbanAsync(after);
+        }
+        else if (table?.Equals("ManifestSkids", StringComparison.OrdinalIgnoreCase) == true
+            || table?.Equals("manifest_skids", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            await ProcessManifestSkidAsync(after);
+        }
+        else
+        {
+            _logger.LogWarning($"No processor found for table: {table}");
         }
     }
 
@@ -193,5 +215,206 @@ public class Worker : BackgroundService
         });
         
         _logger.LogInformation($"Successfully upserted Manifest ID {id} into edcl.ingestion.Manifests");
+    }
+
+    private async Task ProcessManifestPartAsync(JsonElement after)
+    {
+        _logger.LogInformation($"Processing ManifestPart Debezium payload: {after.GetRawText()}");
+        
+        long id = 0;
+        if (after.TryGetProperty("Id", out var idProp) || after.TryGetProperty("id", out idProp))
+            id = idProp.GetInt64();
+            
+        long manifestId = 0;
+        if (after.TryGetProperty("ManifestId", out var miProp) || after.TryGetProperty("manifest_id", out miProp))
+            manifestId = miProp.GetInt64();
+            
+        string partNo = "";
+        if (after.TryGetProperty("PartNo", out var pnProp) || after.TryGetProperty("part_no", out pnProp))
+            partNo = pnProp.GetString() ?? "";
+
+        string partName = "";
+        if (after.TryGetProperty("PartName", out var pnameProp) || after.TryGetProperty("part_name", out pnameProp))
+            partName = pnameProp.GetString() ?? "";
+
+        int qty = 0;
+        if (after.TryGetProperty("Qty", out var qProp) || after.TryGetProperty("qty", out qProp))
+            qty = qProp.GetInt32();
+
+        string kanbanNo = "";
+        if (after.TryGetProperty("KanbanNo", out var knProp) || after.TryGetProperty("kanban_no", out knProp))
+            kanbanNo = knProp.GetString() ?? "";
+            
+        string status = "";
+        if (after.TryGetProperty("Status", out var stProp) || after.TryGetProperty("status", out stProp))
+            status = stProp.GetString() ?? "";
+        
+        DateTime createdAt = DateTime.UtcNow;
+        if (after.TryGetProperty("CreatedAt", out var caProp) || after.TryGetProperty("created_at", out caProp))
+        {
+            if (caProp.ValueKind == JsonValueKind.Number)
+            {
+                var createdAtMs = caProp.GetInt64();
+                createdAt = DateTimeOffset.FromUnixTimeMilliseconds(createdAtMs / 1000).DateTime; // assuming microseconds
+            }
+        }
+
+        using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        var sql = @"
+            SET IDENTITY_INSERT edcl.ingestion.manifest_parts ON;
+            
+            MERGE INTO edcl.ingestion.manifest_parts AS target
+            USING (SELECT @Id AS Id) AS source
+            ON target.Id = source.Id
+            WHEN MATCHED THEN
+                UPDATE SET 
+                    ManifestId = @ManifestId,
+                    PartNo = @PartNo,
+                    PartName = @PartName,
+                    Qty = @Qty,
+                    KanbanNo = @KanbanNo,
+                    Status = @Status,
+                    UpdatedAt = GETDATE()
+            WHEN NOT MATCHED THEN
+                INSERT (Id, ManifestId, PartNo, PartName, Qty, KanbanNo, Status, CreatedAt, CreatedBy, IsDeleted, RowVersion)
+                VALUES (@Id, @ManifestId, @PartNo, @PartName, @Qty, @KanbanNo, @Status, @CreatedAt, 'System', 0, CAST(0 AS varbinary(8)));
+                
+            SET IDENTITY_INSERT edcl.ingestion.manifest_parts OFF;";
+
+        await connection.ExecuteAsync(sql, new 
+        { 
+            Id = id, 
+            ManifestId = manifestId, 
+            PartNo = partNo, 
+            PartName = partName,
+            Qty = qty,
+            KanbanNo = kanbanNo,
+            Status = status,
+            CreatedAt = createdAt
+        });
+        
+        _logger.LogInformation($"Successfully upserted ManifestPart ID {id}");
+    }
+
+    private async Task ProcessManifestKanbanAsync(JsonElement after)
+    {
+        _logger.LogInformation($"Processing ManifestKanban Debezium payload: {after.GetRawText()}");
+        
+        long id = 0;
+        if (after.TryGetProperty("Id", out var idProp) || after.TryGetProperty("id", out idProp))
+            id = idProp.GetInt64();
+            
+        long manifestId = 0;
+        if (after.TryGetProperty("ManifestId", out var miProp) || after.TryGetProperty("manifest_id", out miProp))
+            manifestId = miProp.GetInt64();
+            
+        string partNo = "";
+        if (after.TryGetProperty("PartNo", out var pnProp) || after.TryGetProperty("part_no", out pnProp))
+            partNo = pnProp.GetString() ?? "";
+
+        string kanbanCd = "";
+        if (after.TryGetProperty("KanbanCd", out var kcdProp) || after.TryGetProperty("kanban_cd", out kcdProp))
+            kanbanCd = kcdProp.GetString() ?? "";
+        
+        DateTime createdAt = DateTime.UtcNow;
+        if (after.TryGetProperty("CreatedAt", out var caProp) || after.TryGetProperty("created_at", out caProp))
+        {
+            if (caProp.ValueKind == JsonValueKind.Number)
+            {
+                var createdAtMs = caProp.GetInt64();
+                createdAt = DateTimeOffset.FromUnixTimeMilliseconds(createdAtMs / 1000).DateTime; // assuming microseconds
+            }
+        }
+
+        using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        var sql = @"
+            SET IDENTITY_INSERT edcl.ingestion.manifest_kanbans ON;
+            
+            MERGE INTO edcl.ingestion.manifest_kanbans AS target
+            USING (SELECT @Id AS Id) AS source
+            ON target.Id = source.Id
+            WHEN MATCHED THEN
+                UPDATE SET 
+                    ManifestId = @ManifestId,
+                    PartNo = @PartNo,
+                    KanbanCd = @KanbanCd,
+                    UpdatedAt = GETDATE()
+            WHEN NOT MATCHED THEN
+                INSERT (Id, ManifestId, PartNo, KanbanCd, CreatedAt, CreatedBy, IsDeleted, RowVersion)
+                VALUES (@Id, @ManifestId, @PartNo, @KanbanCd, @CreatedAt, 'System', 0, CAST(0 AS varbinary(8)));
+                
+            SET IDENTITY_INSERT edcl.ingestion.manifest_kanbans OFF;";
+
+        await connection.ExecuteAsync(sql, new 
+        { 
+            Id = id, 
+            ManifestId = manifestId, 
+            PartNo = partNo, 
+            KanbanCd = kanbanCd,
+            CreatedAt = createdAt
+        });
+        
+        _logger.LogInformation($"Successfully upserted ManifestKanban ID {id}");
+    }
+
+    private async Task ProcessManifestSkidAsync(JsonElement after)
+    {
+        _logger.LogInformation($"Processing ManifestSkid Debezium payload: {after.GetRawText()}");
+        
+        long id = 0;
+        if (after.TryGetProperty("Id", out var idProp) || after.TryGetProperty("id", out idProp))
+            id = idProp.GetInt64();
+            
+        long manifestId = 0;
+        if (after.TryGetProperty("ManifestId", out var miProp) || after.TryGetProperty("manifest_id", out miProp))
+            manifestId = miProp.GetInt64();
+            
+        string skidNo = "";
+        if (after.TryGetProperty("SkidNo", out var skProp) || after.TryGetProperty("skid_no", out skProp))
+            skidNo = skProp.GetString() ?? "";
+        
+        DateTime createdAt = DateTime.UtcNow;
+        if (after.TryGetProperty("CreatedAt", out var caProp) || after.TryGetProperty("created_at", out caProp))
+        {
+            if (caProp.ValueKind == JsonValueKind.Number)
+            {
+                var createdAtMs = caProp.GetInt64();
+                createdAt = DateTimeOffset.FromUnixTimeMilliseconds(createdAtMs / 1000).DateTime; // assuming microseconds
+            }
+        }
+
+        using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        var sql = @"
+            SET IDENTITY_INSERT edcl.ingestion.manifest_skids ON;
+            
+            MERGE INTO edcl.ingestion.manifest_skids AS target
+            USING (SELECT @Id AS Id) AS source
+            ON target.Id = source.Id
+            WHEN MATCHED THEN
+                UPDATE SET 
+                    ManifestId = @ManifestId,
+                    SkidNo = @SkidNo,
+                    UpdatedAt = GETDATE()
+            WHEN NOT MATCHED THEN
+                INSERT (Id, ManifestId, SkidNo, CreatedAt, CreatedBy, IsDeleted, RowVersion)
+                VALUES (@Id, @ManifestId, @SkidNo, @CreatedAt, 'System', 0, CAST(0 AS varbinary(8)));
+                
+            SET IDENTITY_INSERT edcl.ingestion.manifest_skids OFF;";
+
+        await connection.ExecuteAsync(sql, new 
+        { 
+            Id = id, 
+            ManifestId = manifestId, 
+            SkidNo = skidNo, 
+            CreatedAt = createdAt
+        });
+        
+        _logger.LogInformation($"Successfully upserted ManifestSkid ID {id}");
     }
 }
