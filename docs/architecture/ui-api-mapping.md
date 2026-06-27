@@ -38,6 +38,14 @@ Endpoint ini akan memeriksa apakah nomor HP terdaftar, lalu men-*generate* PIN 4
 }
 ```
 
+**Contoh Request (cURL):**
+```bash
+curl -X POST http://localhost:5000/api/v1/auth/request-otp \
+  -H "Content-Type: application/json" \
+  -d '{"phoneNumber": "08123456789"}'
+```
+
+
 **Contoh Response (Success):**
 ```json
 {
@@ -51,7 +59,7 @@ Endpoint ini akan memeriksa apakah nomor HP terdaftar, lalu men-*generate* PIN 4
 #### B. Eksekusi Login (Step 2)
 Endpoint ini akan memverifikasi kredensial driver dan mengembalikan Access Token serta Refresh Token.
 
-- **URL:** `POST /api/v1/auth/login`
+- **URL:** `POST /api/v1/auth/drivers/login`
 - **Method:** `POST`
 - **Auth:** *(None / Public)*
 
@@ -61,6 +69,13 @@ Endpoint ini akan memverifikasi kredensial driver dan mengembalikan Access Token
   "phoneNumber": "08123456789",
   "pin": "123456" 
 }
+```
+
+**Contoh Request (cURL):**
+```bash
+curl -X POST http://localhost:5000/api/v1/auth/drivers/login \
+  -H "Content-Type: application/json" \
+  -d '{"phoneNumber": "08123456789", "pin": "123456"}'
 ```
 
 **Contoh Response (Success):**
@@ -128,6 +143,13 @@ Pada layar ini, Driver harus membuat PIN baru, lalu dikirim via endpoint ini:
 }
 ```
 
+**Contoh Request (cURL):**
+```bash
+curl -X POST http://localhost:5000/api/v1/auth/drivers/change-pin \
+  -H "Content-Type: application/json" \
+  -d '{"phoneNumber": "08123456789", "oldPin": "123456", "newPin": "654321"}'
+```
+
 Jika sukses, Backend akan **otomatis me-*login*-kan** dan mengembalikan objek token yang persis sama seperti *Step 2 (Login)*. Aplikasi dapat segera menyimpannya dan memindahkan pengguna ke layar **Dashboard**.
 
 ---
@@ -146,6 +168,12 @@ Endpoint ini digunakan untuk memuat data profil driver, pekerjaan saat ini (Curr
 - **URL:** `GET /api/v1/jobs/dashboard`
 - **Method:** `GET`
 - **Auth:** Bearer Token (Driver)
+
+**Contoh Request (cURL):**
+```bash
+curl -X GET http://localhost:5000/api/v1/jobs/dashboard \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5c..."
+```
 
 **Contoh Response:**
 ```json
@@ -193,6 +221,12 @@ Endpoint ini digunakan untuk memuat keseluruhan teks pada card (Pickup Date, Rou
 - **URL:** `GET /api/v1/jobs/{id}/route-stops`
 - **Method:** `GET`
 - **Auth:** Bearer Token (Driver)
+
+**Contoh Request (cURL):**
+```bash
+curl -X GET http://localhost:5000/api/v1/jobs/1/route-stops \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5c..."
+```
 
 **Contoh Response:**
 ```json
@@ -252,6 +286,15 @@ Endpoint ini dieksekusi ketika pengguna menekan tombol biru **Mulai Pekerjaan**.
 **Request Body:** *(Kosong)*
 ```json
 {}
+```
+
+**Contoh Request (cURL):**
+```bash
+curl -X POST http://localhost:5000/api/v1/jobs/1/start \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5c..." \
+  -H "X-Idempotency-Key: a1b2c3d4-e5f6-7g8h-9i0j-k1l2m3n4o5p6" \
+  -H "Content-Type: application/json" \
+  -d '{}'
 ```
 
 **Contoh Response (Success):**
