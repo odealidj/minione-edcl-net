@@ -9,6 +9,8 @@ public static class CargoModuleRegistration
 {
     public static IServiceCollection AddEdclModuleCargo(this IServiceCollection services, IConfiguration configuration)
     {
+        services.AddSingleton<Infrastructure.Channels.IngestionErrorChannel>();
+
         services.AddDbContext<CargoDbContext>(opts =>
             opts.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
 

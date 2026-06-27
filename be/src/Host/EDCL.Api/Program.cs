@@ -6,6 +6,7 @@ using EDCL.Module.Notification;
 using EDCL.Shared.Http;
 using EDCL.Shared.Infrastructure;
 using MessagePack.AspNetCoreMvcFormatter;
+using MassTransit;
 using Scalar.AspNetCore;
 using Serilog;
 
@@ -62,6 +63,32 @@ try
         opts.OutputFormatters.Add(new MessagePackOutputFormatter());
     });
 
+    // ── Messaging / MassTransit (RabbitMQ) ────────────────────────────────────
+    builder.Services.AddMassTransit(x =>
+    {
+        // Register Consumers from Modules
+        x.AddConsumers(typeof(EDCL.Module.Cargo.CargoModuleRegistration).Assembly);
+
+        x.UsingRabbitMq((context, cfg) =>
+        {
+            var rabbitMqConn = builder.Configuration.GetConnectionString("RabbitMqConnection") ?? "amqp://rabbitmq:5672";
+            cfg.Host(rabbitMqConn);
+            
+            // Allow MassTransit to consume raw JSON from Debezium natively
+            cfg.UseRawJsonSerializer();
+
+            cfg.UseMessageRetry(r =>
+            {
+                // Exponential backoff retry for Foreign Key and other transient SQL issues
+                r.Handle<Microsoft.Data.SqlClient.SqlException>();
+                r.Exponential(5, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(5));
+            });
+
+            // Auto configure endpoints based on consumer names
+            cfg.ConfigureEndpoints(context);
+        });
+    });
+
     // ── CORS ────────────────────────────────────────────────────────────────
     builder.Services.AddCors(opts =>
     {
@@ -80,7 +107,6 @@ try
     builder.Services.AddHealthChecks()
         .AddSqlServer(defaultConn, name: "Database", tags: new[] { "db", "sql", "sqlserver" })
         .AddRedis(redisConn, name: "Redis", tags: new[] { "cache", "redis" });
-        //.AddRabbitMQ(setup => setup.ConnectionUri = new Uri(rabbitmqConn), name: "RabbitMQ", tags: new[] { "messagebroker", "rabbitmq" });
 
     var app = builder.Build();
 

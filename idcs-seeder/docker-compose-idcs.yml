@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  idcs-sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: idcs_sqlserver
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "IdcsPassword123!"
+      # Enable CDC on SQL Server level
+      MSSQL_AGENT_ENABLED: "True"
+    ports:
+      - "1466:1433"
+    volumes:
+      - idcs_sql_data:/var/opt/mssql
+
+volumes:
+  idcs_sql_data:

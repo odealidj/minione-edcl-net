@@ -10,6 +10,7 @@ public class CargoDbContext(DbContextOptions<CargoDbContext> options) : DbContex
     public DbSet<ManifestPart> ManifestParts => Set<ManifestPart>();
     public DbSet<ManifestKanban> ManifestKanbans => Set<ManifestKanban>();
     public DbSet<ManifestSkid> ManifestSkids => Set<ManifestSkid>();
+    public DbSet<IngestionError> IngestionErrors => Set<IngestionError>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -65,6 +66,16 @@ public class CargoDbContext(DbContextOptions<CargoDbContext> options) : DbContex
             b.ToTable("manifest_skids");
             b.HasKey(x => x.Id);
             b.Property(x => x.SkidNo).HasMaxLength(50).IsRequired();
+        });
+
+        modelBuilder.Entity<IngestionError>(b =>
+        {
+            b.ToTable("ingestion_errors");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.EventType).HasMaxLength(100).IsRequired();
+            b.Property(x => x.Payload).HasColumnType("nvarchar(max)").IsRequired();
+            b.Property(x => x.ErrorMessage).HasColumnType("nvarchar(max)").IsRequired();
+            b.Property(x => x.StackTrace).HasColumnType("nvarchar(max)");
         });
 
         base.OnModelCreating(modelBuilder);

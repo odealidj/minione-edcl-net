@@ -10,6 +10,7 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
     <PackageReference Include="Dapper" />
     <PackageReference Include="Microsoft.Data.SqlClient" />
+    <PackageReference Include="MassTransit" />
   </ItemGroup>
 
   <PropertyGroup>

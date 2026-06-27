@@ -5,6 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup Label="NuGet Packages">
+    <PackageReference Include="Dapper" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
     <PackageReference Include="MassTransit" />
     <PackageReference Include="MassTransit.RabbitMQ" />
