@@ -91,6 +91,6 @@ sequenceDiagram
    Secara *default*, *login* di HP baru akan menonaktifkan *refresh token* di HP lama untuk alasan keamanan (mencegah akun digunakan secara bersamaan oleh dua supir berbeda). Fitur ini menjaga integritas penugasan *Manifest*.
 
 3. **Login Pertama Kali (Force Change PIN)**
-   Khusus untuk Driver, jika sistem mendeteksi bahwa Driver menggunakan PIN *default* (`123456`) atau akunnya ditandai harus mengganti PIN (berdasarkan *hash* PIN atau nilai dari database), API **tidak akan mengembalikan HTTP 200 OK**. Sebaliknya, API akan mengembalikan respons khusus (`HTTP 403 Forbidden` dengan status `FORCE_CHANGE_PIN`) beserta *temporary token*.
-   - **Dari Sisi UI Mobile:** Aplikasi akan mencegat perpindahan ke halaman Beranda dan sebaliknya menampilkan pop-up wajib (Mandatory Pop-up): **"Demi keamanan, silakan buat PIN baru Anda (6-digit)"**.
-   - Driver tidak akan bisa melanjutkan pekerjaan sebelum mengganti PIN, memastikan tidak ada orang lain yang menyalahgunakan PIN *default* tersebut. *(Detail lebih lanjut dapat dilihat pada dokumen `registrasi-driver.md`)*.
+   Khusus untuk Driver, jika sistem mendeteksi bahwa Driver masih menggunakan PIN bawaan atau status *MustChangePin* bernilai aktif, API **tidak akan menerbitkan Token**. Sebaliknya, API akan mengembalikan respons khusus (`HTTP 401 Unauthorized` dengan kode `Auth.ForceChangePin`).
+   - **Dari Sisi UI Mobile:** Aplikasi akan mencegat perpindahan ke halaman Beranda dan sebaliknya menampilkan halaman Wajib Ganti PIN (*Mandatory Change PIN Screen*): **"Harap ganti PIN bawaan Anda (6-digit) demi keamanan."**.
+   - Driver tidak akan bisa melanjutkan pekerjaan sebelum mengganti PIN melalui Endpoint `/change-pin`, memastikan tidak ada orang lain yang menyalahgunakan PIN *default* tersebut. *(Detail lebih lanjut dapat dilihat pada dokumen `registrasi-driver.md` dan `ui-api-mapping.md`)*.
