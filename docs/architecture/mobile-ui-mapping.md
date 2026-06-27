@@ -276,7 +276,6 @@ curl -X POST http://localhost:5000/api/v1/jobs/1/start \
 
 Tampilan ini adalah pusat komando bagi Driver saat sedang dalam perjalanan (sedang menjalankan Job). Layar ini menampilkan status tiap-tiap titik penjemputan (*Route Stops*), jumlah barang/Kanban yang harus diambil, serta aksi untuk menyelesaikan rute secara keseluruhan.
 
-*(Anda dapat menyimpan gambar unggahan Anda ke `docs/assets/images/info-pengiriman.png` agar muncul di bawah ini)*
 <img src="../assets/images/info-pengiriman.png" width="300" alt="Info Pengiriman UI" />
 
 ### Analisis UI Terhadap Arsitektur API
