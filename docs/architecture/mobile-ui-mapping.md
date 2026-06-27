@@ -316,4 +316,48 @@ Tombol berbentuk lingkaran merah di sudut kanan atas berfungsi untuk mengakhiri 
 
 ---
 
+## 5. Detail Pengiriman (Kanban Scanner / Manifest List)
+
+Tampilan ini muncul setelah Driver mengetuk ikon panah biru (➡) pada salah satu *Supplier* yang berstatus *Pending* di layar **Info Pengiriman**. Layar ini berfokus pada daftar *Manifest* yang harus dipenuhi oleh Driver di lokasi tersebut.
+
+*(Anda dapat menyimpan gambar unggahan Anda ke `docs/assets/images/detail-pengiriman.png` agar muncul di bawah ini)*
+<img src="../assets/images/detail-pengiriman.png" width="300" alt="Detail Pengiriman UI" />
+
+### Analisis UI Terhadap Arsitektur API
+
+Berdasarkan analisis visual, saat ini **kita belum memiliki endpoint khusus** untuk menampilkan daftar Manifest per titik (*Stop*). Endpoint yang ada (`GetRouteStops`) hanya menampilkan agregasi total (misal 7/8). Oleh karena itu, kita perlu merancang arsitektur API tambahan.
+
+#### A. Fetching Daftar Manifest (Kebutuhan Endpoint Baru)
+Layar ini menampilkan tabel dengan kolom `Manifest No`, `Type`, `Total SKID`, `Dock Code`, `No of Kanban`, dan `Status` (Checkbox/Silang). 
+
+- **Draft URL:** `GET /api/v1/jobs/stops/{stopId}/manifests`
+- **Mapping ke UI:**
+  - `Type`: Berasal dari jenis tipe order (Original, Others, EO). Di contoh ini (ORG).
+  - `No of Kanban`: Nilai target Kanban yang harus discan di manifest tersebut.
+  - `Status`: Diwakili oleh lencana Checkbox Hijau (jika `scannedKanban == totalKanban`) atau Silang Merah (jika belum tercapai).
+
+#### B. Tombol "Mulai Scan" (Navigasi Kamera)
+Tombol biru ini murni merupakan pemicu *Hardware Camera* atau *Bluetooth Scanner* dari sisi klien (Mobile). Tidak ada pemanggilan API ke *Backend* saat tombol ini diklik, sampai sebuah *barcode* berhasil terbaca.
+
+- Ketika barcode (contoh: `KBN-001`) berhasil terbaca oleh kamera:
+  - **URL Terkait:** `POST /api/v1/jobs/stops/{stopId}/manifests/{manifestId}/kanban`
+  - *Payload*: `{"kanbanCode": "KBN-001"}`
+  - Jika berhasil, UI akan memperbarui *counter* di kotak atas (`Original 7/8` menjadi `8/8`).
+
+#### C. Slider "Geser Selesai Pengambilan" (Complete Stop)
+Ini adalah mekanisme pengunci untuk menandakan bahwa Driver telah selesai memuat semua barang di *Supplier* tersebut dan siap beranjak. Penggunaan komponen *Slider/Swipe* adalah **Best Practice** UI/UX untuk mencegah ketidaksengajaan klik (fat-finger errors) pada aksi krusial.
+
+- **URL:** `POST /api/v1/jobs/stops/{stopId}/complete`
+- **Method:** `POST`
+- **Payload:**
+```json
+{
+  "latitude": -6.312151,
+  "longitude": 107.135422
+}
+```
+*Catatan:* Backend akan memvalidasi apakah semua Manifest (atau Kanban wajib) sudah dipenuhi. Jika sukses, layar akan tertutup dan mengembalikan Driver ke layar **Info Pengiriman** dengan status *Supplier* berubah menjadi **✓ Picked Up**.
+
+---
+
 *(Dokumen ini akan terus diperbarui secara bertahap setiap kali Anda mengunggah tangkapan layar UI berikutnya).*
