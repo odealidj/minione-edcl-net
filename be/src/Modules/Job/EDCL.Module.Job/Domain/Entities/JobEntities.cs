@@ -12,6 +12,10 @@ public sealed class PickupOrder : AuditableEntity
     public long DriverId { get; private set; }
     public long? TruckId { get; private set; }
     public string PoNo { get; private set; } = default!;
+    public DateTime PickupDate { get; private set; }
+    public string RouteCode { get; private set; } = default!;
+    public string CycleCode { get; private set; } = default!;
+    public TimeSpan EstimatedDepartureTime { get; private set; }
     public string Status { get; private set; } = PickupOrderStatus.Pending;
     public DateTime? StartedAt { get; private set; }
     public DateTime? CompletedAt { get; private set; }
@@ -21,8 +25,8 @@ public sealed class PickupOrder : AuditableEntity
 
     private PickupOrder() { }
 
-    public static PickupOrder Create(long driverId, long? truckId, string poNo)
-        => new() { DriverId = driverId, TruckId = truckId, PoNo = poNo, Status = PickupOrderStatus.Pending };
+    public static PickupOrder Create(long driverId, long? truckId, string poNo, DateTime pickupDate, string routeCode, string cycleCode, TimeSpan estimatedDepartureTime)
+        => new() { DriverId = driverId, TruckId = truckId, PoNo = poNo, PickupDate = pickupDate, RouteCode = routeCode, CycleCode = cycleCode, EstimatedDepartureTime = estimatedDepartureTime, Status = PickupOrderStatus.Pending };
 
     public void Start()
     {

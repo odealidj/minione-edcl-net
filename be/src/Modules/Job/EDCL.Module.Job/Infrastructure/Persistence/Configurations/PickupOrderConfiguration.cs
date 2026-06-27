@@ -14,7 +14,28 @@ public class PickupOrderConfiguration : IEntityTypeConfiguration<PickupOrder>
         
         builder.Property(x => x.PoNo)
             .IsRequired()
-            .HasMaxLength(50);
+            .HasMaxLength(50)
+            .HasColumnName("delivery_no");
+            
+        builder.Property(x => x.PickupDate)
+            .IsRequired()
+            .HasColumnType("date")
+            .HasColumnName("pickup_date");
+
+        builder.Property(x => x.RouteCode)
+            .IsRequired()
+            .HasMaxLength(50)
+            .HasColumnName("route_code");
+
+        builder.Property(x => x.CycleCode)
+            .IsRequired()
+            .HasMaxLength(10)
+            .HasColumnName("cycle_code");
+
+        builder.Property(x => x.EstimatedDepartureTime)
+            .IsRequired()
+            .HasColumnType("time(0)")
+            .HasColumnName("estimated_departure_time");
             
         builder.Property(x => x.Status)
             .IsRequired()

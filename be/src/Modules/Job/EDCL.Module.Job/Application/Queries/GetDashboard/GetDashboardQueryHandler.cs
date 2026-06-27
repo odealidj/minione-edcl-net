@@ -44,18 +44,16 @@ public sealed class GetDashboardQueryHandler(
             truckPlate = truck?.PlateNumber ?? "-";
         }
 
-        // Mocking RouteCode and Cycle from PoNo for now if not strictly defined.
-        // Assuming PoNo format: R202402010081. Let's just use placeholder for RouteCode/Cycle.
-        var routeCode = "RD23";
-        var cycle = "01";
+        // Format Time exactly as mockup (e.g. "01 Feb 2024, 01:00")
+        var formattedTime = $"{job.PickupDate:dd MMM yyyy}, {job.EstimatedDepartureTime:hh\\:mm}";
 
         return new JobCardDto(
             PickupOrderId: job.Id,
-            RouteCode: routeCode,
-            Cycle: cycle,
+            RouteCode: job.RouteCode,
+            Cycle: job.CycleCode,
             DeliveryNo: job.PoNo,
-            PickupDate: job.CreatedAt.ToString("dd MMM yyyy"),
-            Time: job.CreatedAt.ToString("dd MMM yyyy, HH:mm"),
+            PickupDate: job.PickupDate.ToString("dd MMM yyyy"),
+            Time: formattedTime,
             TruckPlate: truckPlate);
     }
 }

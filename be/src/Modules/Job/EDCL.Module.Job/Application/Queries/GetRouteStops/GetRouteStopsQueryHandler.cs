@@ -44,10 +44,10 @@ public sealed class GetRouteStopsQueryHandler(
         }
 
         return new RouteStopsResponse(
-            RouteCode: "RD23", // Mock for now
-            Cycle: "01",       // Mock for now
+            RouteCode: job.RouteCode,
+            Cycle: job.CycleCode,
             DeliveryNo: job.PoNo,
-            Date: job.CreatedAt.ToString("dd MMM yyyy"),
+            Date: job.PickupDate.ToString("dd MMM yyyy"),
             Stops: stops
         );
     }
