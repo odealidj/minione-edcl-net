@@ -26,7 +26,7 @@ graph TD
     RabbitMQ[["📨 RabbitMQ\n:5672\n─────────────────\nMessage Broker\n(MassTransit)"]]
     
     subgraph Background_Workers [Background Workers - Headless]
-        W_Ingest["📥 Worker.Ingestion\n(Tarik data dari Legacy TMS)"]
+        W_Ingest["📥 Worker.Ingestion\n(Consume CDC Events)"]
         W_Outbox["📤 Worker.Outbox\n(Polling Outbox -> RabbitMQ)"]
         W_Report["📊 Worker.Reporter\n(Consume Events -> Read Models)"]
     end
@@ -56,6 +56,7 @@ graph TD
     
     %% Event Consumption & Integration
     RabbitMQ -->|Consume Events| W_Report
+    RabbitMQ -->|CDC Real-time| W_Ingest
     W_Ingest -->|Insert Data| SQL
     
     style Client fill:#4A90D9,color:#fff
@@ -88,7 +89,7 @@ Aplikasi inti yang membungkus beberapa modul independen (`Auth`, `Job`, `Cargo`,
 
 ### D. Background Workers
 Pemisahan beban kerja berat agar tidak memblokir antarmuka API klien.
-1. **Worker.Ingestion**: Mengambil data secara periodik dari sistem *Legacy* (contoh: TMS pusat) dan memasukkannya ke DB internal kita agar API kita tidak bergantung pada *uptime* sistem lama.
+1. **Worker.Ingestion**: Ujung tombak integrasi data dari sistem *Legacy* (IDCS). Tidak lagi menggunakan *polling* periodik yang membebani database sumber, melainkan mendengarkan aliran data *real-time* via **Change Data Capture (Debezium CDC)** dari RabbitMQ dan menyimpannya ke database internal kita secara aman.
 2. **Worker.Outbox**: Menjamin **Eventual Consistency**. Membaca tabel `Outbox` secara *polling*, lalu melempar kejadian (*Domain Events*) tersebut ke RabbitMQ.
 3. **Worker.Reporter**: Pendengar setia RabbitMQ. Ia mengolah *events* yang dilempar oleh Outbox (misal: "Paket Terkirim") untuk membangun data laporan (*Read Models*) atau mengirimkan notifikasi.
 
