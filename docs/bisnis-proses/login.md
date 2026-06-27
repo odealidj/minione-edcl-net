@@ -25,8 +25,13 @@ sequenceDiagram
     participant AuthAPI as API Gateway / Auth Service
     participant DB as SQL Server (EDCL)
 
-    User->>Client: Input Kredensial<br/>(Email+Password ATAU No HP+PIN)
-    Client->>AuthAPI: POST /api/auth/login
+    alt Jalur Web (Admin / Staff)
+        User->>Client: Input Kredensial (Email + Password)
+        Client->>AuthAPI: POST /api/v1/auth/users/login
+    else Jalur Mobile (Driver)
+        User->>Client: Input Kredensial (No HP + PIN)
+        Client->>AuthAPI: POST /api/v1/auth/drivers/login
+    end
     
     AuthAPI->>DB: Cek Keberadaan Akun & Status (is_active)
     
