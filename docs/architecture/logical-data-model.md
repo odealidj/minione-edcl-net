@@ -61,13 +61,50 @@ erDiagram
     %% =======================
     SUPPLIER ||--o{ MANIFEST : "sumber dari"
     MANIFEST ||--o{ MANIFEST_PART : "terdiri dari"
-    MANIFEST ||--o{ DAILY_ORDER_SKID : "memiliki"
-    MANIFEST ||--o{ DAILY_ORDER_KANBAN : "memiliki"
+    MANIFEST ||--o{ MANIFEST_SKID : "memiliki"
+    MANIFEST ||--o{ MANIFEST_KANBAN : "memiliki"
     
     MANIFEST {
-        string manifest_no PK
-        string order_no
-        string supplier_cd FK
+        bigint id PK
+        string manifest_no
+        string supplier_code FK
+        string supplier_name
+        int sequence
+        string order_type
+        datetime pick_date
+        string cycle
+        string status
+    }
+
+    MANIFEST_PART {
+        bigint id PK
+        bigint manifest_id FK
+        string part_no
+        string part_name
+        int qty
+        string uom
+    }
+
+    MANIFEST_SKID {
+        bigint id PK
+        bigint manifest_id FK
+        string skid_no
+    }
+
+    MANIFEST_KANBAN {
+        bigint id PK
+        bigint manifest_id FK
+        string part_no
+        string kanban_cd
+    }
+
+    INGESTION_ERROR {
+        bigint id PK
+        string event_type
+        string payload
+        string error_message
+        datetime occurred_at
+        boolean is_resolved
     }
 
     %% =======================
@@ -120,11 +157,12 @@ Menyimpan kredensial dan entitas akses (Identity).
 - **DriverPhoneHistory**: *Audit trail* otomatis (biasanya via SQL Trigger) ketika nomor HP Driver diganti.
 
 ### C. Ingestion Domain (Sinkronisasi Sistem Luar)
-Tabel-tabel di domain ini biasanya tidak dimanipulasi oleh *user interface* aplikasi ini secara manual, melainkan diisi (sinkronisasi / *ingestion*) oleh *Background Jobs* dari sistem TMMIN / pusat.
-- **Manifest**: Lembar pengiriman utama yang memuat `order_no`.
-- **ManifestPart**: Rincian suku cadang di dalam sebuah Manifest (Part No, Pcs, Jenis Box).
-- **DailyOrderSkid**: Data fisik wadah bongkar muat (Palet/Skid).
-- **DailyOrderKanban**: Data spesifik satu kartu kanban individual yang akan divalidasi dengan alat *scan* barcode di lapangan.
+Tabel-tabel di domain ini tidak dimanipulasi secara manual, melainkan diisi (sinkronisasi) via Change Data Capture (Debezium CDC) dari IDCS (sistem eksternal).
+- **Manifest**: Lembar pengiriman logistik utama dari IDCS.
+- **ManifestPart**: Rincian suku cadang (*Part Number*) dan jumlah (*Qty*) di dalam sebuah Manifest.
+- **ManifestSkid**: Data fisik wadah muatan (Palet/Skid).
+- **ManifestKanban**: Data spesifik kartu kanban individual yang akan dipindai secara fisik.
+- **IngestionError**: *Dead Letter Queue* (DLQ) persistent. Menyimpan data yang gagal disinkronkan akibat anomali seperti *Race Condition* atau duplikasi. Digunakan untuk proses pemulihan (Retry) dan notifikasi UI (Server-Sent Events).
 
 ### D. Transactional / Operational Domain
 Ini adalah domain yang paling aktif, digunakan saat alur pengiriman berlangsung di lapangan.
