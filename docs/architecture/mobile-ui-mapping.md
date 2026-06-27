@@ -315,10 +315,6 @@ Tombol berbentuk lingkaran merah di sudut kanan atas berfungsi untuk mengakhiri 
 ```
 *Catatan:* Sesuai *best practice*, aplikasi *Mobile* sebaiknya memunculkan dialog konfirmasi ("Apakah Anda yakin ingin mengakhiri rute ini?") sebelum memanggil endpoint ini, karena *End Job* bersifat final. Titik koordinat GPS (`latitude` & `longitude`) ditangkap secara *real-time* dari perangkat untuk validasi *geofencing*.
 
-#### D. FAB Oranye (+) & Tombol "Lihat QR Code"
-- **Tombol FAB Oranye (+)**: Biasanya digunakan untuk *Add Unexpected Cargo/Manifest* (Menambahkan Kanban/Manifest di luar rencana awal). Jika ini fitur yang diinginkan, kita perlu merancang endpoint baru (misal: `POST /stops/{stopId}/manifest-adhoc`) karena `JobController` saat ini hanya melayani *scan kanban* untuk *manifest* yang sudah ada.
-- **Lihat QR Code**: Tombol di bagian bawah ini biasanya menghasilkan QR Code dari `deliveryNo` atau *Pickup Order ID* agar bisa dipindai oleh pihak *Security* pabrik saat *gate out*. Fitur ini berjalan murni di sisi UI (men-generate *barcode image* dari sebuah *string*) dan tidak memerlukan pemanggilan API tambahan ke Backend.
-
 ---
 
 *(Dokumen ini akan terus diperbarui secara bertahap setiap kali Anda mengunggah tangkapan layar UI berikutnya).*
