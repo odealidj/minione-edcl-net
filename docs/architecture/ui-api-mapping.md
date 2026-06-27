@@ -86,6 +86,50 @@ Endpoint ini akan memverifikasi kredensial driver dan mengembalikan Access Token
 - Tombol `MASUK` ➡️ Memicu request POST ke server.
 - **Handling Token:** Parameter `accessToken` dan `refreshToken` dari respons wajib disimpan dengan aman di sisi klien (contoh: *Encrypted SharedPreferences* di Android atau *Keychain* di iOS) untuk dipanggil sebagai `Authorization: Bearer` pada layar berikutnya.
 
+#### C. Wajib Ganti PIN (Force Change PIN)
+Apabila kredensial *login* valid namun Driver menggunakan PIN bawaan sistem (contoh: `123456`), Endpoint B (Eksekusi Login) akan menolak memberikan token dan memunculkan respons spesifik ini:
+
+**Contoh Response Login (Harus Ganti PIN):**
+```json
+{
+  "success": false,
+  "traceId": "0HN...:00000004",
+  "status": "error",
+  "code": 401,
+  "message": "Harap ganti PIN bawaan Anda (6-digit) demi keamanan.",
+  "errors": [
+    {
+      "field": "auth",
+      "code": "Auth.ForceChangePin",
+      "message": "Harap ganti PIN bawaan Anda (6-digit) demi keamanan."
+    }
+  ]
+}
+```
+
+**Mapping ke UI:**
+1. Aplikasi Mobile wajib membaca `errors[0].code == "Auth.ForceChangePin"`.
+2. Jika terdeteksi, cegah transisi ke Dashboard dan **tampilkan layar Wajib Ganti PIN** (*Mandatory Change PIN Form*).
+
+<img src="../brain/a643f052-b20a-427c-a50f-fa0dc9d8f0ce/force_change_pin_mobile_ui_1782559883931.png" width="300" alt="Force Change PIN UI" />
+
+Pada layar ini, Driver harus membuat PIN baru, lalu dikirim via endpoint ini:
+
+- **URL:** `POST /api/v1/auth/drivers/change-pin`
+- **Method:** `POST`
+- **Auth:** *(None / Public)*
+
+**Request Body:**
+```json
+{
+  "phoneNumber": "08123456789",
+  "oldPin": "123456",
+  "newPin": "654321" 
+}
+```
+
+Jika sukses, Backend akan **otomatis me-*login*-kan** dan mengembalikan objek token yang persis sama seperti *Step 2 (Login)*. Aplikasi dapat segera menyimpannya dan memindahkan pengguna ke layar **Dashboard**.
+
 ---
 
 ## 2. Home / Dashboard (Single Source of Truth)

@@ -44,10 +44,17 @@ public sealed class LoginCommandHandler(
                 "Nomor HP atau PIN tidak valid.");
         }
 
-        // ── 3. Issue Access Token ─────────────────────────────────────────
+        // ── 3. Force Change PIN Check ─────────────────────────────────────
+        if (driver.MustChangePin)
+        {
+            logger.LogInformation("Driver {DriverId} must change PIN before login.", driver.Id);
+            return Error.Unauthorized("Auth.ForceChangePin", "Harap ganti PIN bawaan Anda (6-digit) demi keamanan.");
+        }
+
+        // ── 4. Issue Access Token ─────────────────────────────────────────
         var (accessToken, accessExpiry) = jwtService.GenerateAccessToken(driver);
 
-        // ── 4. Issue Refresh Token (rotate: revoke old if exists) ─────────
+        // ── 5. Issue Refresh Token (rotate: revoke old if exists) ─────────
         var existingTokens = await refreshTokenRepository
             .GetActiveTokensByDriverAsync(driver.Id, cancellationToken);
 

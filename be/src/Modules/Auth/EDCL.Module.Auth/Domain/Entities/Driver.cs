@@ -14,6 +14,7 @@ public sealed class Driver : AuditableEntity
     public string Nik { get; private set; } = default!;           // Immutable — national ID
     public string PhoneNumber { get; private set; } = default!;
     public string PinHash { get; private set; } = default!;
+    public bool MustChangePin { get; private set; } = true;
     public string? FcmToken { get; private set; }
     public bool IsActive { get; private set; } = true;
     public string? PhotoUrl { get; private set; }
@@ -34,11 +35,18 @@ public sealed class Driver : AuditableEntity
             Nik = nik,
             PhoneNumber = phoneNumber,
             PinHash = pinHash,
+            MustChangePin = true,
             TransporterId = transporterId,
             IsActive = true
         };
 
     public void UpdateFcmToken(string fcmToken) => FcmToken = fcmToken;
+
+    public void ChangePin(string newPinHash)
+    {
+        PinHash = newPinHash;
+        MustChangePin = false;
+    }
 
     public void ChangePhoneNumber(string newPhone)
     {

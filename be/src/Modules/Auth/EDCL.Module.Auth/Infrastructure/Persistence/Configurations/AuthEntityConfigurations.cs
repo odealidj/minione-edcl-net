@@ -19,6 +19,7 @@ internal sealed class DriverConfiguration : IEntityTypeConfiguration<Driver>
         builder.Property(d => d.PinHash).HasMaxLength(255).IsRequired();
         builder.Property(d => d.FcmToken).HasColumnType("nvarchar(max)");
         builder.Property(d => d.PhotoUrl).HasMaxLength(500);
+        builder.Property(d => d.MustChangePin).HasColumnName("must_change_pin").HasDefaultValue(true);
         builder.Property(d => d.IsActive).HasDefaultValue(true);
 
         // ── Audit Columns ─────────────────────────────────────────────────
