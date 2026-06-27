@@ -21,7 +21,6 @@ public sealed class ApiResponse<T>
     public string Message { get; init; } = string.Empty;
 
     [JsonPropertyName("data")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public T? Data { get; init; }
 
     [JsonPropertyName("pagination")]
