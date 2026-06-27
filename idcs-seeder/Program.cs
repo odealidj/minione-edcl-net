@@ -45,6 +45,9 @@ class Program
                 case "race-condition":
                     await SeedRaceConditionAsync();
                     break;
+                case "bulk":
+                    await SeedBulkAsync();
+                    break;
                 default:
                     Console.WriteLine($"Unknown action: {action}");
                     break;
@@ -191,6 +194,60 @@ class Program
             
         Console.WriteLine($"Inserted Manifest: {manifestNo} with ID {id}");
     }
+
+    private static async Task SeedBulkAsync()
+    {
+        using var conn = new SqlConnection(ConnectionString);
+        var rnd = new Random();
+        Console.WriteLine("Starting bulk seed of 200 manifests, 10 parts each, plus skids and kanbans...");
+
+        for (int m = 1; m <= 200; m++)
+        {
+            var manifestNo = $"MNFB-{DateTime.Now:MMddHHmmss}-{m:000}";
+            var supplierCode = $"SUP-{rnd.Next(1, 10):000}";
+            
+            var manifestId = await conn.QuerySingleAsync<long>(@"
+                INSERT INTO manifests (ManifestNo, SupplierCode, SupplierName, Sequence, OrderType, PickDate, Cycle, Status) 
+                OUTPUT INSERTED.Id
+                VALUES (@ManifestNo, @SupplierCode, 'Bulk Supplier', 1, 'ORG', @PickDate, 'C1', 'Pending')",
+                new { ManifestNo = manifestNo, SupplierCode = supplierCode, PickDate = DateTime.Now });
+
+            // 1 Skid per Manifest
+            var skidNo = $"SKD-B{m:000}-{rnd.Next(100, 999)}";
+            await conn.ExecuteAsync(@"
+                INSERT INTO manifest_skids (ManifestId, SkidNo) 
+                VALUES (@ManifestId, @SkidNo)",
+                new { ManifestId = manifestId, SkidNo = skidNo });
+
+            // 10 Parts per Manifest
+            for (int p = 1; p <= 10; p++)
+            {
+                var partNo = $"PRTB-{rnd.Next(1000, 9999)}";
+                
+                await conn.ExecuteAsync(@"
+                    INSERT INTO manifest_parts (ManifestId, PartNo, PartName, Qty, Uom) 
+                    VALUES (@ManifestId, @PartNo, 'Bulk Part', 10, 'PCS')",
+                    new { ManifestId = manifestId, PartNo = partNo });
+
+                // 2 Kanbans per Part
+                for (int k = 1; k <= 2; k++)
+                {
+                    var kanban = $"KBNB-{m:000}-{p:00}-{k}";
+                    await conn.ExecuteAsync(@"
+                        INSERT INTO manifest_kanbans (ManifestId, PartNo, KanbanCd) 
+                        VALUES (@ManifestId, @PartNo, @KanbanCd)",
+                        new { ManifestId = manifestId, PartNo = partNo, KanbanCd = kanban });
+                }
+            }
+
+            if (m % 20 == 0)
+            {
+                Console.WriteLine($"Progress: {m}/200 manifests seeded.");
+            }
+        }
+        Console.WriteLine("Bulk seed completed successfully!");
+    }
+
 
     private static async Task SeedPartAsync()
     {
