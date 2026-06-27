@@ -1,4 +1,4 @@
-.PHONY: idcs-up idcs-down seed-init seed-manifest seed-part seed-kanban seed-skid seed-out-of-order seed-race-condition seed-bulk
+.PHONY: idcs-up idcs-down seed-init seed-manifest seed-supplier seed-part seed-kanban seed-skid seed-out-of-order seed-race-condition seed-bulk
 
 idcs-up:
 	docker-compose -f docker-compose-idcs.yml up -d
@@ -8,6 +8,9 @@ idcs-down:
 
 seed-init:
 	dotnet run init
+
+seed-supplier:
+	dotnet run supplier
 
 seed-manifest:
 	dotnet run manifest
@@ -29,3 +32,6 @@ seed-race-condition:
 
 seed-bulk:
 	dotnet run bulk
+
+seed-edcl-master:
+	dotnet run edcl-master

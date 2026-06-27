@@ -7,6 +7,7 @@ namespace EDCL.IdcsSeeder;
 class Program
 {
     private const string ConnectionString = "Server=localhost,1466;Database=IDCS;User Id=sa;Password=IdcsPassword123!;TrustServerCertificate=True;";
+    private const string EdclConnectionString = "Server=localhost,1444;Database=edcl;User Id=sa;Password=EdclMini_123!;TrustServerCertificate=True;";
 
     static async Task Main(string[] args)
     {
@@ -26,6 +27,9 @@ class Program
             {
                 case "init":
                     Console.WriteLine("Database and tables initialized. CDC Enabled.");
+                    break;
+                case "supplier":
+                    await SeedSupplierAsync();
                     break;
                 case "manifest":
                     await SeedManifestAsync();
@@ -47,6 +51,9 @@ class Program
                     break;
                 case "bulk":
                     await SeedBulkAsync();
+                    break;
+                case "edcl-master":
+                    await SeedEdclMasterAsync();
                     break;
                 default:
                     Console.WriteLine($"Unknown action: {action}");
@@ -92,6 +99,17 @@ class Program
                 Console.WriteLine("Warning: Could not enable CDC on DB level. Ensure SQL Server Agent is running. Error: " + ex.Message);
             }
             
+            // Create suppliers table
+            await conn.ExecuteAsync(@"
+                IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='suppliers' AND xtype='U')
+                CREATE TABLE suppliers (
+                    Id BIGINT IDENTITY(1,1) PRIMARY KEY,
+                    SupplierCode NVARCHAR(50) NOT NULL,
+                    SupplierName NVARCHAR(100),
+                    Address NVARCHAR(500)
+                )");
+            await EnableCdcOnTableAsync(conn, "suppliers");
+
             // Create manifests table
             await conn.ExecuteAsync(@"
                 IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='manifests' AND xtype='U')
@@ -180,12 +198,33 @@ class Program
         }
     }
 
+    private static async Task SeedSupplierAsync()
+    {
+        using var conn = new SqlConnection(ConnectionString);
+        var supplierCode = $"SUP-{new Random().Next(100, 999)}";
+        
+        var id = await conn.QuerySingleAsync<long>(@"
+            INSERT INTO suppliers (SupplierCode, SupplierName, Address) 
+            OUTPUT INSERTED.Id
+            VALUES (@SupplierCode, 'Test Supplier ' + @SupplierCode, 'Jl. Industri No. 1, Cikarang')",
+            new { SupplierCode = supplierCode });
+            
+        Console.WriteLine($"Inserted Supplier: {supplierCode} with ID {id}");
+    }
+
     private static async Task SeedManifestAsync()
     {
         using var conn = new SqlConnection(ConnectionString);
         var manifestNo = $"MNF-{DateTime.Now:yyyyMMddHHmmss}";
         var pickDate = DateTime.Now;
         
+        await conn.ExecuteAsync(@"
+            IF NOT EXISTS(SELECT 1 FROM suppliers WHERE SupplierCode = 'SUP-001')
+            BEGIN
+                INSERT INTO suppliers (SupplierCode, SupplierName, Address)
+                VALUES ('SUP-001', 'Test Supplier', 'Jl. Industri No. 1, Cikarang')
+            END");
+
         var id = await conn.QuerySingleAsync<long>(@"
             INSERT INTO manifests (ManifestNo, SupplierCode, SupplierName, Sequence, OrderType, PickDate, Cycle, Status) 
             OUTPUT INSERTED.Id
@@ -205,6 +244,14 @@ class Program
         {
             var manifestNo = $"MNFB-{DateTime.Now:MMddHHmmss}-{m:000}";
             var supplierCode = $"SUP-{rnd.Next(1, 10):000}";
+            
+            // Seed supplier for bulk if it doesn't exist
+            await conn.ExecuteAsync(@"
+                IF NOT EXISTS(SELECT 1 FROM suppliers WHERE SupplierCode = @SupplierCode)
+                BEGIN
+                    INSERT INTO suppliers (SupplierCode, SupplierName, Address)
+                    VALUES (@SupplierCode, 'Bulk Supplier ' + @SupplierCode, 'Industrial Area')
+                END", new { SupplierCode = supplierCode });
             
             var manifestId = await conn.QuerySingleAsync<long>(@"
                 INSERT INTO manifests (ManifestNo, SupplierCode, SupplierName, Sequence, OrderType, PickDate, Cycle, Status) 
@@ -362,5 +409,55 @@ class Program
             
         Console.WriteLine($"[RACE-CONDITION] Step 2: Inserted Manifest {manifestNo} with ID {futureManifestId}.");
         Console.WriteLine($"[RACE-CONDITION] Watch EDCL logs: the next retry for Part {partNo} should now SUCCESS!");
+    }
+
+    private static async Task SeedEdclMasterAsync()
+    {
+        using var conn = new SqlConnection(EdclConnectionString);
+        await conn.OpenAsync();
+
+        Console.WriteLine("Seeding Transporter...");
+        var transporterId = await conn.ExecuteScalarAsync<long?>(
+            "SELECT Id FROM edcl.auth.transporters WHERE Name = 'Hikari Logistics'");
+        if (transporterId == null)
+        {
+            transporterId = await conn.QuerySingleAsync<long>(@"
+                INSERT INTO edcl.auth.transporters (Name, created_at, created_by, is_deleted) 
+                OUTPUT INSERTED.Id 
+                VALUES ('Hikari Logistics', GETUTCDATE(), 'System', 0)");
+            Console.WriteLine($"Inserted Transporter ID: {transporterId}");
+        }
+        else Console.WriteLine($"Transporter already exists. ID: {transporterId}");
+
+        Console.WriteLine("Seeding Truck...");
+        var truckId = await conn.ExecuteScalarAsync<long?>(
+            "SELECT Id FROM edcl.driver.trucks WHERE PlateNumber = 'B 9607 PXT'");
+        if (truckId == null)
+        {
+            truckId = await conn.QuerySingleAsync<long>(@"
+                INSERT INTO edcl.driver.trucks (PlateNumber, VehicleType, created_at, created_by, is_deleted) 
+                OUTPUT INSERTED.Id 
+                VALUES ('B 9607 PXT', 'Wingbox', GETUTCDATE(), 'System', 0)");
+            Console.WriteLine($"Inserted Truck ID: {truckId}");
+        }
+        else Console.WriteLine($"Truck already exists. ID: {truckId}");
+
+        Console.WriteLine("Seeding Driver...");
+        var driverId = await conn.ExecuteScalarAsync<long?>(
+            "SELECT Id FROM edcl.auth.drivers WHERE Nik = '3201012345678901'");
+        if (driverId == null)
+        {
+            // Bcrypt hash for '123456'
+            var pinHash = "$2b$12$V4UgAH0Af5i1aIkofUcN9OQ/ZF4TQRmklC1TajvEV6urRg6m7KnmO";
+            driverId = await conn.QuerySingleAsync<long>(@"
+                INSERT INTO edcl.auth.drivers (TransporterId, Name, Nik, PhoneNumber, PinHash, IsActive, created_at, created_by, is_deleted) 
+                OUTPUT INSERTED.Id 
+                VALUES (@TransporterId, 'LISTIONO', '3201012345678901', '081234567890', @PinHash, 1, GETUTCDATE(), 'System', 0)",
+                new { TransporterId = transporterId, PinHash = pinHash });
+            Console.WriteLine($"Inserted Driver ID: {driverId}");
+        }
+        else Console.WriteLine($"Driver already exists. ID: {driverId}");
+
+        Console.WriteLine("EDCL Master Data seeding completed successfully.");
     }
 }

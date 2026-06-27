@@ -198,6 +198,11 @@ public class Worker : BackgroundService
         {
             await ProcessManifestSkidAsync(after);
         }
+        else if (table?.Equals("Suppliers", StringComparison.OrdinalIgnoreCase) == true
+            || table?.Equals("suppliers", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            await ProcessSupplierAsync(after);
+        }
         else
         {
             _logger.LogWarning($"No processor found for table: {table}");
@@ -502,5 +507,57 @@ public class Worker : BackgroundService
         });
         
         _logger.LogInformation($"Successfully upserted ManifestSkid ID {id}");
+    }
+
+    private async Task ProcessSupplierAsync(JsonElement after)
+    {
+        _logger.LogInformation($"Processing Supplier Debezium payload: {after.GetRawText()}");
+        
+        long id = 0;
+        if (after.TryGetProperty("Id", out var idProp) || after.TryGetProperty("id", out idProp))
+            id = idProp.GetInt64();
+            
+        string supplierCode = "";
+        if (after.TryGetProperty("SupplierCode", out var scProp) || after.TryGetProperty("supplier_code", out scProp))
+            supplierCode = scProp.GetString() ?? "";
+
+        string supplierName = "";
+        if (after.TryGetProperty("SupplierName", out var snProp) || after.TryGetProperty("supplier_name", out snProp))
+            supplierName = snProp.GetString() ?? "";
+
+        string address = "";
+        if (after.TryGetProperty("Address", out var addrProp) || after.TryGetProperty("address", out addrProp))
+            address = addrProp.GetString() ?? "";
+
+        using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        var sql = @"
+            SET IDENTITY_INSERT edcl.driver.suppliers ON;
+            
+            MERGE INTO edcl.driver.suppliers AS target
+            USING (SELECT @Id AS Id) AS source
+            ON target.Id = source.Id
+            WHEN MATCHED THEN
+                UPDATE SET 
+                    SupplierCode = @SupplierCode,
+                    Name = @SupplierName,
+                    Address = @Address,
+                    updated_at = GETUTCDATE()
+            WHEN NOT MATCHED THEN
+                INSERT (Id, SupplierCode, Name, Address, created_at, created_by, is_deleted)
+                VALUES (@Id, @SupplierCode, @SupplierName, @Address, GETUTCDATE(), 'System', 0);
+                
+            SET IDENTITY_INSERT edcl.driver.suppliers OFF;";
+
+        await connection.ExecuteAsync(sql, new 
+        { 
+            Id = id, 
+            SupplierCode = supplierCode, 
+            SupplierName = supplierName,
+            Address = address
+        });
+        
+        _logger.LogInformation($"Successfully upserted Supplier ID {id} into edcl.driver.suppliers");
     }
 }
