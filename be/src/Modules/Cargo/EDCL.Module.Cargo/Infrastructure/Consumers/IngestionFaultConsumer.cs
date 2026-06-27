@@ -1,5 +1,6 @@
 using System.Text.Json;
 using EDCL.Module.Cargo.Domain.Entities;
+using EDCL.Module.Cargo.Domain.Events;
 using EDCL.Module.Cargo.Infrastructure.Channels;
 using EDCL.Module.Cargo.Infrastructure.Persistence;
 using MassTransit;
@@ -9,7 +10,7 @@ using Microsoft.Extensions.Logging;
 namespace EDCL.Module.Cargo.Infrastructure.Consumers;
 
 public class IngestionFaultConsumer :
-    IConsumer<Fault<DebeziumEvent>>
+    IConsumer<IngestionErrorEvent>
 {
     private readonly ILogger<IngestionFaultConsumer> _logger;
     private readonly IngestionErrorChannel _errorChannel;
@@ -25,22 +26,18 @@ public class IngestionFaultConsumer :
         _serviceProvider = serviceProvider;
     }
 
-    public async Task Consume(ConsumeContext<Fault<DebeziumEvent>> context)
+    public async Task Consume(ConsumeContext<IngestionErrorEvent> context)
     {
-        await HandleFaultAsync("DebeziumEvent", context.Message);
-    }
-
-    private async Task HandleFaultAsync<T>(string eventType, Fault<T> fault)
-    {
-        _logger.LogError("Received fault for {EventType}. Exceptions: {Exceptions}", eventType, fault.Exceptions.FirstOrDefault()?.Message);
+        var ev = context.Message;
+        _logger.LogError("Received ingestion fault for {EventType}. Exception: {ErrorMessage}", ev.EventType, ev.ErrorMessage);
 
         var error = new IngestionError
         {
-            EventType = eventType,
-            Payload = JsonSerializer.Serialize(fault.Message),
-            ErrorMessage = fault.Exceptions.FirstOrDefault()?.Message ?? "Unknown Error",
-            StackTrace = fault.Exceptions.FirstOrDefault()?.StackTrace,
-            OccurredAt = DateTime.UtcNow,
+            EventType = ev.EventType,
+            Payload = ev.Payload,
+            ErrorMessage = ev.ErrorMessage,
+            StackTrace = ev.StackTrace,
+            OccurredAt = ev.OccurredAt,
             IsResolved = false
         };
 

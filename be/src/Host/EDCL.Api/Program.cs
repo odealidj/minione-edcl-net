@@ -85,6 +85,14 @@ try
             });
 
             // Note: Ingestion from Debezium is handled by EDCL.Worker.Ingestion
+            
+            // Listen for DLQ faults from the ingestion worker
+            cfg.ReceiveEndpoint("edcl_ingestion_faults", e =>
+            {
+                e.ClearSerialization();
+                e.UseRawJsonSerializer();
+                e.ConfigureConsumer<EDCL.Module.Cargo.Infrastructure.Consumers.IngestionFaultConsumer>(context);
+            });
 
             // Auto configure endpoints for any other consumers not manually configured above
             cfg.ConfigureEndpoints(context);

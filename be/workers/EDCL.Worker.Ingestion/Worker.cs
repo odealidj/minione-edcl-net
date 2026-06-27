@@ -41,15 +41,73 @@ public class Worker : BackgroundService
             var body = ea.Body.ToArray();
             var message = Encoding.UTF8.GetString(body);
             
-            try
+            int maxRetries = 5;
+            int attempt = 0;
+            bool success = false;
+            
+            while (attempt < maxRetries && !success)
             {
-                await ProcessMessageAsync(message);
-                await channel.BasicAckAsync(ea.DeliveryTag, false, stoppingToken);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error processing message");
-                await channel.BasicNackAsync(ea.DeliveryTag, false, true, stoppingToken);
+                try
+                {
+                    await ProcessMessageAsync(message);
+                    await channel.BasicAckAsync(ea.DeliveryTag, false, stoppingToken);
+                    success = true;
+                }
+                catch (Exception ex)
+                {
+                    attempt++;
+                    _logger.LogWarning(ex, "Error processing message. Attempt {Attempt} of {MaxRetries}", attempt, maxRetries);
+                    
+                    if (attempt >= maxRetries)
+                    {
+                        _logger.LogError("Message failed after {MaxRetries} attempts. Publishing to DLQ.", maxRetries);
+                        
+                        string eventType = "Unknown";
+                        try
+                        {
+                            using var doc = JsonDocument.Parse(message);
+                            if (doc.RootElement.TryGetProperty("source", out var sourceProp) && 
+                                sourceProp.TryGetProperty("table", out var tableProp))
+                            {
+                                eventType = tableProp.GetString() ?? "Unknown";
+                            }
+                        }
+                        catch { /* Ignore parsing errors for DLQ */ }
+
+                        var faultEvent = new
+                        {
+                            EventType = eventType,
+                            Payload = message,
+                            ErrorMessage = ex.Message,
+                            StackTrace = ex.StackTrace,
+                            OccurredAt = DateTime.UtcNow
+                        };
+                        
+                        var faultJson = JsonSerializer.Serialize(faultEvent);
+                        var faultBody = Encoding.UTF8.GetBytes(faultJson);
+                        
+                        var props = new RabbitMQ.Client.BasicProperties { ContentType = "application/json" };
+                        await channel.QueueDeclareAsync("edcl_ingestion_faults", true, false, false, null, cancellationToken: stoppingToken);
+                        
+                        await channel.BasicPublishAsync(
+                            exchange: "",
+                            routingKey: "edcl_ingestion_faults",
+                            mandatory: false,
+                            basicProperties: props,
+                            body: faultBody,
+                            cancellationToken: stoppingToken);
+                            
+                        // Ack the original message so it doesn't infinite loop
+                        await channel.BasicAckAsync(ea.DeliveryTag, false, stoppingToken);
+                        success = true; // Break the loop
+                    }
+                    else
+                    {
+                        // Exponential backoff: 2s, 4s, 8s, 16s...
+                        var delayMs = (int)Math.Pow(2, attempt) * 1000;
+                        await Task.Delay(delayMs, stoppingToken);
+                    }
+                }
             }
         };
 
