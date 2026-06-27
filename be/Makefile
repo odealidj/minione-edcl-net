@@ -8,13 +8,13 @@ up:
 down:
 	docker-compose down
 
-# Hanya menjalankan infrastruktur utama (SQL Server, Redis, RabbitMQ)
+# Hanya menjalankan infrastruktur utama (SQL Server, Redis, RabbitMQ, Debezium)
 infra-up:
-	docker-compose up -d sqlserver redis rabbitmq
+	docker-compose up -d sqlserver redis rabbitmq debezium-server
 
 # Mematikan hanya infrastruktur utama
 infra-down:
-	docker-compose stop sqlserver redis rabbitmq
+	docker-compose stop sqlserver redis rabbitmq debezium-server
 
 # Melihat log dari semua service
 logs:

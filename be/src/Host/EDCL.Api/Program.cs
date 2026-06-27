@@ -71,11 +71,11 @@ try
 
         x.UsingRabbitMq((context, cfg) =>
         {
-            var rabbitMqConn = builder.Configuration.GetConnectionString("RabbitMqConnection") ?? "amqp://rabbitmq:5672";
+            var rabbitMqConn = builder.Configuration.GetConnectionString("RabbitMqConnection") ?? "amqp://localhost:5672";
             cfg.Host(rabbitMqConn);
             
-            // Allow MassTransit to consume raw JSON from Debezium natively
-            cfg.UseRawJsonSerializer();
+            // Allow MassTransit to consume raw JSON from Debezium natively (even without content-type)
+            // (Removed global raw json, only enabled on the specific endpoint)
 
             cfg.UseMessageRetry(r =>
             {
@@ -84,7 +84,9 @@ try
                 r.Exponential(5, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(5));
             });
 
-            // Auto configure endpoints based on consumer names
+            // Note: Ingestion from Debezium is handled by EDCL.Worker.Ingestion
+
+            // Auto configure endpoints for any other consumers not manually configured above
             cfg.ConfigureEndpoints(context);
         });
     });

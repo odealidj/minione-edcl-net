@@ -9,10 +9,7 @@ using Microsoft.Extensions.Logging;
 namespace EDCL.Module.Cargo.Infrastructure.Consumers;
 
 public class IngestionFaultConsumer :
-    IConsumer<Fault<DebeziumManifestEvent>>,
-    IConsumer<Fault<DebeziumManifestPartEvent>>,
-    IConsumer<Fault<DebeziumManifestKanbanEvent>>,
-    IConsumer<Fault<DebeziumManifestSkidEvent>>
+    IConsumer<Fault<DebeziumEvent>>
 {
     private readonly ILogger<IngestionFaultConsumer> _logger;
     private readonly IngestionErrorChannel _errorChannel;
@@ -28,24 +25,9 @@ public class IngestionFaultConsumer :
         _serviceProvider = serviceProvider;
     }
 
-    public async Task Consume(ConsumeContext<Fault<DebeziumManifestEvent>> context)
+    public async Task Consume(ConsumeContext<Fault<DebeziumEvent>> context)
     {
-        await HandleFaultAsync("DebeziumManifestEvent", context.Message);
-    }
-
-    public async Task Consume(ConsumeContext<Fault<DebeziumManifestPartEvent>> context)
-    {
-        await HandleFaultAsync("DebeziumManifestPartEvent", context.Message);
-    }
-
-    public async Task Consume(ConsumeContext<Fault<DebeziumManifestKanbanEvent>> context)
-    {
-        await HandleFaultAsync("DebeziumManifestKanbanEvent", context.Message);
-    }
-
-    public async Task Consume(ConsumeContext<Fault<DebeziumManifestSkidEvent>> context)
-    {
-        await HandleFaultAsync("DebeziumManifestSkidEvent", context.Message);
+        await HandleFaultAsync("DebeziumEvent", context.Message);
     }
 
     private async Task HandleFaultAsync<T>(string eventType, Fault<T> fault)

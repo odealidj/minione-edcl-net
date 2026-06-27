@@ -9,7 +9,11 @@ Proyek ini sangat penting untuk melakukan **End-to-End (E2E) Testing** bagi meka
 - .NET 8 SDK
 
 ## 🚀 Panduan Eksekusi
-Anda dapat menjalankan seluruh perintah di bawah ini melalui terminal di folder *root* proyek (menggunakan `Makefile`):
+Anda dapat menjalankan seluruh perintah di bawah ini melalui terminal di dalam folder `idcs-seeder` (menggunakan `Makefile`):
+
+```bash
+cd idcs-seeder
+```
 
 ### 1. Menjalankan IDCS Database (SQL Server)
 ```bash
@@ -30,14 +34,27 @@ Akan membuat database `IDCS` serta seluruh tabel simulasi yang dibutuhkan (`mani
 - **`make seed-kanban`**: Mengirim data Kanban dengan ID parent terbaru.
 - **`make seed-skid`**: Mengirim data Skid dengan ID parent terbaru.
 
-### 4. Simulasi Out-Of-Order (Error & Retry Testing)
+### 4. Simulasi Out-Of-Order & Retry (Race Condition Testing)
+
+Dalam kenyataan, ketika sebuah sistem *legacy* menyisipkan (Insert) Manifest dan Part dalam waktu yang nyaris bersamaan (misal 1 milidetik), *Message Broker* bisa saja mengirimkan data Part mendahului Manifest-nya. Untuk mensimulasikan **kondisi balapan (Race Condition)** secara nyata dan terukur tanpa mengandalkan kebetulan, kami menggunakan dua skenario khusus:
+
+#### A. Out-of-Order Permanen (Fault)
 ```bash
 make seed-out-of-order
 ```
-Skenario ini akan dengan sengaja menyisipkan Part dengan `ManifestId` fiktif yang tidak ada di dalam EDCL. 
-Skenario ini berfungsi untuk memvalidasi:
-1. **Exponential Backoff Retry**: MassTransit akan mencoba *retry* selama beberapa detik.
-2. **IngestionFaultConsumer & SSE**: Pesan yang tetap gagal di-*retry* akan dibuang ke Fault Consumer, lalu dilempar sebagai notifikasi *realtime* (Server-Sent Events) ke Web Client.
+Skenario ini dengan sengaja menyisipkan Part dengan `ManifestId` fiktif yang tidak pernah ada di dalam EDCL. 
+**Tujuan:** Memvalidasi bahwa jika Exponential Backoff Retry gagal berulang kali, pesan akan dibuang ke *Fault Consumer*, lalu dilempar sebagai notifikasi *real-time* (Server-Sent Events) ke Web Client.
+
+#### B. Race Condition Aktual (Retry Success)
+```bash
+make seed-race-condition
+```
+Skenario ini melakukan langkah-langkah presisi berikut:
+1. Menentukan ID Manifest fiktif untuk masa depan.
+2. Melakukan *Insert* Part menggunakan ID masa depan tersebut.
+3. Sengaja menunda eksekusi selama **3 detik** (Dalam masa ini, MassTransit di EDCL akan menangkap pesan, gagal mencari *Parent*-nya, dan mulai menghitung waktu Retry).
+4. Setelah jeda, skrip akan melakukan *Insert* Manifest dengan ID masa depan tersebut secara paksa (`IDENTITY_INSERT`).
+**Tujuan:** Membuktikan bahwa MassTransit EDCL tidak langsung menggugurkan pesan Part, melainkan berhasil **Sukses pada Retry Berikutnya** setelah Parent-nya akhirnya terdaftar.
 
 ---
 **Catatan**: Proyek ini sengaja dibuat sejajar (*root level*) dengan *backend* (`be`), *frontend* (`fe`), dan `docs` agar tidak merancukan _test suite_ internal dari API EDCL.

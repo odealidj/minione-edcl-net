@@ -13,7 +13,7 @@ class Program
         Console.WriteLine("=== EDCL IDCS Data Seeder ===");
         if (args.Length == 0)
         {
-            Console.WriteLine("Usage: dotnet run -- [manifest|part|kanban|skid|out-of-order|init]");
+            Console.WriteLine("Usage: dotnet run -- [manifest|part|kanban|skid|out-of-order|race-condition|init]");
             return;
         }
 
@@ -25,7 +25,7 @@ class Program
             switch (action)
             {
                 case "init":
-                    Console.WriteLine("Database and tables initialized.");
+                    Console.WriteLine("Database and tables initialized. CDC Enabled.");
                     break;
                 case "manifest":
                     await SeedManifestAsync();
@@ -41,6 +41,9 @@ class Program
                     break;
                 case "out-of-order":
                     await SeedOutOfOrderAsync();
+                    break;
+                case "race-condition":
+                    await SeedRaceConditionAsync();
                     break;
                 default:
                     Console.WriteLine($"Unknown action: {action}");
@@ -71,6 +74,21 @@ class Program
         {
             await conn.OpenAsync();
             
+            // Enable CDC on Database Level
+            try
+            {
+                var isCdcEnabled = await conn.ExecuteScalarAsync<bool>("SELECT is_cdc_enabled FROM sys.databases WHERE name = 'IDCS'");
+                if (!isCdcEnabled)
+                {
+                    await conn.ExecuteAsync("EXEC sys.sp_cdc_enable_db");
+                    Console.WriteLine("Enabled CDC on IDCS database.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Warning: Could not enable CDC on DB level. Ensure SQL Server Agent is running. Error: " + ex.Message);
+            }
+            
             // Create manifests table
             await conn.ExecuteAsync(@"
                 IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='manifests' AND xtype='U')
@@ -85,6 +103,7 @@ class Program
                     Cycle NVARCHAR(20),
                     Status NVARCHAR(50)
                 )");
+            await EnableCdcOnTableAsync(conn, "manifests");
 
             // Create manifest_parts table
             await conn.ExecuteAsync(@"
@@ -97,6 +116,7 @@ class Program
                     Qty INT,
                     Uom NVARCHAR(20)
                 )");
+            await EnableCdcOnTableAsync(conn, "manifest_parts");
 
             // Create manifest_kanbans table
             await conn.ExecuteAsync(@"
@@ -107,6 +127,7 @@ class Program
                     PartNo NVARCHAR(50),
                     KanbanCd NVARCHAR(50)
                 )");
+            await EnableCdcOnTableAsync(conn, "manifest_kanbans");
 
             // Create manifest_skids table
             await conn.ExecuteAsync(@"
@@ -116,6 +137,7 @@ class Program
                     ManifestId BIGINT,
                     SkidNo NVARCHAR(50)
                 )");
+            await EnableCdcOnTableAsync(conn, "manifest_skids");
 
             // Create write-back table for EDCL Delivery Status
             await conn.ExecuteAsync(@"
@@ -131,16 +153,41 @@ class Program
         }
     }
 
+    private static async Task EnableCdcOnTableAsync(SqlConnection conn, string tableName)
+    {
+        try
+        {
+            var isTableCdcEnabled = await conn.ExecuteScalarAsync<bool>(
+                "SELECT is_tracked_by_cdc FROM sys.tables WHERE name = @TableName", new { TableName = tableName });
+                
+            if (!isTableCdcEnabled)
+            {
+                await conn.ExecuteAsync($@"
+                    EXEC sys.sp_cdc_enable_table
+                    @source_schema = N'dbo',
+                    @source_name   = N'{tableName}',
+                    @role_name     = NULL,
+                    @supports_net_changes = 0;");
+                Console.WriteLine($"Enabled CDC on table {tableName}.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Warning: Could not enable CDC on {tableName}. Error: {ex.Message}");
+        }
+    }
+
     private static async Task SeedManifestAsync()
     {
         using var conn = new SqlConnection(ConnectionString);
         var manifestNo = $"MNF-{DateTime.Now:yyyyMMddHHmmss}";
+        var pickDate = DateTime.Now;
         
         var id = await conn.QuerySingleAsync<long>(@"
             INSERT INTO manifests (ManifestNo, SupplierCode, SupplierName, Sequence, OrderType, PickDate, Cycle, Status) 
             OUTPUT INSERTED.Id
             VALUES (@ManifestNo, 'SUP-001', 'Test Supplier', 1, 'ORG', @PickDate, 'C1', 'Pending')",
-            new { ManifestNo = manifestNo, PickDate = DateTime.Now });
+            new { ManifestNo = manifestNo, PickDate = pickDate });
             
         Console.WriteLine($"Inserted Manifest: {manifestNo} with ID {id}");
     }
@@ -148,7 +195,6 @@ class Program
     private static async Task SeedPartAsync()
     {
         using var conn = new SqlConnection(ConnectionString);
-        // Find latest manifest
         var manifestId = await conn.QueryFirstOrDefaultAsync<long?>("SELECT TOP 1 Id FROM manifests ORDER BY Id DESC");
         
         if (manifestId == null)
@@ -213,10 +259,6 @@ class Program
     {
         using var conn = new SqlConnection(ConnectionString);
         
-        // We insert a Part for a Manifest that DOES NOT EXIST yet in EDCL.
-        // E.g. we insert to IDCS a Part pointing to ManifestId = 999999
-        // When Debezium reads this and sends to EDCL, EDCL will get FK exception 
-        // because ManifestId 999999 doesn't exist in EDCL's database.
         var fakeManifestId = 999999L;
         var partNo = $"PRT-OOO";
         
@@ -228,5 +270,40 @@ class Program
             
         Console.WriteLine($"[OUT-OF-ORDER] Inserted Part: {partNo} with ID {id} for non-existent ManifestId {fakeManifestId}.");
         Console.WriteLine("Check EDCL logs for Retry and SSE Fault events.");
+    }
+
+    private static async Task SeedRaceConditionAsync()
+    {
+        using var conn = new SqlConnection(ConnectionString);
+        
+        var futureManifestId = 50000L + new Random().Next(1, 9999);
+        var partNo = $"PRT-RACE";
+        var manifestNo = $"MNF-RACE-{futureManifestId}";
+        var pickDate = DateTime.Now;
+        
+        await conn.OpenAsync();
+        
+        var partId = await conn.QuerySingleAsync<long>(@"
+            INSERT INTO manifest_parts (ManifestId, PartNo, PartName, Qty, Uom) 
+            OUTPUT INSERTED.Id
+            VALUES (@ManifestId, @PartNo, 'Race Condition Part', 5, 'PCS')",
+            new { ManifestId = futureManifestId, PartNo = partNo });
+            
+        Console.WriteLine($"[RACE-CONDITION] Step 1: Inserted Part {partNo} for future ManifestId {futureManifestId}.");
+        Console.WriteLine($"[RACE-CONDITION] Waiting 3 seconds to let MassTransit fail and start Retry...");
+        
+        await Task.Delay(3000);
+        
+        await conn.ExecuteAsync(@"
+            SET IDENTITY_INSERT manifests ON;
+            
+            INSERT INTO manifests (Id, ManifestNo, SupplierCode, SupplierName, Sequence, OrderType, PickDate, Cycle, Status) 
+            VALUES (@Id, @ManifestNo, 'SUP-002', 'Race Supplier', 1, 'ORG', @PickDate, 'C1', 'Pending');
+            
+            SET IDENTITY_INSERT manifests OFF;",
+            new { Id = futureManifestId, ManifestNo = manifestNo, PickDate = pickDate });
+            
+        Console.WriteLine($"[RACE-CONDITION] Step 2: Inserted Manifest {manifestNo} with ID {futureManifestId}.");
+        Console.WriteLine($"[RACE-CONDITION] Watch EDCL logs: the next retry for Part {partNo} should now SUCCESS!");
     }
 }

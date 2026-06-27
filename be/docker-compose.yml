@@ -92,7 +92,20 @@ services:
       - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=EDCLMini;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;
       - DOTNET_ENVIRONMENT=Development
 
+  debezium-server:
+    image: quay.io/debezium/server:2.4
+    container_name: edcl_debezium_server
+    restart: on-failure
+    depends_on:
+      - rabbitmq
+    volumes:
+      - ./conf/debezium:/debezium/conf
+      - debezium_data:/debezium/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
 volumes:
   sql_data:
   redis_data:
   rabbitmq_data:
+  debezium_data:
