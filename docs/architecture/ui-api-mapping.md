@@ -4,10 +4,9 @@ Dokumen ini memetakan tampilan antarmuka (UI) aplikasi klien (Mobile/Web) dengan
 
 ---
 
-## 1. Driver Login
-
-Tampilan awal aplikasi untuk Driver masuk ke dalam sistem. Saat ini UI hanya menampilkan input "Nomor Handphone", namun API secara aktual membutuhkan parameter tambahan berupa "PIN" atau "Password".
 ## 1. Driver Login (2-Step OTP Verification)
+
+Tampilan awal aplikasi untuk Driver masuk ke dalam sistem. Autentikasi dilakukan menggunakan OTP (One-Time Password) berupa PIN 4-digit yang dikirimkan ke nomor handphone driver.
 
 **Tampilan:** Layar Login Aplikasi Mobile Driver
 **Endpoint:**
@@ -25,7 +24,31 @@ Tampilan awal aplikasi untuk Driver masuk ke dalam sistem. Saat ini UI hanya men
 
 ### API Endpoints Terkait
 
-#### A. Eksekusi Login
+#### A. Permintaan Kode OTP (Step 1)
+Endpoint ini akan memeriksa apakah nomor HP terdaftar, lalu men-*generate* PIN 4-digit dan mengirimkannya (via integrasi SMS/WA/Mock Log).
+
+- **URL:** `POST /api/v1/auth/request-otp`
+- **Method:** `POST`
+- **Auth:** *(None / Public)*
+
+**Request Body:**
+```json
+{
+  "phoneNumber": "08123456789"
+}
+```
+
+**Contoh Response (Success):**
+```json
+{
+  "success": true,
+  "traceId": "0HN...:00000004",
+  "message": "OTP sent.",
+  "data": null
+}
+```
+
+#### B. Eksekusi Login (Step 2)
 Endpoint ini akan memverifikasi kredensial driver dan mengembalikan Access Token serta Refresh Token.
 
 - **URL:** `POST /api/v1/auth/login`
