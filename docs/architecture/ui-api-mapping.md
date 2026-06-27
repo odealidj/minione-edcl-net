@@ -4,59 +4,22 @@ Dokumen ini memetakan tampilan antarmuka (UI) aplikasi klien (Mobile/Web) dengan
 
 ---
 
-## 1. Driver Login (2-Step OTP Verification)
+## 1. Driver Login (PIN Authentication)
 
-Tampilan awal aplikasi untuk Driver masuk ke dalam sistem. Autentikasi dilakukan menggunakan OTP (One-Time Password) berupa PIN 4-digit yang dikirimkan ke nomor handphone driver.
+Tampilan awal aplikasi untuk Driver masuk ke dalam sistem. Autentikasi dilakukan menggunakan Nomor Handphone dan **PIN statis 6-digit** milik Driver. Tidak ada fitur pengiriman OTP di setiap sesi masuk.
 
 **Tampilan:** Layar Login Aplikasi Mobile Driver
-**Endpoint:**
-- **Step 1 (Request OTP):** `POST /api/v1/auth/request-otp`
-- **Step 2 (Verify PIN):** `POST /api/v1/auth/login`
 
 **Deskripsi Alur:**
-1. Driver memasukkan Nomor HP.
-2. Aplikasi memanggil `POST /request-otp`. Backend membuat 4-digit PIN acak, menyimpannya di Redis (TTL 3 menit), dan mengirimkannya via SMS/WA/Notifikasi (saat ini *mocked* di log console).
-3. Driver menerima PIN dan memasukkannya di layar aplikasi pada input "PIN OTP".
-4. Aplikasi memanggil `POST /login` dengan Nomor HP & PIN tersebut.
-5. Backend memverifikasi PIN dengan Redis. Jika cocok, PIN dihapus dari Redis dan Backend menerbitkan JWT Access Token & Refresh Token.
+1. Driver memasukkan Nomor HP dan PIN mereka pada form aplikasi.
+2. Aplikasi memanggil `POST /api/v1/auth/drivers/login` dengan kredensial tersebut.
+3. Backend memverifikasi *hash* PIN. Jika cocok, Backend menerbitkan JWT Access Token & Refresh Token.
 
-<img src="../assets/images/login-driver-otp.png" width="300" alt="Driver Login UI (OTP)" />
+<img src="../assets/images/login-driver-otp.png" width="300" alt="Driver Login UI" />
 
 ### API Endpoints Terkait
 
-#### A. Permintaan Kode OTP (Step 1)
-Endpoint ini akan memeriksa apakah nomor HP terdaftar, lalu men-*generate* PIN 4-digit dan mengirimkannya (via integrasi SMS/WA/Mock Log).
-
-- **URL:** `POST /api/v1/auth/request-otp`
-- **Method:** `POST`
-- **Auth:** *(None / Public)*
-
-**Request Body:**
-```json
-{
-  "phoneNumber": "08123456789"
-}
-```
-
-**Contoh Request (cURL):**
-```bash
-curl -X POST http://localhost:5000/api/v1/auth/request-otp \
-  -H "Content-Type: application/json" \
-  -d '{"phoneNumber": "08123456789"}'
-```
-
-
-**Contoh Response (Success):**
-```json
-{
-  "success": true,
-  "traceId": "0HN...:00000004",
-  "message": "OTP sent.",
-  "data": null
-}
-```
-
-#### B. Eksekusi Login (Step 2)
+#### A. Eksekusi Login
 Endpoint ini akan memverifikasi kredensial driver dan mengembalikan Access Token serta Refresh Token.
 
 - **URL:** `POST /api/v1/auth/drivers/login`
@@ -101,8 +64,8 @@ curl -X POST http://localhost:5000/api/v1/auth/drivers/login \
 - Tombol `MASUK` ➡️ Memicu request POST ke server.
 - **Handling Token:** Parameter `accessToken` dan `refreshToken` dari respons wajib disimpan dengan aman di sisi klien (contoh: *Encrypted SharedPreferences* di Android atau *Keychain* di iOS) untuk dipanggil sebagai `Authorization: Bearer` pada layar berikutnya.
 
-#### C. Wajib Ganti PIN (Force Change PIN)
-Apabila kredensial *login* valid namun Driver menggunakan PIN bawaan sistem (contoh: `123456`), Endpoint B (Eksekusi Login) akan menolak memberikan token dan memunculkan respons spesifik ini:
+#### B. Wajib Ganti PIN (Force Change PIN)
+Apabila kredensial *login* valid namun Driver menggunakan PIN bawaan sistem (contoh: `123456`), Endpoint A (Eksekusi Login) akan menolak memberikan token dan memunculkan respons spesifik ini:
 
 **Contoh Response Login (Harus Ganti PIN):**
 ```json
