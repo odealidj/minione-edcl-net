@@ -20,6 +20,9 @@ public sealed class PickupOrder : AuditableEntity
     public DateTime? StartedAt { get; private set; }
     public DateTime? CompletedAt { get; private set; }
 
+    public string? HangfireJobIdH1 { get; private set; }
+    public string? HangfireJobIdH30 { get; private set; }
+
     public ICollection<PickupOrderDetail> Details { get; private set; } = [];
     public ICollection<PickupOrderManifest> Manifests { get; private set; } = [];
 
@@ -27,6 +30,18 @@ public sealed class PickupOrder : AuditableEntity
 
     public static PickupOrder Create(long driverId, long? truckId, string poNo, DateTime pickupDate, string routeCode, string cycleCode, TimeSpan estimatedDepartureTime)
         => new() { DriverId = driverId, TruckId = truckId, PoNo = poNo, PickupDate = pickupDate, RouteCode = routeCode, CycleCode = cycleCode, EstimatedDepartureTime = estimatedDepartureTime, Status = PickupOrderStatus.Pending };
+
+    public void Assign(long driverId, long? truckId)
+    {
+        DriverId = driverId;
+        TruckId = truckId;
+    }
+
+    public void SetHangfireJobs(string? h1, string? h30)
+    {
+        HangfireJobIdH1 = h1;
+        HangfireJobIdH30 = h30;
+    }
 
     public void Start()
     {

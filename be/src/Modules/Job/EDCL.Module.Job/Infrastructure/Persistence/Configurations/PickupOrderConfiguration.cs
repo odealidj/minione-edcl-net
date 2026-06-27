@@ -58,6 +58,9 @@ public class PickupOrderConfiguration : IEntityTypeConfiguration<PickupOrder>
         builder.Property(x => x.IsDeleted).IsRequired().HasDefaultValue(false);
         builder.Property(x => x.RowVersion).IsRowVersion();
 
+        builder.Property(x => x.HangfireJobIdH1).HasMaxLength(100);
+        builder.Property(x => x.HangfireJobIdH30).HasMaxLength(100);
+
         builder.HasQueryFilter(x => !x.IsDeleted);
     }
 }

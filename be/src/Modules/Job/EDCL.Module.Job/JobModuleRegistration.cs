@@ -16,6 +16,8 @@ public static class JobModuleRegistration
 
         services.AddScoped<EDCL.Module.Job.Application.Ports.IPickupOrderRepository, EDCL.Module.Job.Infrastructure.Persistence.Repositories.PickupOrderRepository>();
 
+        services.AddScoped<EDCL.Module.Job.Application.Services.IJobReminderService, EDCL.Module.Job.Application.Services.JobReminderService>();
+        
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(JobModuleRegistration).Assembly));
 
         // Register dummy notification port (real implementation will come with Outbox Pattern)

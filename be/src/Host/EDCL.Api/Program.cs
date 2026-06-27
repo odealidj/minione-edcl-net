@@ -7,6 +7,7 @@ using EDCL.Shared.Http;
 using EDCL.Shared.Infrastructure;
 using MessagePack.AspNetCoreMvcFormatter;
 using MassTransit;
+using Hangfire;
 using Scalar.AspNetCore;
 using Serilog;
 
@@ -68,6 +69,7 @@ try
     {
         // Register Consumers from Modules
         x.AddConsumers(typeof(EDCL.Module.Cargo.CargoModuleRegistration).Assembly);
+        x.AddConsumers(typeof(EDCL.Module.Notification.NotificationModuleRegistration).Assembly);
 
         x.UsingRabbitMq((context, cfg) =>
         {
@@ -109,6 +111,16 @@ try
     builder.Services.AddOpenApi();
     builder.Services.AddEndpointsApiExplorer();
 
+    // ── Hangfire (Scheduled Jobs) ─────────────────────────────────────────────
+    var hangfireConn = builder.Configuration.GetConnectionString("DefaultConnection");
+    builder.Services.AddHangfire(configuration => configuration
+        .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+        .UseSimpleAssemblyNameTypeSerializer()
+        .UseRecommendedSerializerSettings()
+        .UseSqlServerStorage(hangfireConn));
+
+    builder.Services.AddHangfireServer();
+
     // ── Health Checks ─────────────────────────────────────────────────────────
     var defaultConn = builder.Configuration.GetConnectionString("DefaultConnection") ?? "";
     var redisConn = builder.Configuration.GetConnectionString("RedisConnection") ?? "";
@@ -146,6 +158,8 @@ try
     app.UseAuthorization();
 
     app.MapControllers();
+    app.UseHangfireDashboard("/hangfire");
+    
     app.MapHealthChecks("/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
     {
         ResponseWriter = HealthChecks.UI.Client.UIResponseWriter.WriteHealthCheckUIResponse
