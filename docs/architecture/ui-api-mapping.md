@@ -111,7 +111,7 @@ Apabila kredensial *login* valid namun Driver menggunakan PIN bawaan sistem (con
 1. Aplikasi Mobile wajib membaca `errors[0].code == "Auth.ForceChangePin"`.
 2. Jika terdeteksi, cegah transisi ke Dashboard dan **tampilkan layar Wajib Ganti PIN** (*Mandatory Change PIN Form*).
 
-<img src="../brain/a643f052-b20a-427c-a50f-fa0dc9d8f0ce/simple_change_pin_ui_1782561479448.png" width="300" alt="Force Change PIN UI" />
+<img src="../assets/images/simple_change_pin_ui.png" width="300" alt="Force Change PIN UI" />
 
 Pada layar ini, Driver harus membuat PIN baru, lalu dikirim via endpoint ini:
 
