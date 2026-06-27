@@ -55,3 +55,53 @@ Skenario ini terjadi jika Admin membatalkan atau mengganti Driver untuk sebuah r
 2. **Membaca Notifikasi:** Ketika Driver mengetuk notifikasi tersebut, aplikasi Mobile terbuka dan mengarahkan Driver ke menu/halaman **Daftar Notifikasi** (Notification List).
 3. **Status Baca:** Setelah Driver melihat halaman notifikasi, notifikasi yang belum dibaca (`is_read = false`) dapat di-klik untuk menandai bahwa instruksi telah dibaca dan dimengerti.
 4. **Detail Route:** Dari notifikasi, Driver dapat mengeklik tombol/tautan untuk langsung melompat ke layar **Route Summary** guna memulai perjalanan (`Start Job`).
+
+## 5. Alur Operasional (Swimlane)
+
+Berikut adalah diagram Swimlane yang mengilustrasikan alur operasional pengiriman notifikasi dari Admin hingga dieksekusi oleh Driver.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Admin as Admin (Web)
+    participant System as Sistem (Backend & Hangfire)
+    actor Driver as Driver (Mobile)
+
+    %% Skenario Penugasan
+    rect rgb(240, 248, 255)
+        Note over Admin,Driver: Skenario A: Penugasan Baru (Assignment)
+        Admin->>System: Assign Driver & Truk pada Pickup Order
+        System->>System: Simpan data Assignment (Database)
+        System->>System: Jadwalkan Reminder (Hangfire H-1 & H-30)
+        System->>Driver: Kirim Push Notifikasi ("Tugas Baru Ditugaskan")
+        Driver-->>Driver: Menerima Notifikasi Assignment
+    end
+
+    %% Skenario Reminder H-1
+    rect rgb(255, 250, 240)
+        Note over Admin,Driver: Skenario B: Pengingat (H-1 Jam)
+        System-->>System: Menunggu Waktu H-1 Jam (Hangfire)
+        System->>System: Bangkitkan Event H-1 Jam
+        System->>Driver: Kirim Push Notifikasi ("Reminder: 1 Jam")
+        Driver-->>Driver: Menerima Notifikasi H-1 Jam
+    end
+
+    %% Skenario Reminder H-30
+    rect rgb(255, 240, 245)
+        Note over Admin,Driver: Skenario B: Pengingat Final (H-30 Menit)
+        System-->>System: Menunggu Waktu H-30 Menit (Hangfire)
+        System->>System: Bangkitkan Event H-30 Menit
+        System->>Driver: Kirim Push Notifikasi ("Reminder: 30 Menit")
+        Driver-->>Driver: Menerima Notifikasi H-30 Menit
+    end
+
+    %% Aksi Driver
+    rect rgb(245, 255, 245)
+        Note over Admin,Driver: Eksekusi oleh Driver
+        Driver->>Driver: Buka Aplikasi & Masuk Daftar Notifikasi
+        Driver->>System: Klik Notifikasi & Buka Detail Route Summary
+        System-->>Driver: Tampilkan Route Summary
+        Driver->>System: Klik "Start Job"
+        System-->>Admin: Status Order berubah menjadi "ON THE WAY"
+    end
+```
