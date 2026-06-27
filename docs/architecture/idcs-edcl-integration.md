@@ -44,16 +44,19 @@ flowchart TD
     %% 3. EDCL BOUNDARY
     %% --------------------------------
     subgraph EDCL ["Sistem EDCL (Modern)"]
-        edcl_api["EDCL.Api\n(MassTransit Consumers)"]
+        worker_ingestion["EDCL.Worker.Ingestion\n(Native RabbitMQ Client)"]
+        edcl_api["EDCL.Api\n(MassTransit Fault Consumer)"]
         edcl_db[("Database EDCL\nPostgreSQL/SQLServer")]
         edcl_ui("Web / Mobile Client")
         
         worker_reporter["EDCL.Worker.Reporter\n(MassTransit Consumer)"]
         
         %% Ingestion Flow
-        rabbitmq -- Consume CDC Event --> edcl_api
-        edcl_api -- Insert / EF Core --> edcl_db
-        edcl_api -- SSE (Server-Sent Events)\nJika Error / Out-of-Order --> edcl_ui
+        rabbitmq -- Consume CDC Event --> worker_ingestion
+        worker_ingestion -- Insert / EF Core --> edcl_db
+        worker_ingestion -- Publish DLQ Event\n(Jika Gagal 5x) --> rabbitmq
+        rabbitmq -- Consume DLQ Event --> edcl_api
+        edcl_api -- SSE (Server-Sent Events) --> edcl_ui
         
         %% Write-Back Flow
         edcl_api -- Publish\nManifestDeliveredEvent --> rabbitmq
@@ -80,11 +83,10 @@ Integrasi ini dibagi menjadi dua fase utama: **Fase Ingestion** (Masuk ke EDCL) 
 **Solusi:**
 1. **Change Data Capture (CDC):** Kita menggunakan **Debezium** yang menempel langsung pada *Transaction Logs* (SQL Server Agent) di database IDCS. Setiap kali ada query `INSERT`, `UPDATE`, atau `DELETE` pada tabel Manifest/Parts di IDCS, Debezium langsung mengetahuinya secara pasif (tanpa perlu melempar query `SELECT`).
 2. **Message Broker (RabbitMQ):** Debezium mengubah perubahan data tersebut menjadi format *Raw JSON* dan melemparkannya ke antrean **RabbitMQ**. RabbitMQ bertindak sebagai "Peredam Kejut" (*Shock Absorber*). Jika EDCL sedang mati atau *overload*, data tidak akan hilang; ia akan antre dengan aman di RabbitMQ.
-3. **MassTransit Consumer (EDCL):** API EDCL menggunakan MassTransit (dengan konfigurasi `UseRawJsonSerializer`) untuk membaca pesan JSON tersebut. MassTransit akan mengubah JSON mentah menjadi objek C# (DTO).
-4. **Penanganan Out-Of-Order (Retry & SSE):** Terkadang data *Part* datang lebih cepat daripada *Manifest* (induknya belum ada di EDCL). Saat hal ini terjadi:
-   - EF Core akan melempar error *Foreign Key Constraint*.
-   - MassTransit akan melakukan **Exponential Backoff Retry** (Mencoba ulang setelah 1 detik, lalu 5 detik, dst.).
-   - Jika setelah di-*retry* beberapa kali tetap gagal, pesan dikirim ke `IngestionFaultConsumer` yang selanjutnya menembakkan sinyal **Server-Sent Events (SSE)** ke tampilan Web Client untuk memberi tahu admin secara *real-time*.
+3. **Dedicated Ingestion Worker:** Karena arus pesan CDC sangat padat, kita membuat *microservice* khusus `EDCL.Worker.Ingestion`. Demi efisiensi dan performa maksimal, worker ini **TIDAK menggunakan MassTransit**. Ia dibangun murni menggunakan `RabbitMQ.Client` *native* untuk mengonsumsi *Raw JSON* dan memprosesnya secara langsung.
+4. **Penanganan Out-Of-Order (Delayed Retry & SSE):** Sering kali terjadi *Race Condition* di mana data anak (*Part*) datang sebelum induknya (*Manifest*), memicu *Error Foreign Key Constraint*.
+   - **Delayed Retry (TTL + DLX):** Untuk mencegah *Head-of-Line Blocking*, Worker menangani kegagalan ini dengan melempar pesan yang bermasalah ke **Retry Queue** RabbitMQ khusus yang memiliki *Time-To-Live* (TTL). Jeda waktunya menggunakan pola *Exponential Backoff* (2s, 4s, 8s, 16s, 32s). Setelah TTL habis, pesan otomatis dilempar kembali ke antrean utama.
+   - **DLQ & SSE:** Jika masih gagal setelah 5 percobaan, pesan dimasukkan ke *Dead Letter Queue* (`edcl_ingestion_faults`). Di sisi `EDCL.Api`, komponen `IngestionFaultConsumer` (yang ini menggunakan MassTransit) akan menangkap pesan gagal tersebut dan seketika menembakkan **Server-Sent Events (SSE)** ke Web Client untuk memperingatkan operator secara *real-time*.
 
 ---
 
