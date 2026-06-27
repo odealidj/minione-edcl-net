@@ -268,7 +268,56 @@ curl -X POST http://localhost:5000/api/v1/jobs/1/start \
   "data": null
 }
 ```
-*Catatan:* Setelah menerima `success: true`, Frontend harus me-redirect driver ke layar navigasi (maps) menuju pemberhentian pertama.
+*(Catatan: Endpoint ini digunakan pada layar sebelumnya untuk mengubah status keseluruhan *Order* menjadi aktif/dimulai).*
+
+---
+
+## 4. Info Pengiriman (Active Route Execution)
+
+Tampilan ini adalah pusat komando bagi Driver saat sedang dalam perjalanan (sedang menjalankan Job). Layar ini menampilkan status tiap-tiap titik penjemputan (*Route Stops*), jumlah barang/Kanban yang harus diambil, serta aksi untuk menyelesaikan rute secara keseluruhan.
+
+*(Anda dapat menyimpan gambar unggahan Anda ke `docs/assets/images/info-pengiriman.png` agar muncul di bawah ini)*
+<img src="../assets/images/info-pengiriman.png" width="300" alt="Info Pengiriman UI" />
+
+### Analisis UI Terhadap Arsitektur API
+
+Berdasarkan *screenshot* yang Anda unggah, berikut adalah pemetaan teknis yang relevan dengan `JobController`:
+
+#### A. Data Header & Timeline (Read)
+Seluruh informasi di layar ini (mulai dari *Route & Cycle*, *Delivery No.*, hingga daftar *1st Pickup*, *2nd Pickup*) menggunakan respons dari endpoint `Route Stops` yang sama seperti di Bagian 3, namun kali ini mencerminkan progres nyata.
+
+- **URL:** `GET /api/v1/jobs/{id}/route-stops`
+- **Mapping ke UI:**
+  - `status: "COMPLETED"` (seperti pada ADVICS INDONESIA) -> Menampilkan *badge* hijau **✓ Picked Up** dan mengubah tombol aksi menjadi tombol Edit (warna jingga).
+  - `status: "PENDING"` (seperti pada PT. INDONESIA THAI SUMMIT PLAS) -> Menampilkan tombol arah panah biru (➡) untuk memulai proses pengambilan barang di titik tersebut.
+  - Jumlah Kanban (Original, Others, EO) -> Di-render dari objek `original`, `others`, dan `eo` (menampilkan format `scanned / total`).
+  - *Color coding*: Warna teks hijau (misal `8/8`) jika `scanned == total`, dan merah muda (misal `0/3`) jika `scanned < total`.
+
+#### B. Tombol Panah Biru & Tombol Edit (Aksi Navigasi)
+Tombol panah biru pada pemberhentian yang masih *Pending*, maupun tombol *Edit* jingga pada pemberhentian yang sudah *Picked Up*, **tidak memanggil API secara langsung**. 
+Kedua tombol tersebut berfungsi murni secara UI (*Client-side routing*) untuk mengarahkan pengguna ke layar berikutnya: **Layar Pemindaian Kanban (Scanner)**. 
+- Di layar *Scanner* kelak, aplikasi akan menggunakan endpoint `POST /stops/{stopId}/manifests/{manifestId}/kanban`.
+- Setelah pemindaian selesai, akan ada aksi untuk memanggil endpoint `POST /stops/{stopId}/complete` guna merubah status *Supplier* menjadi `Picked Up`.
+
+#### C. Tombol Merah "END JOB" (Write)
+Tombol berbentuk lingkaran merah di sudut kanan atas berfungsi untuk mengakhiri keseluruhan pekerjaan secara paksa atau normal jika semua titik sudah disinggahi.
+
+- **URL:** `POST /api/v1/jobs/{id}/end`
+- **Method:** `POST`
+- **Auth:** Bearer Token (Driver)
+
+**Request Body:**
+```json
+{
+  "latitude": -6.312151,
+  "longitude": 107.135422
+}
+```
+*Catatan:* Sesuai *best practice*, aplikasi *Mobile* sebaiknya memunculkan dialog konfirmasi ("Apakah Anda yakin ingin mengakhiri rute ini?") sebelum memanggil endpoint ini, karena *End Job* bersifat final. Titik koordinat GPS (`latitude` & `longitude`) ditangkap secara *real-time* dari perangkat untuk validasi *geofencing*.
+
+#### D. FAB Oranye (+) & Tombol "Lihat QR Code"
+- **Tombol FAB Oranye (+)**: Biasanya digunakan untuk *Add Unexpected Cargo/Manifest* (Menambahkan Kanban/Manifest di luar rencana awal). Jika ini fitur yang diinginkan, kita perlu merancang endpoint baru (misal: `POST /stops/{stopId}/manifest-adhoc`) karena `JobController` saat ini hanya melayani *scan kanban* untuk *manifest* yang sudah ada.
+- **Lihat QR Code**: Tombol di bagian bawah ini biasanya menghasilkan QR Code dari `deliveryNo` atau *Pickup Order ID* agar bisa dipindai oleh pihak *Security* pabrik saat *gate out*. Fitur ini berjalan murni di sisi UI (men-generate *barcode image* dari sebuah *string*) dan tidak memerlukan pemanggilan API tambahan ke Backend.
 
 ---
 
