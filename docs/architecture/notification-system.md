@@ -11,6 +11,31 @@ Komponen utama yang terlibat:
 - **MassTransit (RabbitMQ)**: *Message broker* untuk menghubungkan komunikasi asinkron antarmodul.
 - **EDCL.Module.Notification**: Mengonsumsi *events* dan bertanggung jawab mendaftarkan notifikasi ke *database* untuk ditayangkan di aplikasi klien, serta kelak menembak Firebase Cloud Messaging (FCM).
 
+### 1.1 Visualisasi Arsitektur
+
+Diagram di bawah ini menggambarkan aliran teknis bagaimana penugasan dikonversi menjadi *Event* dan *Scheduled Job*.
+
+```mermaid
+graph TD
+    Client[Web Admin] -->|POST /assign| JobAPI[EDCL.Module.Job]
+    
+    subgraph Job Module
+        JobAPI -->|Save Order| DB[(Job Database)]
+        JobAPI -->|Schedule H-1 & H-30| Hangfire[Hangfire Server]
+    end
+    
+    JobAPI -->|Publish JobAssignedEvent| RMQ{RabbitMQ / MassTransit}
+    Hangfire -->|Trigger at Schedule <br/> Publish JobReminderEvent| RMQ
+    
+    subgraph Notification Module
+        RMQ -->|Consume Events| NotifConsumer[EDCL.Module.Notification]
+        NotifConsumer -->|Save Notification| NotifDB[(Notification DB)]
+    end
+    
+    NotifConsumer -.->|Future Enhancement| FCM[Firebase Cloud Messaging]
+    FCM -.-> Mobile[Mobile Driver App]
+```
+
 ## 2. Alur Teknis (Sequence)
 
 ### 2.1 Penugasan Langsung (Direct Assignment)
