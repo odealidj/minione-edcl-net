@@ -83,7 +83,9 @@ public sealed class DriverPortAdapter(AuthDbContext db) : IDriverPort
 public sealed class AppUserRepository(AuthDbContext db) : IAppUserRepository
 {
     public Task<AppUser?> FindByEmailAsync(string email, CancellationToken ct)
-        => db.AppUsers.FirstOrDefaultAsync(u => u.Email == email && !u.IsDeleted, ct);
+        => db.AppUsers
+             .Include(u => u.Role)
+             .FirstOrDefaultAsync(u => u.Email == email && !u.IsDeleted, ct);
 
     public async Task AddAsync(AppUser user, CancellationToken ct)
         => await db.AppUsers.AddAsync(user, ct);

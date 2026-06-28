@@ -63,6 +63,30 @@ public sealed class AuthController(ISender mediator) : ControllerBase
             });
     }
 
+    /// <summary>Login admin/staff menggunakan Email dan Password.</summary>
+    [HttpPost("admin/login")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(ApiResponse<LoginAppUserResponse>), 200)]
+    [ProducesResponseType(typeof(ApiResponse<object>), 401)]
+    [ProducesResponseType(typeof(ApiResponse<object>), 422)]
+    public async Task<IActionResult> AdminLogin(
+        [FromBody] LoginAppUserRequest request,
+        CancellationToken cancellationToken)
+    {
+        var command = new LoginAppUserCommand(request.Email, request.Password);
+        var result = await mediator.Send(command, cancellationToken);
+        var traceId = HttpContext.GetTraceId();
+
+        return result.Match<IActionResult>(
+            onSuccess: data => Ok(ApiResponse<LoginAppUserResponse>.Success(data, traceId)),
+            onFailure: error => error.Type switch
+            {
+                Shared.Kernel.Common.ErrorType.Validation => UnprocessableEntity(ApiResponse<object>.Fail(error.Message, traceId, 422)),
+                Shared.Kernel.Common.ErrorType.Unauthorized => Unauthorized(ApiResponse<object>.Fail(error.Message, traceId, 401)),
+                _ => StatusCode(500, ApiResponse<object>.Fail("Internal error.", traceId, 500))
+            });
+    }
+
     /// <summary>Perbarui access token menggunakan refresh token.</summary>
     [HttpPost("refresh-token")]
     [AllowAnonymous]
@@ -106,6 +130,7 @@ public sealed class AuthController(ISender mediator) : ControllerBase
 
 // ── Request DTOs ──────────────────────────────────────────────────────────────
 public sealed record LoginRequest(string PhoneNumber, string Pin);
+public sealed record LoginAppUserRequest(string Email, string Password);
 public sealed record RefreshTokenRequest(string RefreshToken);
 public sealed record TokenPairResponse(
     string AccessToken,
