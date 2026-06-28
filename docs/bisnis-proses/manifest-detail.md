@@ -26,6 +26,31 @@ Tujuan utamanya adalah:
 7. Driver membaca detail tersebut untuk mencocokkannya dengan kondisi fisik di lapangan.
 8. Driver menekan tombol panah "Kembali" (*Back*) untuk merampungkan proses pemindaian (*Scanning*) di layar utama *Manifest List*.
 
+### Sequence Diagram: Alur Buka Layar Detail
+
+```mermaid
+sequenceDiagram
+    actor D as Driver
+    participant M as Mobile App
+    participant J as Job Module
+    participant C as Cargo Module
+    
+    D->>M: Pilih/Ketuk salah satu Manifest
+    M->>M: Tampilkan Loading Spinner
+    note over M: Mengambil nilai Manifest No<br/>serta Delivery No dari memori (State)
+    M->>C: GET /api/v1/cargo/manifests/{manifestNo}/detail
+    
+    activate C
+    C->>C: Kueri Manifest beserta Parts & Kanbans (Ingestion Schema)
+    C->>C: Agregasi jumlah Kanban per PartNo (No. Of Kbn)
+    C-->>M: Return DTO (Manifest & Daftar Part)
+    deactivate C
+    
+    M->>M: Hilangkan Loading Spinner
+    M->>D: Render Header (Gabungan data Job & Cargo)
+    M->>D: Render Part List Table (Part No, Uniq No, Qty, Box, Kbn Ratio)
+```
+
 ---
 
 ## 4. Arsitektur Teknis & Pola Microservices
