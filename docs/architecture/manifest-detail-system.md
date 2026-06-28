@@ -62,7 +62,32 @@ Alasannya: Properti `DeliveryNo` dan `RouteCycle` sepenuhnya dimiliki oleh **Job
 Oleh karena itu, pada sisi *Mobile Frontend*:
 1. Mengambil State `DeliveryNo` dan `RouteCode` dari layar *Info Pengiriman* sebelumnya.
 2. Memanggil API Master Data ini.
-3. Menggabungkan hasilnya ke dalam komponen *Header* di UI.
+6. Menggabungkan hasilnya ke dalam komponen *Header* di UI.
+
+### Sequence Diagram: Client-Side Composition Flow
+
+```mermaid
+sequenceDiagram
+    participant UI as Mobile App (UI)
+    participant State as Local State (Memory)
+    participant Cargo as Cargo API (Backend)
+    participant DB as Cargo DB (SQL)
+
+    UI->>State: Ambil DeliveryNo & RouteCycle
+    State-->>UI: { DeliveryNo, RouteCycle }
+    
+    UI->>Cargo: GET /api/v1/cargo/manifests/{manifestNo}/detail
+    activate Cargo
+    Cargo->>DB: Kueri EF Core .Include(Parts).Include(Kanbans)
+    DB-->>Cargo: Data Entitas Manifest Lengkap
+    
+    Cargo->>Cargo: Hitung Aggregasi Kbn per Part
+    Cargo-->>UI: ApiResponse<ManifestDetailDto>
+    deactivate Cargo
+    
+    UI->>UI: Merge State Data dengan DTO
+    UI->>UI: Render Header & Part List Table
+```
 
 ## 4. Keuntungan Skalabilitas
 - **No Cross-Database JOINs**: Kita terhindar dari pembuatan kueri JOIN berat lintas modul (*Job* dan *Cargo*) yang dapat berisiko menyebabkan *Database Deadlock* atau penurunan performa secara drastis saat trafik penjemputan tinggi.
