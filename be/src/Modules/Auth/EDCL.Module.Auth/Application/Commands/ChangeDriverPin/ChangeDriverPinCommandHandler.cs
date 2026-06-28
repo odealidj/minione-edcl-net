@@ -43,7 +43,7 @@ public sealed class ChangeDriverPinCommandHandler(
         }
 
         // ── 3. Update PIN and MustChangePin flag ──────────────────────────
-        string newPinHash = BCrypt.Net.BCrypt.HashPassword(request.NewPin);
+        string newPinHash = BCrypt.Net.BCrypt.HashPassword(request.NewPin, 9);
         driver.ChangePin(newPinHash);
 
         await driverRepository.SaveChangesAsync(cancellationToken);

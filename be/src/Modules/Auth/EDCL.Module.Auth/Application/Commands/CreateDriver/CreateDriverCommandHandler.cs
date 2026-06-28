@@ -31,7 +31,7 @@ public sealed class CreateDriverCommandHandler(
 
         // 3. Define Default PIN and Hash it
         const string DefaultPin = "123456"; // Default standard PIN
-        var pinHash = BCrypt.Net.BCrypt.HashPassword(DefaultPin);
+        var pinHash = BCrypt.Net.BCrypt.HashPassword(DefaultPin, 9);
 
         // 4. Create Driver Entity
         var driver = Driver.Create(

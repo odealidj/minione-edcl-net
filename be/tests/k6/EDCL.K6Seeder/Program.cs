@@ -62,21 +62,21 @@ namespace EDCL.K6Seeder
                 await driverDb.SaveChangesAsync();
             }
 
-            var basePhone = 8100000000;
+            var basePhone = 8200000000;
             var driverPin = "123456";
-            var driverHash = BCrypt.Net.BCrypt.HashPassword(driverPin);
+            var driverHash = BCrypt.Net.BCrypt.HashPassword(driverPin, 9);
             
             for (int i = 1; i <= targetVUs; i++)
             {
                 var phone = $"0{basePhone + i}";
-                var poNo = $"PO-K6-V2-{i}";
-                var kanbanCode = $"KB-K6-V2-{i}";
+                var poNo = $"PO-K6-V3-{i}";
+                var kanbanCode = $"KB-K6-V3-{i}";
 
                 // 2. Auth Driver
                 var driver = await authDb.Drivers.FirstOrDefaultAsync(d => d.PhoneNumber == phone);
                 if (driver == null)
                 {
-                    driver = Driver.Create($"K6 Driver V2 {i}", $"NIK-K6-V2-{i}", phone, driverHash);
+                    driver = Driver.Create($"K6 Driver V3 {i}", $"NIK-K6-V3-{i}", phone, driverHash);
                     driver.ChangePin(driverHash); // Bypass force change pin
                     authDb.Drivers.Add(driver);
                     await authDb.SaveChangesAsync();
@@ -113,7 +113,7 @@ namespace EDCL.K6Seeder
                 var manifest = await jobDb.PickupOrderManifests.FirstOrDefaultAsync(m => m.PickupOrderDetailId == stop.Id);
                 if (manifest == null)
                 {
-                    manifest = PickupOrderManifest.Create(stop.Id, $"MAN-K6-V2-{i}", 1);
+                    manifest = PickupOrderManifest.Create(stop.Id, $"MAN-K6-V3-{i}", 1);
                     jobDb.PickupOrderManifests.Add(manifest);
                     await jobDb.SaveChangesAsync();
                 }
