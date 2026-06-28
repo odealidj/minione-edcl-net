@@ -320,7 +320,6 @@ Tombol berbentuk lingkaran merah di sudut kanan atas berfungsi untuk mengakhiri 
 
 Tampilan ini muncul setelah Driver mengetuk ikon panah biru (➡) pada salah satu *Supplier* yang berstatus *Pending* di layar **Info Pengiriman**. Layar ini berfokus pada daftar *Manifest* yang harus dipenuhi oleh Driver di lokasi tersebut.
 
-*(Anda dapat menyimpan gambar unggahan Anda ke `docs/assets/images/detail-pengiriman.png` agar muncul di bawah ini)*
 <img src="../assets/images/detail-pengiriman.png" width="300" alt="Detail Pengiriman UI" />
 
 ### Analisis UI Terhadap Arsitektur API
