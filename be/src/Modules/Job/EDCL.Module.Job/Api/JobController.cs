@@ -4,6 +4,7 @@ using EDCL.Module.Job.Application.Commands.ScanKanban;
 using EDCL.Module.Job.Application.Commands.StartJob;
 using EDCL.Module.Job.Application.Queries.GetDashboard;
 using EDCL.Module.Job.Application.Queries.GetRouteStops;
+using EDCL.Module.Job.Application.Queries.GetManifests;
 using EDCL.Shared.Http;
 using EDCL.Shared.Http.Filters;
 using EDCL.Shared.Http.Responses;
@@ -135,6 +136,28 @@ public sealed class JobController(IMediator mediator, ICurrentUserService curren
         var traceId = currentUserService.CurrentTraceId ?? HttpContext.TraceIdentifier;
         return result.Match<IActionResult>(
             ok => Ok(ApiResponse<bool>.Success(ok, traceId)),
+            err => BadRequest(ApiResponse<object>.Fail(err.Message, traceId, 400))
+        );
+    }
+
+    /// <summary>
+    /// Retrieves all manifests for a specific route stop.
+    /// </summary>
+    /// <param name="stopId">Route Stop ID</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>List of manifests and their scan progress.</returns>
+    [HttpGet("stops/{stopId}/manifests")]
+    [ProducesResponseType(typeof(ApiResponse<ManifestListResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetManifests(long stopId, CancellationToken cancellationToken)
+    {
+        var query = new GetManifestsQuery(stopId, DriverId);
+        var result = await mediator.Send(query, cancellationToken);
+        var traceId = currentUserService.CurrentTraceId ?? HttpContext.TraceIdentifier;
+        return result.Match<IActionResult>(
+            ok => Ok(ApiResponse<ManifestListResponse>.Success(ok, traceId)),
             err => BadRequest(ApiResponse<object>.Fail(err.Message, traceId, 400))
         );
     }

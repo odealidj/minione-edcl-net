@@ -20,6 +20,14 @@ public class PickupOrderManifestConfiguration : IEntityTypeConfiguration<PickupO
             .IsRequired()
             .HasMaxLength(20);
 
+        builder.Property(x => x.OrderType)
+            .IsRequired()
+            .HasMaxLength(20);
+
+        builder.Property(x => x.DockCode)
+            .IsRequired()
+            .HasMaxLength(20);
+
         builder.HasIndex(x => x.ManifestNo).IsUnique();
 
         builder.HasMany(x => x.Kanbans)

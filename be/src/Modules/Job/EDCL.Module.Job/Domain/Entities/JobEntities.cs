@@ -119,13 +119,24 @@ public sealed class PickupOrderManifest : AuditableEntity
     public int TotalKanban { get; private set; }
     public int ScannedKanban { get; private set; }
 
+    public string OrderType { get; private set; } = "ORG";
+    public int TotalSkid { get; private set; } = 1;
+    public string DockCode { get; private set; } = "-";
+
     public PickupOrderDetail? Detail { get; private set; }
     public ICollection<PickupOrderKanban> Kanbans { get; private set; } = [];
 
     private PickupOrderManifest() { }
 
-    public static PickupOrderManifest Create(long detailId, string manifestNo, int totalKanban)
-        => new() { PickupOrderDetailId = detailId, ManifestNo = manifestNo, TotalKanban = totalKanban };
+    public static PickupOrderManifest Create(long detailId, string manifestNo, int totalKanban, string orderType = "ORG", int totalSkid = 1, string dockCode = "-")
+        => new() { 
+            PickupOrderDetailId = detailId, 
+            ManifestNo = manifestNo, 
+            TotalKanban = totalKanban,
+            OrderType = orderType,
+            TotalSkid = totalSkid,
+            DockCode = dockCode
+        };
 
     public void IncrementScanned()
     {
