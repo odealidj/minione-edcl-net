@@ -97,6 +97,9 @@ public sealed class PickupOrderDetail : AuditableEntity
     public void MarkArrived()  => ArrivedAt  = DateTime.UtcNow;
     public void MarkPickedUp()
     {
+        if (Manifests.Any(m => m.Status != ManifestStatus.Verified))
+            throw new InvalidOperationException("Cannot complete stop. Not all manifests have been fully scanned.");
+
         Status     = StopStatus.PickedUp;
         PickedUpAt = DateTime.UtcNow;
     }
