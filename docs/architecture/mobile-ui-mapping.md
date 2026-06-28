@@ -359,4 +359,33 @@ Ini adalah mekanisme pengunci untuk menandakan bahwa Driver telah selesai memuat
 
 ---
 
+## 6. Pindai Kanban (Camera Scanner)
+
+Layar ini muncul saat Driver menekan tombol **"Mulai Scan"** dari layar Detail Pengiriman. Kamera akan diaktifkan untuk membaca *barcode* atau *QR code* pada fisik kartu Kanban.
+
+<img src="../assets/images/scan-kanban.png" width="300" alt="Scan Kanban UI" />
+
+### Analisis UI Terhadap Arsitektur API
+
+Berdasarkan penelusuran pada *source code* (khususnya `JobController.cs`), **kita telah memiliki endpoint khusus** untuk menangani pindaian (*scan*) ini.
+
+- **URL API:** `POST /api/v1/jobs/stops/{stopId}/manifests/{manifestId}/kanban`
+- **Method:** `POST`
+- **Request Payload:**
+  ```json
+  {
+    "kanbanCode": "KODE-BARCODE-KANBAN-YANG-TERBACA"
+  }
+  ```
+
+#### Mekanisme Pemrosesan Backend (Sudah Tersedia)
+Ketika Mobile UI mengirimkan `kanbanCode` ke *endpoint* di atas, sistem kita (*CQRS Command `ScanKanbanCommand`*) akan melakukan validasi secara seketika:
+1. Memastikan kode Kanban tersebut benar-benar **terdaftar** untuk dijemput pada *Manifest* ini (mencegah salah angkut barang pabrik lain).
+2. Memastikan Kanban tersebut **belum pernah di-scan** sebelumnya (mencegah *double scan*).
+3. Memberi stempel waktu (*timestamp*) pada kolom `ScannedAt` di tabel `pickup_order_kanbans`.
+4. Menambahkan konter `ScannedKanban` (+1) pada tabel `pickup_order_manifests`.
+5. Mengembalikan *Response* `200 OK`, agar UI dapat memicu bunyi *"Beep"* hijau dan menambahkan angka indikator di layar (contoh: *Original* bertambah menjadi `8/8`).
+
+---
+
 *(Dokumen ini akan terus diperbarui secara bertahap setiap kali Anda mengunggah tangkapan layar UI berikutnya).*
