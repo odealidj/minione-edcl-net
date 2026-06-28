@@ -135,6 +135,18 @@ erDiagram
         time etd
         string status
     }
+
+    PICKUP_ORDER_MANIFEST {
+        bigint id PK
+        bigint pickup_order_detail_id FK
+        string manifest_no
+        string order_type
+        int total_skid
+        string dock_code
+        int total_kanban
+        int scanned_kanban
+        string status
+    }
 ```
 
 ---
@@ -168,7 +180,7 @@ Tabel-tabel di domain ini tidak dimanipulasi secara manual, melainkan diisi (sin
 Ini adalah domain yang paling aktif, digunakan saat alur pengiriman berlangsung di lapangan.
 - **PickupOrder**: Rencana kerja seorang Driver. Memetakan *Driver* A, menggunakan *Truck* B, pada *Tanggal* C, dengan status siklus keberangkatan (Rute + Cycle Code).
 - **PickupOrderDetail**: Mewakili "Titik Singgah" (Stops) di dalam rute `PickupOrder`. Menyimpan estimasi tiba/berangkat (*ETA/ETD*) dan menghubungkan dengan *Supplier* mana yang harus didatangi.
-- **PickupOrderManifest**: Ceklis manifest yang harus dipindai/diangkut di suatu *Titik Singgah*. Menyimpan status pencapaian (silang merah / centang hijau).
+- **PickupOrderManifest**: Ceklis manifest yang harus dipindai/diangkut di suatu *Titik Singgah*. Selain menyimpan status pencapaian (silang merah / centang hijau) dan jumlah kanban, entitas ini juga sengaja menduplikasi (*event-driven data duplication*) beberapa atribut master seperti `order_type`, `total_skid`, dan `dock_code`. Hal ini adalah **Best Practice Microservices** agar modul `Job` dapat menyuplai antarmuka UI secara instan (melalui API tunggal) tanpa melakukan komputasi JOIN yang mahal atau menembakkan panggilan HTTP sinkron lintas layanan ke modul *Master Data*.
 - **PickupOrderKanban**: Ceklis kanban individual dari manifest di atas. Ini adalah target utama yang dipindai (di-*scan*) oleh kamera *Mobile App* si Driver.
 
 ### E. Notification Domain
