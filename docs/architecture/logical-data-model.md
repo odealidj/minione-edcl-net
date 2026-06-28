@@ -21,12 +21,18 @@ erDiagram
         bigint id PK
         string plate_number
         string vehicle_type
+        boolean is_active
     }
 
     SUPPLIER {
         bigint id PK
         string supplier_code
         string name
+        string address
+        float latitude
+        float longitude
+        int geofence_radius_meters
+        boolean is_active
     }
 
     %% =======================
@@ -37,13 +43,17 @@ erDiagram
         bigint id PK
         string code
         string name
+        string description
+        boolean is_active
     }
 
     APP_USER {
         bigint id PK
+        string name
         string email
         string password_hash
         bigint role_id FK
+        boolean is_active
     }
 
     DRIVER ||--o{ DRIVER_PHONE_HISTORY : "mencatat histori"
@@ -51,8 +61,13 @@ erDiagram
     DRIVER {
         bigint id PK
         string nik
+        string name
         string phone_number
         string pin_hash
+        boolean must_change_pin
+        string fcm_token
+        string photo_url
+        boolean is_active
         bigint transporter_id FK
     }
 
@@ -71,6 +86,9 @@ erDiagram
         string supplier_name
         int sequence
         string order_type
+        string order_no
+        string dock_code
+        string p_lane_no
         datetime pick_date
         string cycle
         string status
@@ -82,7 +100,10 @@ erDiagram
         string part_no
         string part_name
         int qty
-        string uom
+        string kanban_no
+        string uniq_no
+        string box_type
+        string status
     }
 
     MANIFEST_SKID {
@@ -103,8 +124,22 @@ erDiagram
         string event_type
         string payload
         string error_message
+        string stack_trace
         datetime occurred_at
         boolean is_resolved
+    }
+
+    %% =======================
+    %% NOTIFICATION DOMAIN
+    %% =======================
+    DRIVER_NOTIFICATION {
+        bigint id PK
+        bigint driver_id FK
+        string title
+        string message
+        boolean is_read
+        string type
+        bigint pickup_order_id
     }
 
     %% =======================
@@ -116,23 +151,31 @@ erDiagram
     PICKUP_ORDER ||--o{ PICKUP_ORDER_DETAIL : "mempunyai rute"
     PICKUP_ORDER {
         bigint id PK
-        string delivery_no
+        string po_no
         date pickup_date
+        string route_code
+        string cycle_code
+        time estimated_departure_time
+        datetime started_at
+        datetime completed_at
         string status
+        string hangfire_job_id_h1
+        string hangfire_job_id_h30
         bigint driver_id FK
         bigint truck_id FK
     }
 
     SUPPLIER ||--o{ PICKUP_ORDER_DETAIL : "merupakan titik jemput"
     PICKUP_ORDER_DETAIL ||--o{ PICKUP_ORDER_MANIFEST : "menjemput manifest"
-    PICKUP_ORDER_DETAIL ||--o{ PICKUP_ORDER_KANBAN : "menjemput kanban"
+    PICKUP_ORDER_MANIFEST ||--o{ PICKUP_ORDER_KANBAN : "menjemput kanban"
     
     PICKUP_ORDER_DETAIL {
         bigint id PK
         bigint pickup_order_id FK
         bigint supplier_id FK
-        time eta
-        time etd
+        int sequence
+        datetime arrived_at
+        datetime picked_up_at
         string status
     }
 
@@ -145,6 +188,14 @@ erDiagram
         string dock_code
         int total_kanban
         int scanned_kanban
+        string status
+    }
+
+    PICKUP_ORDER_KANBAN {
+        bigint id PK
+        bigint pickup_order_manifest_id FK
+        string kanban_code
+        datetime scanned_at
         string status
     }
 ```
@@ -179,7 +230,7 @@ Tabel-tabel di domain ini tidak dimanipulasi secara manual, melainkan diisi (sin
 ### D. Transactional / Operational Domain
 Ini adalah domain yang paling aktif, digunakan saat alur pengiriman berlangsung di lapangan.
 - **PickupOrder**: Rencana kerja seorang Driver. Memetakan *Driver* A, menggunakan *Truck* B, pada *Tanggal* C, dengan status siklus keberangkatan (Rute + Cycle Code).
-- **PickupOrderDetail**: Mewakili "Titik Singgah" (Stops) di dalam rute `PickupOrder`. Menyimpan estimasi tiba/berangkat (*ETA/ETD*) dan menghubungkan dengan *Supplier* mana yang harus didatangi.
+- **PickupOrderDetail**: Mewakili "Titik Singgah" (Stops) di dalam rute `PickupOrder`. Menyimpan urutan singgah (*sequence*), jejak rekam kedatangan/keberangkatan aktual (*arrived_at*, *picked_up_at*), dan menghubungkan dengan *Supplier* mana yang didatangi.
 - **PickupOrderManifest**: Ceklis manifest yang harus dipindai/diangkut di suatu *Titik Singgah*. Selain menyimpan status pencapaian (silang merah / centang hijau) dan jumlah kanban, entitas ini juga sengaja menduplikasi (*event-driven data duplication*) beberapa atribut master seperti `order_type`, `total_skid`, dan `dock_code`. Hal ini adalah **Best Practice Microservices** agar modul `Job` dapat menyuplai antarmuka UI secara instan (melalui API tunggal) tanpa melakukan komputasi JOIN yang mahal atau menembakkan panggilan HTTP sinkron lintas layanan ke modul *Master Data*.
 - **PickupOrderKanban**: Ceklis kanban individual dari manifest di atas. Ini adalah target utama yang dipindai (di-*scan*) oleh kamera *Mobile App* si Driver.
 
