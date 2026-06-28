@@ -388,4 +388,29 @@ Ketika Mobile UI mengirimkan `kanbanCode` ke *endpoint* di atas, sistem kita (*C
 
 ---
 
+## 7. Manifest Detail
+
+Layar ini muncul apabila Driver mengetuk salah satu baris (*row*) *Manifest* pada layar **Detail Pengiriman**. Tujuannya adalah untuk menampilkan rincian barang (suku cadang/*part*) yang terkandung di dalam *manifest* tersebut, beserta jumlah boks/kanban.
+
+<img src="../assets/images/manifest-detail.png" width="300" alt="Manifest Detail UI" />
+
+### Analisis UI Terhadap Arsitektur API
+
+Berdasarkan penelusuran kode, saat ini **kita BELUM memiliki endpoint khusus** untuk menampilkan rincian *Part List* ini. Endpoint operasional yang baru saja kita buat (`GetManifests`) hanya menampilkan daftar *header* Manifest-nya saja.
+
+- **Kebutuhan Draft URL Baru:** `GET /api/v1/manifests/{manifestNo}/detail` (Sebaiknya berada di luar modul operasional `Job`).
+- **Mapping Data yang Diperlukan:**
+  - **Header**: `Route & Cycle`, `Delivery No.`, `Manifest No`, `Total Kanban`, `Order No`, `Dock Code`, `P-Lane No`.
+  - **Tabel Part List**: Terdiri dari rincian agregasi `Part No.`, `Uniq No`, `Pcs/Kbn` (Kuantitas per Kanban), `Box Type`, dan `No. Of Kbn` (misalnya 2/2, yang berarti tipe part ini membutuhkan 2 kotak kanban).
+
+#### Tantangan Arsitektur (Microservices Trade-off)
+Tabel operasional kita saat ini (`PickupOrderManifest` dan `PickupOrderKanban` di dalam modul `Job`) **sengaja tidak menyimpan** rincian detail *parts* (`Part No`, `Uniq No`, `Box Type`, dll.). Hal tersebut murni merupakan data rekam jejak statis dari IDCS.
+
+Sesuai **Best Practice Microservices**:
+*Endpoint* rincian daftar *parts* ini sebaiknya **tidak dibangun** di dalam `JobController`, melainkan disediakan oleh modul pengumpul data (misalnya **Ingestion Module** atau **Master Module**) yang menguasai tabel `MANIFEST`, `MANIFEST_PART`, dan `MANIFEST_KANBAN`. 
+
+UI Mobile cukup mengambil `Manifest No` (dari layar sebelumnya), lalu memanggil API *Read-Only* ke modul tersebut secara langsung tanpa membebani modul `Job` yang sedang sibuk memproses *Scanning*.
+
+---
+
 *(Dokumen ini akan terus diperbarui secara bertahap setiap kali Anda mengunggah tangkapan layar UI berikutnya).*
