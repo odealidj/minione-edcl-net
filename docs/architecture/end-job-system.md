@@ -45,3 +45,47 @@ Setelah operasi ke *Database* selesai dengan aman (*transaction committed*), sis
 ## 4. Keuntungan Desain (Clean Architecture)
 - **Isolasi Logika (Rich Domain Model):** Metode *mutator* `Complete()` terenkapsulasi murni pada kelas `PickupOrder` tanpa kebocoran aturan ke kontroler.
 - **Geofence Fallback:** Ketersediaan koordinat GPS yang terekam pada server berfungsi sebagai jaring pengaman, alat audit untuk mengetahui lokasi persis saat tugas dianggap rampung secara sistem.
+
+## 5. Sequence Diagram: Arsitektur Backend
+
+Berikut adalah visualisasi teknis spesifik mengenai alur eksekusi di sisi *Backend* ketika permintaan "END JOB" diterima:
+
+```mermaid
+sequenceDiagram
+    participant C as Controller (JobController)
+    participant H as Handler (EndJobCommandHandler)
+    participant R as Repository (PickupOrder)
+    participant E as Entity (PickupOrder)
+    participant N as Notification (IJobNotificationPort)
+    participant DB as SQL Server
+
+    C->>H: Send(EndJobCommand)
+    activate H
+    H->>R: GetByIdAsync(PickupOrderId)
+    R->>DB: SELECT * FROM job.pickup_orders
+    DB-->>R: Data PickupOrder
+    R-->>H: instance PickupOrder
+    
+    note over H: Validasi Kepemilikan (DriverId) & Geofence (Opsional)
+    
+    H->>E: Complete()
+    activate E
+    E->>E: Validasi Status (Bukan ON_PROGRESS = Throw Exception)
+    E->>E: Set Status = COMPLETED
+    E->>E: Set CompletedAt = UTC Now
+    E-->>H: void
+    deactivate E
+    
+    H->>R: UpdateAsync(job)
+    R->>DB: UPDATE job.pickup_orders
+    DB-->>R: Sukses
+    R-->>H: Sukses
+    
+    H->>N: NotifyDriverJobCompletedAsync(DriverId, JobId)
+    note right of N: Publikasi *event* asinkron<br/>untuk memicu Socket/Notif
+    
+    H-->>C: Result.Success(true)
+    deactivate H
+    
+    C-->>Client: 200 OK
+```
