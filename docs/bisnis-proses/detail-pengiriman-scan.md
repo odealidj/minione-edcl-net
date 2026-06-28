@@ -37,3 +37,63 @@ Dokumen ini menjelaskan alur kerja operasional bagi Driver saat berada di lokasi
 3. Aplikasi menangkap koordinat GPS saat itu dan mengirim instruksi *Complete Stop* ke pusat.
 4. Layar ini akan tertutup, mengembalikan Driver ke halaman "Info Pengiriman" dengan status Supplier tersebut kini bercentang **"Picked Up"**.
 5. Driver melanjutkan perjalanan ke titik berikutnya.
+
+---
+
+## 4. Sequence Diagram: Alur Pemindaian Kanban
+
+Berikut adalah visualisasi teknis dari interaksi antara Driver, Aplikasi Mobile, dan API Backend selama proses pemindaian berlangsung:
+
+```mermaid
+sequenceDiagram
+    actor D as Driver
+    participant M as Mobile App (UI)
+    participant HW as Camera/Scanner
+    participant API as Job Module (Backend)
+    participant DB as Database
+    
+    D->>M: Buka "Detail Pengiriman" (Pilih Supplier)
+    M->>API: GET /api/v1/jobs/stops/{stopId}/manifests
+    API-->>M: Daftar Manifest & Target Kanban (misal: 0/8)
+    
+    D->>M: Ketuk "Mulai Scan"
+    M->>HW: Aktifkan Kamera
+    
+    loop Setiap Fisik Kanban
+        D->>HW: Arahkan ke Barcode Kanban
+        HW-->>M: Baca string Barcode (Contoh: "KBN-123")
+        
+        M->>API: POST /api/v1/jobs/stops/{stopId}/manifests/{manifestId}/kanban
+        note right of M: Payload: { "kanbanCode": "KBN-123" }
+        
+        activate API
+        API->>DB: Validasi (Apakah Kanban ada di Manifest ini? Sudah di-scan?)
+        alt Valid
+            DB-->>API: Valid
+            API->>DB: UPDATE scanned_kanban +1, set scanned_at
+            API-->>M: 200 OK (Success)
+            M->>M: Bunyikan "Beep" Sukses
+            M->>D: Update UI (Konter bertambah, misal: 1/8)
+        else Tidak Valid / Double Scan
+            DB-->>API: Invalid
+            API-->>M: 400 Bad Request / Error
+            M->>M: Bunyikan "Beep" Gagal / Vibrate
+            M->>D: Tampilkan Error Alert (Kanban salah)
+        end
+        deactivate API
+    end
+    
+    note over D, M: Driver melihat semua Manifest sudah bercentang hijau (✅)
+    
+    D->>M: Geser "Selesai Pengambilan" (Swipe to Complete)
+    M->>M: Tangkap Koordinat GPS Saat Ini
+    M->>API: POST /api/v1/jobs/stops/{stopId}/complete
+    activate API
+    note right of M: Payload: { "latitude": ..., "longitude": ... }
+    API->>DB: UPDATE status Stop menjadi "COMPLETED"
+    API-->>M: 200 OK
+    deactivate API
+    
+    M->>M: Tutup Layar Scanner
+    M->>D: Kembali ke layar "Info Pengiriman" (Status Picked Up)
+```
