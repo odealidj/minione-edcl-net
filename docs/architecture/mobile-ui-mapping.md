@@ -304,6 +304,8 @@ Tombol berbentuk lingkaran merah di sudut kanan atas berfungsi untuk mengakhiri 
 - **URL:** `POST /api/v1/jobs/{id}/end`
 - **Method:** `POST`
 - **Auth:** Bearer Token (Driver)
+- **Headers:** 
+  - `X-Idempotency-Key`: UUID unik per *tap* tombol (sangat dianjurkan untuk mencegah *error* saat *retry* sinyal buruk).
 
 **Request Body:**
 ```json
@@ -348,6 +350,8 @@ Ini adalah mekanisme pengunci untuk menandakan bahwa Driver telah selesai memuat
 
 - **URL:** `POST /api/v1/jobs/stops/{stopId}/complete`
 - **Method:** `POST`
+- **Headers:** 
+  - `X-Idempotency-Key`: UUID unik per *swipe* (mencegah *double eksekusi*).
 - **Payload:**
 ```json
 {
