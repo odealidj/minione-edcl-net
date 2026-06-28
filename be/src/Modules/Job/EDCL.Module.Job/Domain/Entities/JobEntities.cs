@@ -55,6 +55,10 @@ public sealed class PickupOrder : AuditableEntity
     {
         if (Status != PickupOrderStatus.OnProgress)
             throw new InvalidOperationException($"Cannot complete job in status '{Status}'.");
+            
+        if (Details.Any(d => d.Status != StopStatus.PickedUp))
+            throw new InvalidOperationException("Cannot complete job because there are uncompleted stops (suppliers).");
+            
         Status = PickupOrderStatus.Completed;
         CompletedAt = DateTime.UtcNow;
     }

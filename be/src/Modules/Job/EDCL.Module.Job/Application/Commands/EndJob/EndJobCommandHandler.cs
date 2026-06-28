@@ -10,7 +10,7 @@ public sealed class EndJobCommandHandler(
 {
     public async Task<Result<bool>> Handle(EndJobCommand request, CancellationToken cancellationToken)
     {
-        var job = await repository.GetByIdAsync(request.PickupOrderId, cancellationToken);
+        var job = await repository.GetByIdWithDetailsAsync(request.PickupOrderId, cancellationToken);
         if (job == null)
             return Error.NotFound("Job.NotFound", "Pickup order not found.");
 
