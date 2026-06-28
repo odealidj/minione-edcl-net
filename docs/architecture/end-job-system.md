@@ -25,7 +25,9 @@ Penyelesaian *job* ditangani oleh *Command* `EndJobCommand` dan dieksekusi melal
 ### a. Validasi Kepemilikan & Integritas (*Validation*)
 1. Sistem mencari identitas pekerjaan melalui `PickupOrderId`. Jika tidak ada, kembalikan galat `404 Not Found`.
 2. Sistem mencocokkan `job.DriverId` dengan ID pemanggil (Driver) pada *token*. Jika berbeda, kembalikan galat `401 Unauthorized`.
-3. Sistem memanggil modul domain `job.Complete()`, yang mana di dalamnya akan diperiksa ulang jika status pekerjaan saat ini bukanlah `ON_PROGRESS`, sistem akan melempar *InvalidOperationException*.
+3. Sistem memanggil modul domain `job.Complete()`, yang mana di dalamnya akan diperiksa ulang:
+   - Jika status pekerjaan saat ini bukanlah `ON_PROGRESS`, sistem akan melempar *InvalidOperationException*.
+   - Jika masih ada titik (Supplier) yang statusnya bukan `PICKED_UP`, sistem juga akan melempar *InvalidOperationException*.
 
 ### b. Logika Geofencing Server-Side (Opsional/Ekstensi)
 Meskipun aplikasi Mobile memicu "END JOB" berdasarkan pembacaan Geofence lokal mereka, Backend API tetap menyediakan parameter `Latitude` dan `Longitude` sebagai pilar keamanan. Hal ini memungkinkan Backend untuk menghitung validasi jarak (`CalculateDistance()`) untuk memastikan bahwa aplikasi Mobile tidak diretas (lokasi palsu) dan Driver sungguh berada di kawasan TMMIN.
@@ -71,6 +73,7 @@ sequenceDiagram
     H->>E: Complete()
     activate E
     E->>E: Validasi Status (Bukan ON_PROGRESS = Throw Exception)
+    E->>E: Validasi Detail Titik (Bukan PICKED_UP = Throw Exception)
     E->>E: Set Status = COMPLETED
     E->>E: Set CompletedAt = UTC Now
     E-->>H: void

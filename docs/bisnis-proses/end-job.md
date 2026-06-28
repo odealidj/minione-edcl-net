@@ -71,6 +71,7 @@ sequenceDiagram
     DB-->>API: PickupOrder (Status: ON_PROGRESS)
 
     API->>API: Lakukan Validasi Radius GPS Tambahan (Opsional)
+    API->>API: Validasi Bisnis: Tolak jika ada titik yang belum PICKED_UP
     API->>DB: UPDATE status=COMPLETED, set completed_at
     
     API->>API: (Background) Publish Event / Push Notification
