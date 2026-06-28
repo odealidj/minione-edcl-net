@@ -324,9 +324,9 @@ Tampilan ini muncul setelah Driver mengetuk ikon panah biru (➡) pada salah sat
 
 ### Analisis UI Terhadap Arsitektur API
 
-Berdasarkan analisis visual, saat ini **kita belum memiliki endpoint khusus** untuk menampilkan daftar Manifest per titik (*Stop*). Endpoint yang ada (`GetRouteStops`) hanya menampilkan agregasi total (misal 7/8). Oleh karena itu, kita perlu merancang arsitektur API tambahan.
+Berdasarkan analisis visual, **kita telah memiliki endpoint khusus** untuk menampilkan daftar Manifest per titik (*Stop*). Endpoint ini menyuplai data operasional (termasuk *Order Type*, *Total Skid*, dan *Dock Code*) dengan cepat berkat duplikasi arsitektur *microservices* di tabel `PickupOrderManifest`.
 
-#### A. Fetching Daftar Manifest (Kebutuhan Endpoint Baru)
+#### A. Fetching Daftar Manifest (Telah Diimplementasikan)
 Layar ini menampilkan tabel dengan kolom `Manifest No`, `Type`, `Total SKID`, `Dock Code`, `No of Kanban`, dan `Status` (Checkbox/Silang). 
 
 - **Draft URL:** `GET /api/v1/jobs/stops/{stopId}/manifests`
