@@ -1,0 +1,102 @@
+<div class="space-y-6">
+  <!-- Page Header -->
+  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div>
+      <h1 class="text-3xl font-bold text-base-content tracking-tight">Delivery Monitoring</h1>
+      <div class="breadcrumbs text-sm text-base-content/60">
+        <ul>
+          <li><a>Operations</a></li>
+          <li>Delivery Monitoring</li>
+        </ul>
+      </div>
+    </div>
+    
+    <div class="flex gap-2">
+      <button class="btn btn-outline btn-primary">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+        Export Report
+      </button>
+    </div>
+  </div>
+
+  <!-- Filter Card -->
+  <div class="card bg-base-100 shadow-xl border border-base-200">
+    <div class="card-body p-6">
+      <h2 class="card-title text-lg mb-4 text-primary">Filter Deliveries</h2>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="form-control">
+          <label class="label"><span class="label-text">Date From</span></label>
+          <input type="date" class="input input-bordered w-full" />
+        </div>
+        <div class="form-control">
+          <label class="label"><span class="label-text">Date To</span></label>
+          <input type="date" class="input input-bordered w-full" />
+        </div>
+        <div class="form-control">
+          <label class="label"><span class="label-text">Route ID</span></label>
+          <input type="text" placeholder="e.g. R-001" class="input input-bordered w-full" />
+        </div>
+        <div class="form-control flex justify-end pb-1">
+          <button class="btn btn-primary w-full mt-7">Track</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table Card -->
+  <div class="card bg-base-100 shadow-xl border border-base-200">
+    <div class="card-body p-0 overflow-x-auto">
+      <table class="table table-zebra w-full">
+        <thead class="bg-primary/10 text-primary">
+          <tr>
+            <th>Route ID</th>
+            <th>Driver / LP</th>
+            <th>Supplier</th>
+            <th>Time (Start - Est)</th>
+            <th>Status</th>
+            <th>Progress</th>
+            <th class="text-center">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (delivery of deliveries; track delivery.no) {
+            <tr>
+              <td class="font-bold text-primary">{{ delivery.routeId }}</td>
+              <td>
+                <div class="font-semibold">{{ delivery.driver }}</div>
+                <div class="text-xs opacity-70">{{ delivery.lp }}</div>
+              </td>
+              <td>{{ delivery.supplier }}</td>
+              <td>
+                <div class="text-sm">{{ delivery.startTime }} - <span class="font-semibold">{{ delivery.estTime }}</span></div>
+              </td>
+              <td>
+                <div class="badge" 
+                     [class.badge-primary]="delivery.status === 'In Transit'" 
+                     [class.badge-success]="delivery.status === 'Delivered'"
+                     [class.badge-warning]="delivery.status === 'Loading'">
+                  {{ delivery.status }}
+                </div>
+              </td>
+              <td class="w-48">
+                <div class="flex items-center gap-2">
+                  <progress class="progress w-full" 
+                            [class.progress-primary]="delivery.status === 'In Transit'" 
+                            [class.progress-success]="delivery.status === 'Delivered'"
+                            [class.progress-warning]="delivery.status === 'Loading'"
+                            [value]="delivery.progress" max="100"></progress>
+                  <span class="text-xs font-bold">{{ delivery.progress }}%</span>
+                </div>
+              </td>
+              <td class="text-center">
+                <button class="btn btn-sm btn-ghost text-primary hover:bg-primary/20">Details</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>

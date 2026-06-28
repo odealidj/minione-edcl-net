@@ -1,0 +1,92 @@
+<div class="min-h-screen flex flex-col md:flex-row bg-base-100">
+  
+  <!-- Left Column: Form -->
+  <div class="w-full md:w-1/2 lg:w-5/12 flex items-center justify-center p-8 lg:p-16 relative overflow-hidden bg-base-100">
+    <!-- Decorative Blob -->
+    <div class="absolute -top-32 -left-32 w-64 h-64 rounded-full bg-primary/5 blur-3xl"></div>
+    <div class="absolute -bottom-32 -right-32 w-64 h-64 rounded-full bg-secondary/5 blur-3xl"></div>
+
+    <div class="w-full max-w-md z-10">
+      
+      <div class="mb-10">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-12 h-12 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/30">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+          </div>
+          <h1 class="text-3xl font-extrabold tracking-tight text-base-content">EDCL</h1>
+        </div>
+        
+        <h2 class="text-2xl font-bold mb-2">Welcome Back</h2>
+        <p class="text-base-content/60">Please sign in to access the Integrated Delivery Control System.</p>
+      </div>
+
+      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="space-y-6">
+        
+        <!-- Error Alert -->
+        <div *ngIf="errorMessage" class="alert alert-error shadow-lg py-2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6 text-white" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          <span class="text-white text-sm">{{ errorMessage }}</span>
+        </div>
+
+        <div class="form-control w-full">
+          <label class="label">
+            <span class="label-text font-medium">Email Address</span>
+          </label>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-base-content/40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" /></svg>
+            </div>
+            <input type="email" formControlName="email" placeholder="Enter your email" class="input input-bordered w-full pl-11 focus:input-primary transition-all duration-200" />
+          </div>
+        </div>
+
+        <div class="form-control w-full">
+          <label class="label">
+            <span class="label-text font-medium">Password</span>
+          </label>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-base-content/40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+            </div>
+            <input type="password" formControlName="password" placeholder="Enter your password" class="input input-bordered w-full pl-11 focus:input-primary transition-all duration-200" />
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between">
+          <label class="label cursor-pointer gap-2 justify-start">
+            <input type="checkbox" formControlName="rememberMe" class="checkbox checkbox-sm checkbox-primary" />
+            <span class="label-text">Remember me</span>
+          </label>
+          <a href="#" class="text-sm text-primary hover:underline font-medium">Forgot Password?</a>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-full shadow-lg shadow-primary/30" [disabled]="loginForm.invalid || isLoading">
+          @if (isLoading) {
+            <span class="loading loading-spinner loading-sm"></span>
+            Signing in...
+          } @else {
+            Sign In
+          }
+        </button>
+
+      </form>
+    </div>
+  </div>
+
+  <!-- Right Column: Image Background -->
+  <div class="hidden md:flex w-full md:w-1/2 lg:w-7/12 relative items-center justify-center bg-slate-900 overflow-hidden">
+    <!-- Abstract Tech Pattern / Overlay -->
+    <div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center opacity-40 mix-blend-overlay"></div>
+    <div class="absolute inset-0 bg-gradient-to-t from-primary/80 to-slate-900/40"></div>
+    
+    <div class="relative z-10 text-white p-12 max-w-2xl">
+      <div class="backdrop-blur-sm bg-black/20 p-8 rounded-3xl border border-white/10 shadow-2xl">
+        <h2 class="text-4xl lg:text-5xl font-bold mb-6 leading-tight">Empowering Your Delivery Operations.</h2>
+        <p class="text-lg text-white/80 leading-relaxed">
+          The Integrated Delivery Control System (EDCL) provides real-time monitoring, intelligent route planning, and comprehensive master data management for your logistics fleet.
+        </p>
+      </div>
+    </div>
+  </div>
+
+</div>

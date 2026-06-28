@@ -46,9 +46,9 @@ public sealed class JwtTokenService(IConfiguration configuration) : IJwtTokenSer
         {
             new Claim(JwtRegisteredClaimNames.Sub,  user.Id.ToString()),
             new Claim("user_id",                    user.Id.ToString()),
-            new Claim("name",                       user.Name),
-            new Claim("email",                      user.Email),
-            new Claim(ClaimTypes.Role,              user.Role.Code),
+            new Claim("name",                       user.Name ?? "Unknown"),
+            new Claim("email",                      user.Email ?? ""),
+            new Claim(ClaimTypes.Role,              user.Role?.Code ?? "ADMIN"),
             new Claim(JwtRegisteredClaimNames.Jti,  Guid.NewGuid().ToString()),
             new Claim(JwtRegisteredClaimNames.Iat,
                 new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds().ToString(),

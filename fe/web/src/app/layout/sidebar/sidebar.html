@@ -1,0 +1,59 @@
+<ul class="menu p-4 w-72 min-h-full bg-base-100 text-base-content font-medium gap-2 border-r border-base-200">
+  
+  <div class="px-4 pb-4 mb-2 border-b border-base-200 lg:hidden">
+    <!-- Mobile Brand -->
+    <div class="flex items-center gap-2 text-primary">
+      <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+      </div>
+      <span class="text-xl font-bold tracking-wider">EDCL</span>
+    </div>
+  </div>
+
+  @for (item of menuItems; track item.title) {
+    <li>
+      <a [routerLink]="item.route" routerLinkActive="active bg-primary text-primary-content rounded-xl shadow-md shadow-primary/20 hover:bg-primary/90" class="rounded-xl transition-all hover:bg-base-200">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+          <path stroke-linecap="round" stroke-linejoin="round" [attr.d]="item.icon" />
+        </svg>
+        {{ item.title }}
+      </a>
+    </li>
+  }
+
+  <div class="divider text-xs uppercase text-base-content/50 my-1">Data Master</div>
+  
+  <li>
+    <details open>
+      <summary class="rounded-xl hover:bg-base-200">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125" />
+        </svg>
+        Master
+      </summary>
+      <ul>
+        @for (master of masterItems; track master.title) {
+          <li>
+            <a [routerLink]="master.route" routerLinkActive="active text-primary bg-primary/10 font-bold" class="rounded-lg mt-1 hover:bg-base-200 transition-colors">
+              {{ master.title }}
+            </a>
+          </li>
+        }
+      </ul>
+    </details>
+  </li>
+
+  <div class="divider text-xs uppercase text-base-content/50 my-1">Operations</div>
+
+  @for (op of operationItems; track op.title) {
+    <li>
+      <a [routerLink]="op.route" routerLinkActive="active bg-primary text-primary-content rounded-xl shadow-md shadow-primary/20 hover:bg-primary/90" class="rounded-xl mt-1 transition-all hover:bg-base-200">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+          <path stroke-linecap="round" stroke-linejoin="round" [attr.d]="op.icon" />
+        </svg>
+        {{ op.title }}
+      </a>
+    </li>
+  }
+
+</ul>
