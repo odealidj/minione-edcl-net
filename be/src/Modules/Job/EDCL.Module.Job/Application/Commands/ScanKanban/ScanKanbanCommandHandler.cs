@@ -22,7 +22,14 @@ public sealed class ScanKanbanCommandHandler(
             return Error.NotFound("Manifest", request.ManifestId);
 
         if (manifest.Kanbans.Any(x => x.KanbanCode == request.KanbanCode))
-            return Error.Validation("Kanban.AlreadyScanned", "This Kanban has already been scanned.");
+        {
+            // Idempotency support for rapid scanning: return success instead of error
+            return new ScanKanbanResponse(
+                ManifestId: manifest.Id,
+                Status: manifest.Status,
+                Scanned: manifest.ScannedKanban,
+                Total: manifest.TotalKanban);
+        }
 
         // Create kanban record
         var kanban = PickupOrderKanban.Create(manifest.Id, request.KanbanCode);

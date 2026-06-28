@@ -125,6 +125,7 @@ public sealed class JobController(IMediator mediator, ICurrentUserService curren
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Boolean indicating success.</returns>
     [HttpPost("stops/{stopId}/complete")]
+    [TypeFilter(typeof(IdempotencyFilterAttribute))]
     [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
@@ -194,6 +195,7 @@ public sealed class JobController(IMediator mediator, ICurrentUserService curren
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Boolean indicating success.</returns>
     [HttpPost("{id}/end")]
+    [TypeFilter(typeof(IdempotencyFilterAttribute))]
     [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
