@@ -10,18 +10,22 @@ public class ManifestPart : AuditableEntity
     public string PartName { get; private set; } = default!;
     public int Qty { get; private set; }
     public string KanbanNo { get; private set; } = default!;
+    public string UniqNo { get; private set; } = default!;
+    public string BoxType { get; private set; } = default!;
     public string Status { get; private set; } = "Pending";
 
     public Manifest Manifest { get; private set; } = default!;
 
     protected ManifestPart() { } // EF Core
 
-    public ManifestPart(long manifestId, string partNo, string partName, int qty, string kanbanNo)
+    public ManifestPart(long manifestId, string partNo, string partName, int qty, string kanbanNo, string uniqNo, string boxType)
     {
         ManifestId = manifestId;
         PartNo = partNo;
         PartName = partName;
         Qty = qty;
         KanbanNo = kanbanNo;
+        UniqNo = uniqNo;
+        BoxType = boxType;
     }
 }

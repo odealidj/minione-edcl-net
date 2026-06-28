@@ -23,9 +23,12 @@ public class CargoDbContext(DbContextOptions<CargoDbContext> options) : DbContex
             b.Property(x => x.ManifestNo).HasMaxLength(50).IsRequired();
             b.Property(x => x.SupplierCode).HasMaxLength(20).IsRequired();
             b.Property(x => x.SupplierName).HasMaxLength(100).IsRequired();
-            b.Property(x => x.OrderType).HasMaxLength(10).IsRequired();
-            b.Property(x => x.Cycle).HasMaxLength(10).IsRequired();
-            b.Property(x => x.Status).HasMaxLength(20).IsRequired();
+            b.Property(x => x.OrderType).HasColumnName("order_type").HasMaxLength(10).IsRequired();
+            b.Property(x => x.OrderNo).HasColumnName("order_no").HasMaxLength(50).IsRequired();
+            b.Property(x => x.DockCode).HasColumnName("dock_cd").HasMaxLength(20).IsRequired();
+            b.Property(x => x.PLaneNo).HasColumnName("p_lane_no").HasMaxLength(20).IsRequired();
+            b.Property(x => x.Cycle).HasColumnName("cycle").HasMaxLength(10).IsRequired();
+            b.Property(x => x.Status).HasColumnName("status").HasMaxLength(20).IsRequired();
 
             b.HasMany(x => x.Parts)
              .WithOne(p => p.Manifest)
@@ -49,8 +52,10 @@ public class CargoDbContext(DbContextOptions<CargoDbContext> options) : DbContex
             b.HasKey(x => x.Id);
             b.Property(x => x.PartNo).HasMaxLength(50).IsRequired();
             b.Property(x => x.PartName).HasMaxLength(100).IsRequired();
-            b.Property(x => x.KanbanNo).HasMaxLength(50).IsRequired();
-            b.Property(x => x.Status).HasMaxLength(20).IsRequired();
+            b.Property(x => x.KanbanNo).HasColumnName("kanban_no").HasMaxLength(50).IsRequired();
+            b.Property(x => x.UniqNo).HasColumnName("uniq_no").HasMaxLength(50).IsRequired();
+            b.Property(x => x.BoxType).HasColumnName("box_type").HasMaxLength(20).IsRequired();
+            b.Property(x => x.Status).HasColumnName("status").HasMaxLength(20).IsRequired();
         });
 
         modelBuilder.Entity<ManifestKanban>(b =>

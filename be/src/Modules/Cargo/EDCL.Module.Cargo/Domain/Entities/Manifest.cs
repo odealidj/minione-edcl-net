@@ -10,6 +10,9 @@ public class Manifest : AuditableEntity
     public string SupplierName { get; private set; } = default!;
     public int Sequence { get; private set; }
     public string OrderType { get; private set; } = "ORG"; // "ORG" only based on user preference
+    public string OrderNo { get; private set; } = default!;
+    public string DockCode { get; private set; } = default!;
+    public string PLaneNo { get; private set; } = default!;
     public DateTime PickDate { get; private set; }
     public string Cycle { get; private set; } = default!;
     
@@ -27,7 +30,7 @@ public class Manifest : AuditableEntity
 
     protected Manifest() { } // EF Core
 
-    public Manifest(string manifestNo, string supplierCode, string supplierName, int sequence, DateTime pickDate, string cycle)
+    public Manifest(string manifestNo, string supplierCode, string supplierName, int sequence, DateTime pickDate, string cycle, string orderNo, string dockCode, string pLaneNo)
     {
         ManifestNo = manifestNo;
         SupplierCode = supplierCode;
@@ -35,5 +38,8 @@ public class Manifest : AuditableEntity
         Sequence = sequence;
         PickDate = pickDate;
         Cycle = cycle;
+        OrderNo = orderNo;
+        DockCode = dockCode;
+        PLaneNo = pLaneNo;
     }
 }
