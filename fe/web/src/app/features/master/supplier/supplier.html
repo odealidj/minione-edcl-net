@@ -77,7 +77,21 @@
         </div>
         <div class="form-control w-full">
           <label class="label"><span class="label-text">Address</span></label>
-          <input type="text" formControlName="address" class="input input-bordered w-full" placeholder="Enter Address" />
+          <input type="text" formControlName="address" class="input input-bordered w-full" placeholder="Enter Supplier Address" />
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div class="form-control w-full">
+            <label class="label"><span class="label-text">Latitude</span></label>
+            <input type="number" step="any" formControlName="latitude" class="input input-bordered w-full" placeholder="-6.200000" />
+          </div>
+          <div class="form-control w-full">
+            <label class="label"><span class="label-text">Longitude</span></label>
+            <input type="number" step="any" formControlName="longitude" class="input input-bordered w-full" placeholder="106.816666" />
+          </div>
+        </div>
+        <div class="form-control w-full">
+          <label class="label"><span class="label-text">Geofence Radius (Meters)</span></label>
+          <input type="number" formControlName="geofenceRadiusMeters" class="input input-bordered w-full" placeholder="50" />
         </div>
       </div>
       <div class="modal-action mt-6">

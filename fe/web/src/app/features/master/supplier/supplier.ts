@@ -33,7 +33,10 @@ export class SupplierComponent implements OnInit {
     this.form = this.fb.group({
       supplierCode: ['', Validators.required],
       name: ['', Validators.required],
-      address: ['']
+      address: [''],
+      latitude: [null],
+      longitude: [null],
+      geofenceRadiusMeters: [null]
     });
   }
 
@@ -73,7 +76,14 @@ export class SupplierComponent implements OnInit {
     if (item) {
       this.isEditMode = true;
       this.editingId = item.id;
-      this.form.patchValue({ supplierCode: item.supplierCode, name: item.name, address: item.address });
+      this.form.patchValue({ 
+        supplierCode: item.supplierCode, 
+        name: item.name, 
+        address: item.address,
+        latitude: item.latitude,
+        longitude: item.longitude,
+        geofenceRadiusMeters: item.geofenceRadiusMeters
+      });
     } else {
       this.isEditMode = false;
       this.editingId = null;
@@ -91,13 +101,17 @@ export class SupplierComponent implements OnInit {
     this.isSaving = true;
     const val = this.form.value;
 
+    const lat = val.latitude ? Number(val.latitude) : null;
+    const lng = val.longitude ? Number(val.longitude) : null;
+    const radius = val.geofenceRadiusMeters ? Number(val.geofenceRadiusMeters) : null;
+
     if (this.isEditMode && this.editingId) {
-      this.service.updateSupplier(this.editingId, val.supplierCode, val.name, val.address).subscribe({
+      this.service.updateSupplier(this.editingId, val.supplierCode, val.name, val.address, lat, lng, radius).subscribe({
         next: () => { this.isSaving = false; this.closeModal(); this.loadData(); },
         error: (err) => { console.error(err); this.isSaving = false; }
       });
     } else {
-      this.service.createSupplier(val.supplierCode, val.name, val.address).subscribe({
+      this.service.createSupplier(val.supplierCode, val.name, val.address, lat, lng, radius).subscribe({
         next: () => { this.isSaving = false; this.closeModal(); this.currentPage = 1; this.loadData(); },
         error: (err) => { console.error(err); this.isSaving = false; }
       });

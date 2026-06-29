@@ -33,6 +33,9 @@ export interface Supplier {
   supplierCode: string;
   name: string;
   address: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  geofenceRadiusMeters?: number | null;
   createdBy: string;
   createdOnUtc: string;
 }

@@ -37,12 +37,12 @@ export class MasterDataService {
     return this.http.get<ApiResponse<Supplier[]>>(`${environment.apiUrl}/master/suppliers`, { params });
   }
 
-  createSupplier(supplierCode: string, name: string, address: string): Observable<ApiResponse<string>> {
-    return this.http.post<ApiResponse<string>>(`${environment.apiUrl}/master/suppliers`, { supplierCode, name, address });
+  createSupplier(supplierCode: string, name: string, address: string, latitude?: number | null, longitude?: number | null, geofenceRadiusMeters?: number | null): Observable<ApiResponse<string>> {
+    return this.http.post<ApiResponse<string>>(`${environment.apiUrl}/master/suppliers`, { supplierCode, name, address, latitude, longitude, geofenceRadiusMeters });
   }
 
-  updateSupplier(id: number, supplierCode: string, name: string, address: string): Observable<ApiResponse<any>> {
-    return this.http.put<ApiResponse<any>>(`${environment.apiUrl}/master/suppliers/${id}`, { id, supplierCode, name, address });
+  updateSupplier(id: number, supplierCode: string, name: string, address: string, latitude?: number | null, longitude?: number | null, geofenceRadiusMeters?: number | null): Observable<ApiResponse<any>> {
+    return this.http.put<ApiResponse<any>>(`${environment.apiUrl}/master/suppliers/${id}`, { id, supplierCode, name, address, latitude, longitude, geofenceRadiusMeters });
   }
 
   deleteSupplier(id: number): Observable<ApiResponse<any>> {
