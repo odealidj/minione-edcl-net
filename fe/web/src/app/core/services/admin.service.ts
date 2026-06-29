@@ -18,7 +18,7 @@ export class AdminService {
     return this.http.get<ApiResponse<User[]>>(`${environment.apiUrl}/auth/users`, { params });
   }
 
-  updateUserRole(id: string, role: string): Observable<ApiResponse<any>> {
+  updateUserRole(id: number, role: string): Observable<ApiResponse<any>> {
     return this.http.put<ApiResponse<any>>(`${environment.apiUrl}/auth/users/${id}/role`, { role });
   }
 
@@ -33,11 +33,11 @@ export class AdminService {
     return this.http.post<ApiResponse<string>>(`${environment.apiUrl}/master/transporters`, { name });
   }
 
-  updateTransporter(id: string, name: string): Observable<ApiResponse<any>> {
+  updateTransporter(id: number, name: string): Observable<ApiResponse<any>> {
     return this.http.put<ApiResponse<any>>(`${environment.apiUrl}/master/transporters/${id}`, { name });
   }
 
-  deleteTransporter(id: string): Observable<ApiResponse<any>> {
+  deleteTransporter(id: number): Observable<ApiResponse<any>> {
     return this.http.delete<ApiResponse<any>>(`${environment.apiUrl}/master/transporters/${id}`);
   }
 }

@@ -18,15 +18,15 @@ export class MasterDataService {
     return this.http.get<ApiResponse<Driver[]>>(`${environment.apiUrl}/auth/drivers`, { params });
   }
 
-  createDriver(name: string, nik: string, phoneNumber: string): Observable<ApiResponse<string>> {
-    return this.http.post<ApiResponse<string>>(`${environment.apiUrl}/auth/drivers`, { name, nik, phoneNumber });
+  createDriver(name: string, nik: string, phoneNumber: string, transporterId?: number | null): Observable<ApiResponse<string>> {
+    return this.http.post<ApiResponse<string>>(`${environment.apiUrl}/auth/drivers`, { name, nik, phoneNumber, transporterId });
   }
 
-  updateDriver(id: string, name: string, nik: string, phoneNumber: string): Observable<ApiResponse<any>> {
-    return this.http.put<ApiResponse<any>>(`${environment.apiUrl}/auth/drivers/${id}`, { name, nik, phoneNumber });
+  updateDriver(id: number, name: string, nik: string, phoneNumber: string, transporterId?: number | null): Observable<ApiResponse<any>> {
+    return this.http.put<ApiResponse<any>>(`${environment.apiUrl}/auth/drivers/${id}`, { name, nik, phoneNumber, transporterId });
   }
 
-  deleteDriver(id: string): Observable<ApiResponse<any>> {
+  deleteDriver(id: number): Observable<ApiResponse<any>> {
     return this.http.delete<ApiResponse<any>>(`${environment.apiUrl}/auth/drivers/${id}`);
   }
 
@@ -41,11 +41,11 @@ export class MasterDataService {
     return this.http.post<ApiResponse<string>>(`${environment.apiUrl}/master/suppliers`, { supplierCode, name, address });
   }
 
-  updateSupplier(id: string, supplierCode: string, name: string, address: string): Observable<ApiResponse<any>> {
+  updateSupplier(id: number, supplierCode: string, name: string, address: string): Observable<ApiResponse<any>> {
     return this.http.put<ApiResponse<any>>(`${environment.apiUrl}/master/suppliers/${id}`, { supplierCode, name, address });
   }
 
-  deleteSupplier(id: string): Observable<ApiResponse<any>> {
+  deleteSupplier(id: number): Observable<ApiResponse<any>> {
     return this.http.delete<ApiResponse<any>>(`${environment.apiUrl}/master/suppliers/${id}`);
   }
 
@@ -60,11 +60,11 @@ export class MasterDataService {
     return this.http.post<ApiResponse<string>>(`${environment.apiUrl}/master/trucks`, { plateNumber, truckType, truckCapacity });
   }
 
-  updateTruck(id: string, plateNumber: string, truckType: string, truckCapacity: number): Observable<ApiResponse<any>> {
+  updateTruck(id: number, plateNumber: string, truckType: string, truckCapacity: number): Observable<ApiResponse<any>> {
     return this.http.put<ApiResponse<any>>(`${environment.apiUrl}/master/trucks/${id}`, { plateNumber, truckType, truckCapacity });
   }
 
-  deleteTruck(id: string): Observable<ApiResponse<any>> {
+  deleteTruck(id: number): Observable<ApiResponse<any>> {
     return this.http.delete<ApiResponse<any>>(`${environment.apiUrl}/master/trucks/${id}`);
   }
 }

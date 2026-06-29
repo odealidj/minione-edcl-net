@@ -1,6 +1,6 @@
 // Admin Models
 export interface User {
-  id: string;
+  id: number;
   username: string;
   email: string;
   name: string;
@@ -11,7 +11,7 @@ export interface User {
 }
 
 export interface Transporter {
-  id: string; // GUID
+  id: number;
   name: string;
   createdBy: string;
   createdOnUtc: string;
@@ -19,16 +19,17 @@ export interface Transporter {
 
 // Master Data Models
 export interface Driver {
-  id: string; // GUID
+  id: number;
   name: string;
   nik: string;
   phoneNumber: string;
+  transporterId?: number | null;
   createdBy: string;
   createdOnUtc: string;
 }
 
 export interface Supplier {
-  id: string; // GUID
+  id: number;
   supplierCode: string;
   name: string;
   address: string;
@@ -37,7 +38,7 @@ export interface Supplier {
 }
 
 export interface Truck {
-  id: string; // GUID
+  id: number;
   plateNumber: string;
   truckType: string;
   truckCapacity: number;

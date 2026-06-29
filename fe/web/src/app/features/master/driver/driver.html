@@ -79,6 +79,15 @@
           <label class="label"><span class="label-text">Phone Number</span></label>
           <input type="text" formControlName="phoneNumber" class="input input-bordered w-full" placeholder="Enter Phone Number" />
         </div>
+        <div class="form-control w-full">
+          <label class="label"><span class="label-text">Transporter (Optional)</span></label>
+          <select formControlName="transporterId" class="select select-bordered w-full">
+            <option [ngValue]="null">Select Transporter...</option>
+            @for (t of transporters(); track t.id) {
+              <option [value]="t.id">{{ t.name }}</option>
+            }
+          </select>
+        </div>
       </div>
       <div class="modal-action mt-6">
         <button type="button" class="btn btn-ghost" (click)="closeModal()">Cancel</button>

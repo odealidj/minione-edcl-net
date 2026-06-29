@@ -23,7 +23,7 @@ export class TransporterComponent implements OnInit {
   @ViewChild('crudModal') crudModal!: ElementRef<HTMLDialogElement>;
   form: FormGroup;
   isEditMode = false;
-  editingId: string | null = null;
+  editingId: number | null = null;
   isSaving = false;
 
   private service = inject(AdminService);
@@ -117,7 +117,7 @@ export class TransporterComponent implements OnInit {
     }
   }
 
-  deleteItem(id: string): void {
+  deleteItem(id: number): void {
     if (confirm('Are you sure you want to delete this item?')) {
       this.service.deleteTransporter(id).subscribe({
         next: () => this.loadData(),
