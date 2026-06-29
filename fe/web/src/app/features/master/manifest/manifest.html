@@ -19,13 +19,15 @@
           <th class="w-12"></th>
           <th>Manifest No</th>
           <th>Supplier Name</th>
+          <th class="text-center">Total Kanbans</th>
+          <th class="text-center">Total Parts</th>
         </tr>
       </thead>
       <tbody>
         @if (isLoading()) {
-          <tr><td colspan="3" class="text-center py-8"><span class="loading loading-spinner loading-lg text-primary"></span></td></tr>
+          <tr><td colspan="5" class="text-center py-8"><span class="loading loading-spinner loading-lg text-primary"></span></td></tr>
         } @else if (items().length === 0) {
-          <tr><td colspan="3" class="text-center py-8 text-base-content/50">No manifests found.</td></tr>
+          <tr><td colspan="5" class="text-center py-8 text-base-content/50">No manifests found.</td></tr>
         } @else {
           @for (item of items(); track item.id) {
             <tr>
@@ -40,13 +42,19 @@
               </td>
               <td class="font-bold">{{ item.manifestNo }}</td>
               <td>{{ item.supplierName }}</td>
+              <td class="text-center">
+                <div class="badge badge-primary badge-outline font-mono">{{ item.totalKanbans }}</div>
+              </td>
+              <td class="text-center">
+                <div class="badge badge-secondary badge-outline font-mono">{{ item.totalParts }}</div>
+              </td>
             </tr>
 
             <!-- Expanded Area -->
             @if (expandedManifestId() === item.id) {
               <tr class="bg-base-200/50">
                 <td></td>
-                <td colspan="2" class="p-4">
+                <td colspan="4" class="p-4">
                   <div class="bg-base-100 p-4 rounded-xl shadow-inner border border-base-300">
                     <div class="flex justify-between items-center mb-4">
                       <h3 class="font-bold">Kanbans for {{ item.manifestNo }}</h3>

@@ -16,10 +16,12 @@ internal sealed class AdminGetManifestByIdQueryHandler(CargoDbContext dbContext)
     {
         var x = await dbContext.Manifests
             .AsNoTracking()
-            .FirstOrDefaultAsync(y => y.Id == request.Id, cancellationToken);
-            
+            .Include(m => m.Kanbans)
+            .Include(m => m.Parts)
+            .FirstOrDefaultAsync(m => m.Id == request.Id, cancellationToken);
+
         if (x is null) return Result<AdminManifestDto>.Failure(Error.NotFound("Manifest.NotFound", "Manifest not found."));
 
-        return Result<AdminManifestDto>.Success(new AdminManifestDto(x.Id, x.ManifestNo, x.SupplierName));
+        return Result<AdminManifestDto>.Success(new AdminManifestDto(x.Id, x.ManifestNo, x.SupplierName, x.Kanbans.Count, x.Parts.Count));
     }
 }

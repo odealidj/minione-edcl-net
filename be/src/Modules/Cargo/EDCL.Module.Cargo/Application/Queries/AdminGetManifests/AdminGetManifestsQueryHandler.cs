@@ -30,9 +30,16 @@ internal sealed class AdminGetManifestsQueryHandler(CargoDbContext dbContext)
             .OrderByDescending(x => x.Id)
             .Skip((request.PageNumber - 1) * request.PageSize)
             .Take(request.PageSize)
+            .Select(x => new AdminManifestDto(
+                x.Id, 
+                x.ManifestNo, 
+                x.SupplierName, 
+                x.Kanbans.Count(), 
+                x.Parts.Count()
+            ))
             .ToListAsync(cancellationToken);
 
-        var dtos = items.Select(x => new AdminManifestDto(x.Id, x.ManifestNo, x.SupplierName)).ToList();
+        var dtos = items.ToList();
         var totalPages = request.PageSize > 0 ? (int)Math.Ceiling((double)totalCount / request.PageSize) : 0;
 
         return Result<AdminGetManifestsResponse>.Success(new AdminGetManifestsResponse(dtos, totalCount, request.PageNumber, request.PageSize, totalPages));

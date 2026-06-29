@@ -50,6 +50,8 @@ export interface Manifest {
   id: number;
   manifestNo: string;
   supplierName: string;
+  totalKanbans: number;
+  totalParts: number;
 }
 
 export interface ManifestKanban {
