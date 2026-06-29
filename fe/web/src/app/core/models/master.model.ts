@@ -1,13 +1,13 @@
 // Admin Models
 export interface User {
   id: number;
-  username: string;
+  username?: string;
   email: string;
   name: string;
-  role: string;
-  status: string;
-  createdBy: string;
-  createdOnUtc: string;
+  roleCode: string;
+  status?: string;
+  createdBy?: string;
+  createdOnUtc?: string;
 }
 
 export interface Transporter {

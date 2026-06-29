@@ -59,7 +59,7 @@ export class UserManagementComponent implements OnInit {
   updateRole(user: User, newRole: string): void {
     this.adminService.updateUserRole(user.id, newRole).subscribe({
       next: (res) => {
-        user.role = newRole;
+        user.roleCode = newRole;
       },
       error: (err) => {
         console.error('Failed to update role', err);
