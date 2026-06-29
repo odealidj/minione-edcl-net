@@ -24,12 +24,12 @@
         </tr>
       </thead>
       <tbody>
-        @if (isLoading) {
+        @if (isLoading()) {
           <tr><td colspan="5" class="text-center py-8"><span class="loading loading-spinner loading-lg text-primary"></span></td></tr>
-        } @else if (users.length === 0) {
+        } @else if (users().length === 0) {
           <tr><td colspan="5" class="text-center py-8 text-base-content/50">No users found.</td></tr>
         } @else {
-          @for (user of users; track user.id) {
+          @for (user of users(); track user.id) {
             <tr>
               <td class="font-bold">{{ user.name }}</td>
               <td>{{ user.username }}</td>
@@ -52,13 +52,13 @@
   </div>
 
   <!-- Pagination -->
-  @if (meta && meta.total_pages > 1) {
+  @if (meta() && meta()!.total_pages > 1) {
     <div class="flex justify-between items-center mt-4">
-      <span class="text-sm text-base-content/70">Showing {{ users.length }} of {{ meta.total_items }} entries</span>
+      <span class="text-sm text-base-content/70">Showing {{ users().length }} of {{ meta()!.total_items }} entries</span>
       <div class="join">
-        <button class="join-item btn btn-sm" [disabled]="!meta.has_previous" (click)="meta.prevPage && changePage(meta.prevPage)">«</button>
-        <button class="join-item btn btn-sm">Page {{ meta.page }} of {{ meta.total_pages }}</button>
-        <button class="join-item btn btn-sm" [disabled]="!meta.has_next" (click)="meta.nextPage && changePage(meta.nextPage)">»</button>
+        <button class="join-item btn btn-sm" [disabled]="!meta()!.has_previous" (click)="meta()!.prevPage && changePage(meta()!.prevPage!)">«</button>
+        <button class="join-item btn btn-sm">Page {{ meta()!.page }} of {{ meta()!.total_pages }}</button>
+        <button class="join-item btn btn-sm" [disabled]="!meta()!.has_next" (click)="meta()!.nextPage && changePage(meta()!.nextPage!)">»</button>
       </div>
     </div>
   }

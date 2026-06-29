@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AdminService } from '../../../core/services/admin.service';
@@ -15,9 +15,9 @@ import { PaginationMeta } from '../../../core/models/api.model';
 export class UserManagementComponent implements OnInit {
   adminService = inject(AdminService);
   
-  users: User[] = [];
-  meta: PaginationMeta | null = null;
-  isLoading = false;
+  users = signal<User[]>([]);
+  meta = signal<PaginationMeta | null>(null);
+  isLoading = signal(true);
   searchQuery = '';
   currentPage = 1;
   pageSize = 10;
@@ -29,18 +29,18 @@ export class UserManagementComponent implements OnInit {
   }
 
   loadUsers(): void {
-    this.isLoading = true;
+    this.isLoading.set(true);
     this.adminService.getUsers(this.searchQuery, this.currentPage, this.pageSize).subscribe({
       next: (res) => {
         if (res.status === 'success') {
-          this.users = res.data;
-          this.meta = res.pagination;
+          this.users.set(res.data);
+          this.meta.set(res.pagination);
         }
-        this.isLoading = false;
+        this.isLoading.set(false);
       },
       error: (err) => {
         console.error('Failed to load users', err);
-        this.isLoading = false;
+        this.isLoading.set(false);
       }
     });
   }
