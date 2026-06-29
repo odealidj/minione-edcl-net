@@ -19,7 +19,7 @@ export class AdminService {
   }
 
   updateUserRole(id: number, role: string): Observable<ApiResponse<any>> {
-    return this.http.put<ApiResponse<any>>(`${environment.apiUrl}/auth/users/${id}/role`, { role });
+    return this.http.put<ApiResponse<any>>(`${environment.apiUrl}/auth/users/${id}/role`, { userId: id, roleCode: role });
   }
 
   // Transporters
