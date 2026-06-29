@@ -24,6 +24,9 @@ export class UserManagementComponent implements OnInit {
 
   roles = ['ADMIN', 'USER', 'DRIVER'];
 
+  updatingRoleId = signal<number | null>(null);
+  toastMessage = signal<{text: string, type: 'success'|'error'} | null>(null);
+
   ngOnInit(): void {
     this.loadUsers();
   }
@@ -57,14 +60,27 @@ export class UserManagementComponent implements OnInit {
   }
 
   updateRole(user: User, newRole: string): void {
+    this.updatingRoleId.set(user.id);
     this.adminService.updateUserRole(user.id, newRole).subscribe({
       next: (res) => {
         user.roleCode = newRole;
+        this.updatingRoleId.set(null);
+        this.showToast(`Role for ${user.name} updated to ${newRole}`, 'success');
       },
       error: (err) => {
         console.error('Failed to update role', err);
+        this.updatingRoleId.set(null);
+        this.showToast(`Failed to update role for ${user.name}`, 'error');
+        // Reload users to revert the dropdown state to the original value
         this.loadUsers(); 
       }
     });
+  }
+
+  showToast(text: string, type: 'success'|'error'): void {
+    this.toastMessage.set({ text, type });
+    setTimeout(() => {
+      this.toastMessage.set(null);
+    }, 3000);
   }
 }

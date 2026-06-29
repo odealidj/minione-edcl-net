@@ -38,11 +38,19 @@
                 <div class="badge badge-success badge-sm">{{ user.status || 'Active' }}</div>
               </td>
               <td class="text-center">
-                <select class="select select-bordered select-sm w-full max-w-xs" [ngModel]="user.roleCode" (ngModelChange)="updateRole(user, $event)">
-                  @for (role of roles; track role) {
-                    <option [value]="role">{{ role }}</option>
+                <div class="flex items-center justify-center gap-2">
+                  <select class="select select-bordered select-sm w-full max-w-xs" 
+                          [ngModel]="user.roleCode" 
+                          (ngModelChange)="updateRole(user, $event)"
+                          [disabled]="updatingRoleId() === user.id">
+                    @for (role of roles; track role) {
+                      <option [value]="role">{{ role }}</option>
+                    }
+                  </select>
+                  @if (updatingRoleId() === user.id) {
+                    <span class="loading loading-spinner loading-sm text-primary"></span>
                   }
-                </select>
+                </div>
               </td>
             </tr>
           }
@@ -63,3 +71,12 @@
     </div>
   }
 </div>
+
+<!-- Toast Notification -->
+@if (toastMessage()) {
+  <div class="toast toast-end toast-bottom z-50">
+    <div class="alert" [ngClass]="{'alert-success': toastMessage()!.type === 'success', 'alert-error': toastMessage()!.type === 'error'}">
+      <span>{{ toastMessage()!.text }}</span>
+    </div>
+  </div>
+}
