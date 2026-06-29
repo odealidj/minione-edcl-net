@@ -1,3 +1,4 @@
+using EDCL.Shared.Kernel.Common;
 using EDCL.Module.Auth.Application.Commands.Login;
 using EDCL.Shared.Http.Middlewares;
 using EDCL.Shared.Http.Responses;

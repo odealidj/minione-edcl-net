@@ -1,13 +1,15 @@
+using EDCL.Module.Auth.Infrastructure.Persistence;
 using EDCL.Module.Auth.Application.Ports;
 using EDCL.Module.Auth.Domain.Entities;
 using EDCL.Shared.Kernel.Common;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 
 namespace EDCL.Module.Auth.Application.Commands.Login;
 
 public sealed class LoginAppUserCommandHandler(
     IAppUserRepository userRepository,
-    IRefreshTokenRepository refreshTokenRepository,
+    AuthDbContext dbContext,
     IJwtTokenService jwtTokenService)
     : IRequestHandler<LoginAppUserCommand, Result<LoginAppUserResponse>>
 {
@@ -25,10 +27,24 @@ public sealed class LoginAppUserCommandHandler(
 
         var expiryDays = jwtTokenService.RefreshTokenExpiryDays;
 
-        // For now, let's bypass the RefreshToken storage since RefreshToken is currently strongly tied to Driver.
-        // We will need to update RefreshToken to support AppUser in the future.
-        // Alternatively, we could create an AppUserRefreshToken entity.
-        // I will return the tokens and let the client use them.
+        // Revoke old tokens for this user
+        var oldTokens = await dbContext.AppUserRefreshTokens
+            .Where(rt => rt.AppUserId == user.Id && !rt.IsRevoked)
+            .ToListAsync(cancellationToken);
+
+        foreach (var oldToken in oldTokens)
+        {
+            oldToken.Revoke();
+        }
+
+        var refreshToken = AppUserRefreshToken.Create(
+            appUserId: user.Id,
+            hashedToken: hashedRefreshToken,
+            expiryDays: expiryDays,
+            deviceInfo: null); // Could pass from command if needed
+
+        dbContext.AppUserRefreshTokens.Add(refreshToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
 
         return Result<LoginAppUserResponse>.Success(new LoginAppUserResponse(
             AccessToken: accessToken,

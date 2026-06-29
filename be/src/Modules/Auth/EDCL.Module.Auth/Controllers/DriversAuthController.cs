@@ -1,3 +1,4 @@
+using EDCL.Shared.Kernel.Common;
 using EDCL.Module.Auth.Application.Commands.Login;
 using EDCL.Module.Auth.Application.Commands.ChangeDriverPin;
 using EDCL.Shared.Http.Middlewares;
@@ -66,5 +67,22 @@ public sealed class DriversAuthController(IMediator mediator) : ControllerBase
         }
 
         return Ok(ApiResponse<LoginResponse>.Success(result.Value, traceId));
+    }
+
+    /// <summary>
+    /// Logs out a Driver by revoking their refresh token.
+    /// </summary>
+    [HttpPost("logout")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(ApiResponse<EDCL.Module.Auth.Application.Commands.LogoutDriver.LogoutDriverResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> LogoutDriver(
+        [FromBody] EDCL.Module.Auth.Application.Commands.LogoutDriver.LogoutDriverCommand command,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(command, cancellationToken);
+        var traceId = HttpContext.GetTraceId();
+
+        // Idempotent logout - always return 200 OK even if token is already revoked
+        return Ok(ApiResponse<EDCL.Module.Auth.Application.Commands.LogoutDriver.LogoutDriverResponse>.Success(result.Value, traceId));
     }
 }

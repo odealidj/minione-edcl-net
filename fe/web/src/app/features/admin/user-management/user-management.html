@@ -1,0 +1,65 @@
+<div class="container mx-auto">
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-bold text-base-content">User Management</h1>
+  </div>
+
+  <!-- Search -->
+  <div class="flex mb-4">
+    <div class="join w-full max-w-md">
+      <input type="text" #searchInput class="input input-bordered join-item w-full" placeholder="Search Username / Name..." (keyup.enter)="onSearch(searchInput.value)" />
+      <button class="btn btn-primary join-item" (click)="onSearch(searchInput.value)">Search</button>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="overflow-x-auto bg-base-100 rounded-box shadow">
+    <table class="table table-zebra w-full">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Username</th>
+          <th>Email</th>
+          <th>Status</th>
+          <th class="w-48 text-center">Role</th>
+        </tr>
+      </thead>
+      <tbody>
+        @if (isLoading) {
+          <tr><td colspan="5" class="text-center py-8"><span class="loading loading-spinner loading-lg text-primary"></span></td></tr>
+        } @else if (users.length === 0) {
+          <tr><td colspan="5" class="text-center py-8 text-base-content/50">No users found.</td></tr>
+        } @else {
+          @for (user of users; track user.id) {
+            <tr>
+              <td class="font-bold">{{ user.name }}</td>
+              <td>{{ user.username }}</td>
+              <td>{{ user.email }}</td>
+              <td>
+                <div class="badge badge-success badge-sm">{{ user.status }}</div>
+              </td>
+              <td class="text-center">
+                <select class="select select-bordered select-sm w-full max-w-xs" [ngModel]="user.role" (ngModelChange)="updateRole(user, $event)">
+                  @for (role of roles; track role) {
+                    <option [value]="role">{{ role }}</option>
+                  }
+                </select>
+              </td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  @if (meta && meta.total_pages > 1) {
+    <div class="flex justify-between items-center mt-4">
+      <span class="text-sm text-base-content/70">Showing {{ users.length }} of {{ meta.total_items }} entries</span>
+      <div class="join">
+        <button class="join-item btn btn-sm" [disabled]="!meta.has_previous" (click)="meta.prevPage && changePage(meta.prevPage)">«</button>
+        <button class="join-item btn btn-sm">Page {{ meta.page }} of {{ meta.total_pages }}</button>
+        <button class="join-item btn btn-sm" [disabled]="!meta.has_next" (click)="meta.nextPage && changePage(meta.nextPage)">»</button>
+      </div>
+    </div>
+  }
+</div>

@@ -111,6 +111,93 @@ namespace EDCL.Infrastructure.Persistence.Migrations
                     b.HasIndex("RoleId");
 
                     b.ToTable("app_users", "auth");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = -1L,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "SYSTEM",
+                            Email = "admin@edcl.com",
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "System Admin",
+                            PasswordHash = "$2b$12$Bo9S.nsQu4rwtECmOp0lTO5VCRWAvI1mkVe/pmkiLA1C7PJkE1xom",
+                            RoleId = 1L
+                        });
+                });
+
+            modelBuilder.Entity("EDCL.Module.Auth.Domain.Entities.AppUserRefreshToken", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("AppUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("DeviceInfo")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime2(7)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsRevoked")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("ReplacedByToken")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("RevokedAt")
+                        .HasColumnType("datetime2(7)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsRequired()
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("TraceId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Token")
+                        .HasDatabaseName("IX_app_user_refresh_tokens_token");
+
+                    b.HasIndex("AppUserId", "IsRevoked")
+                        .HasDatabaseName("IX_app_user_refresh_tokens_active");
+
+                    b.ToTable("app_user_refresh_tokens", "auth");
                 });
 
             modelBuilder.Entity("EDCL.Module.Auth.Domain.Entities.Driver", b =>
@@ -469,6 +556,17 @@ namespace EDCL.Infrastructure.Persistence.Migrations
                             IsActive = true,
                             IsDeleted = false,
                             Name = "Standard User"
+                        },
+                        new
+                        {
+                            Id = 3L,
+                            Code = "DRIVER",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "SYSTEM",
+                            Description = "Driver access for mobile application",
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Driver"
                         });
                 });
 
@@ -547,6 +645,17 @@ namespace EDCL.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Role");
+                });
+
+            modelBuilder.Entity("EDCL.Module.Auth.Domain.Entities.AppUserRefreshToken", b =>
+                {
+                    b.HasOne("EDCL.Module.Auth.Domain.Entities.AppUser", "AppUser")
+                        .WithMany()
+                        .HasForeignKey("AppUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AppUser");
                 });
 
             modelBuilder.Entity("EDCL.Module.Auth.Domain.Entities.Driver", b =>

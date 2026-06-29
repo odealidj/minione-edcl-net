@@ -21,6 +21,7 @@ public sealed class AuthDbContext(
     public DbSet<Transporter> Transporters => Set<Transporter>();
     public DbSet<DriverPhoneHistory> DriverPhoneHistories => Set<DriverPhoneHistory>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<AppUserRefreshToken> AppUserRefreshTokens => Set<AppUserRefreshToken>();
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<AppUser> AppUsers => Set<AppUser>();
 

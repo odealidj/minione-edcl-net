@@ -100,6 +100,12 @@ public sealed class PaginationMeta
     [JsonPropertyName("has_previous")]
     public bool HasPrevious => Page > 1;
 
+    [JsonPropertyName("nextPage")]
+    public int? NextPage => HasNext ? Page + 1 : null;
+
+    [JsonPropertyName("prevPage")]
+    public int? PrevPage => HasPrevious ? Page - 1 : null;
+
     public static PaginationMeta From(int page, int pageSize, long totalItems)
         => new() { Page = page, PageSize = pageSize, TotalItems = totalItems };
 }

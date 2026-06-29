@@ -1,3 +1,4 @@
+using EDCL.Shared.Kernel.Common;
 using EDCL.Module.Auth.Application.Ports;
 using EDCL.Module.Auth.Domain.Entities;
 using EDCL.Shared.Kernel.Ports;
@@ -82,6 +83,11 @@ public sealed class DriverPortAdapter(AuthDbContext db) : IDriverPort
 
 public sealed class AppUserRepository(AuthDbContext db) : IAppUserRepository
 {
+    public Task<AppUser?> FindByIdAsync(long id, CancellationToken ct)
+        => db.AppUsers
+             .Include(u => u.Role)
+             .FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted, ct);
+
     public Task<AppUser?> FindByEmailAsync(string email, CancellationToken ct)
         => db.AppUsers
              .Include(u => u.Role)

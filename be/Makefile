@@ -30,14 +30,11 @@ run-EDCL.Api:
 
 # Stop EDCL.Api yang berjalan di lokal
 stop-EDCL.Api:
-	@if [ -f edcl_api.pid ]; then \
-		echo "Stopping EDCL.Api..."; \
-		kill `cat edcl_api.pid` 2>/dev/null || true; \
-		rm edcl_api.pid; \
-		echo "EDCL.Api stopped."; \
-	else \
-		echo "EDCL.Api is not running (no pid file)."; \
-	fi
+	@echo "Stopping EDCL.Api..."
+	@if [ -f edcl_api.pid ]; then kill `cat edcl_api.pid` 2>/dev/null || true; rm edcl_api.pid; fi
+	@fuser -k 5140/tcp 2>/dev/null || true
+	@pkill -f "EDCL.Api.dll" 2>/dev/null || true
+	@echo "EDCL.Api stopped."
 
 # Run EDCL.Gateway secara lokal (background)
 run-EDCL.Gateway:
@@ -47,14 +44,11 @@ run-EDCL.Gateway:
 
 # Stop EDCL.Gateway yang berjalan di lokal
 stop-EDCL.Gateway:
-	@if [ -f edcl_gateway.pid ]; then \
-		echo "Stopping EDCL.Gateway..."; \
-		kill `cat edcl_gateway.pid` 2>/dev/null || true; \
-		rm edcl_gateway.pid; \
-		echo "EDCL.Gateway stopped."; \
-	else \
-		echo "EDCL.Gateway is not running (no pid file)."; \
-	fi
+	@echo "Stopping EDCL.Gateway..."
+	@if [ -f edcl_gateway.pid ]; then kill `cat edcl_gateway.pid` 2>/dev/null || true; rm edcl_gateway.pid; fi
+	@fuser -k 5293/tcp 2>/dev/null || true
+	@pkill -f "EDCL.Gateway.dll" 2>/dev/null || true
+	@echo "EDCL.Gateway stopped."
 
 # Run semua Worker secara lokal (background)
 run-workers:
@@ -68,9 +62,11 @@ run-workers:
 
 # Stop semua Worker yang berjalan di lokal
 stop-workers:
+	@echo "Stopping Workers..."
 	@if [ -f edcl_worker_ingestion.pid ]; then kill `cat edcl_worker_ingestion.pid` 2>/dev/null || true; rm edcl_worker_ingestion.pid; fi
 	@if [ -f edcl_worker_outbox.pid ]; then kill `cat edcl_worker_outbox.pid` 2>/dev/null || true; rm edcl_worker_outbox.pid; fi
 	@if [ -f edcl_worker_reporter.pid ]; then kill `cat edcl_worker_reporter.pid` 2>/dev/null || true; rm edcl_worker_reporter.pid; fi
+	@pkill -f "EDCL.Worker." 2>/dev/null || true
 	@echo "All Workers stopped."
 
 # Run API, Gateway, dan Workers secara lokal (background)

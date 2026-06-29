@@ -1,0 +1,89 @@
+<div class="min-h-screen bg-base-200 flex items-center justify-center p-4">
+  <div class="card w-full max-w-md bg-base-100 shadow-xl">
+    <div class="card-body">
+      <div class="text-center mb-6">
+        <h2 class="text-3xl font-bold text-primary">EDCL</h2>
+        <p class="text-base-content/70 mt-2">Daftar Akun Dashboard</p>
+      </div>
+
+      <div *ngIf="errorMessage" class="alert alert-error mb-4">
+        <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        <span>{{ errorMessage }}</span>
+      </div>
+
+      <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
+        
+        <!-- Name -->
+        <div class="form-control w-full mb-4">
+          <label class="label">
+            <span class="label-text">Nama Lengkap</span>
+          </label>
+          <input
+            type="text"
+            formControlName="name"
+            placeholder="John Doe"
+            class="input input-bordered w-full focus:input-primary"
+            [class.input-error]="registerForm.get('name')?.invalid && registerForm.get('name')?.touched"
+          />
+          <label class="label" *ngIf="registerForm.get('name')?.invalid && registerForm.get('name')?.touched">
+            <span class="label-text-alt text-error">Nama lengkap wajib diisi</span>
+          </label>
+        </div>
+
+        <!-- Email -->
+        <div class="form-control w-full mb-4">
+          <label class="label">
+            <span class="label-text">Email</span>
+          </label>
+          <input
+            type="email"
+            formControlName="email"
+            placeholder="nama@perusahaan.com"
+            class="input input-bordered w-full focus:input-primary"
+            [class.input-error]="registerForm.get('email')?.invalid && registerForm.get('email')?.touched"
+          />
+          <label class="label" *ngIf="registerForm.get('email')?.invalid && registerForm.get('email')?.touched">
+            <span class="label-text-alt text-error" *ngIf="registerForm.get('email')?.errors?.['required']">Email wajib diisi</span>
+            <span class="label-text-alt text-error" *ngIf="registerForm.get('email')?.errors?.['email']">Format email tidak valid</span>
+          </label>
+        </div>
+
+        <!-- Password -->
+        <div class="form-control w-full mb-4">
+          <label class="label">
+            <span class="label-text">Password</span>
+          </label>
+          <input
+            type="password"
+            formControlName="password"
+            placeholder="••••••••"
+            class="input input-bordered w-full focus:input-primary"
+            [class.input-error]="registerForm.get('password')?.invalid && registerForm.get('password')?.touched"
+          />
+          <label class="label" *ngIf="registerForm.get('password')?.invalid && registerForm.get('password')?.touched">
+            <span class="label-text-alt text-error" *ngIf="registerForm.get('password')?.errors?.['required']">Password wajib diisi</span>
+            <span class="label-text-alt text-error" *ngIf="registerForm.get('password')?.errors?.['minlength']">Password minimal 8 karakter</span>
+          </label>
+        </div>
+
+        <!-- Submit -->
+        <div class="form-control mt-2">
+          <button
+            type="submit"
+            class="btn btn-primary w-full"
+            [disabled]="isLoading"
+          >
+            <span *ngIf="isLoading" class="loading loading-spinner"></span>
+            Daftar Akun
+          </button>
+        </div>
+      </form>
+
+      <div class="divider">ATAU</div>
+
+      <div class="text-center">
+        <p class="text-sm">Sudah punya akun? <a routerLink="/login" class="link link-primary font-semibold">Sign In di sini</a></p>
+      </div>
+    </div>
+  </div>
+</div>

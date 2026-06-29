@@ -1,5 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
+import { AuthService } from '../../core/services/auth.service';
 
 @Component({
   selector: 'app-sidebar',
@@ -8,14 +9,24 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
   styleUrl: './sidebar.css'
 })
 export class Sidebar {
+  authService = inject(AuthService);
+
+  get isAdmin(): boolean {
+    const user = this.authService.currentUserValue;
+    return user && user.role === 'ADMIN';
+  }
+
   menuItems = [
     { title: 'Dashboard', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6', route: '/dashboard' },
   ];
   
   masterItems = [
-    { title: 'Driver Master', route: '/master/driver' },
-    { title: 'Vehicle Master', route: '/master/vehicle' },
-    { title: 'Supplier Master', route: '/master/supplier' },
+
+    { title: 'Driver', route: '/master/driver' },
+    { title: 'Supplier', route: '/master/supplier' },
+    { title: 'Truck', route: '/master/truck' },
+    { title: 'Manifest', route: '/master/manifest' }
+
   ];
   
   operationItems = [

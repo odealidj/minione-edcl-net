@@ -1,0 +1,116 @@
+<div class="container mx-auto">
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-bold text-base-content">Manifests</h1>
+  </div>
+
+  <!-- Search -->
+  <div class="flex mb-4">
+    <div class="join w-full max-w-md">
+      <input type="text" #searchInput class="input input-bordered join-item w-full" placeholder="Search Manifest No / Supplier..." (keyup.enter)="onSearch(searchInput.value)" />
+      <button class="btn btn-primary join-item" (click)="onSearch(searchInput.value)">Search</button>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="overflow-x-auto bg-base-100 rounded-box shadow">
+    <table class="table table-zebra w-full">
+      <thead>
+        <tr>
+          <th class="w-12"></th>
+          <th>Manifest No</th>
+          <th>Supplier Name</th>
+        </tr>
+      </thead>
+      <tbody>
+        @if (isLoading()) {
+          <tr><td colspan="3" class="text-center py-8"><span class="loading loading-spinner loading-lg text-primary"></span></td></tr>
+        } @else if (items().length === 0) {
+          <tr><td colspan="3" class="text-center py-8 text-base-content/50">No manifests found.</td></tr>
+        } @else {
+          @for (item of items(); track item.id) {
+            <tr>
+              <td>
+                <button class="btn btn-square btn-sm btn-ghost" (click)="toggleExpand(item.id)">
+                  @if (expandedManifestId() === item.id) {
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+                  } @else {
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+                  }
+                </button>
+              </td>
+              <td class="font-bold">{{ item.manifestNo }}</td>
+              <td>{{ item.supplierName }}</td>
+            </tr>
+
+            <!-- Expanded Area -->
+            @if (expandedManifestId() === item.id) {
+              <tr class="bg-base-200/50">
+                <td></td>
+                <td colspan="2" class="p-4">
+                  <div class="bg-base-100 p-4 rounded-xl shadow-inner border border-base-300">
+                    <div class="flex justify-between items-center mb-4">
+                      <h3 class="font-bold">Kanbans for {{ item.manifestNo }}</h3>
+                      <div class="join">
+                        <input type="text" #kSearchInput class="input input-sm input-bordered join-item" placeholder="Search Kanban..." (keyup.enter)="onKanbanSearch(kSearchInput.value, item.id)" />
+                        <button class="btn btn-sm btn-primary join-item" (click)="onKanbanSearch(kSearchInput.value, item.id)">Search</button>
+                      </div>
+                    </div>
+
+                    <table class="table table-sm w-full">
+                      <thead class="bg-base-200">
+                        <tr>
+                          <th>Kanban Code</th>
+                          <th>Part No</th>
+                          <th>Part Name</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @if (kanbanIsLoading()) {
+                          <tr><td colspan="3" class="text-center py-4"><span class="loading loading-spinner loading-md text-primary"></span></td></tr>
+                        } @else if (kanbans().length === 0) {
+                          <tr><td colspan="3" class="text-center py-4 text-base-content/50">No kanbans found.</td></tr>
+                        } @else {
+                          @for (k of kanbans(); track k.id) {
+                            <tr>
+                              <td class="font-mono">{{ k.kanbanCd }}</td>
+                              <td class="font-bold">{{ k.partNo }}</td>
+                              <td>{{ k.partName }}</td>
+                            </tr>
+                          }
+                        }
+                      </tbody>
+                    </table>
+
+                    <!-- Kanban Pagination -->
+                    @if (kanbanMeta() && kanbanMeta()!.total_pages > 1) {
+                      <div class="flex justify-between items-center mt-3">
+                        <span class="text-xs text-base-content/70">Showing {{ kanbans().length }} of {{ kanbanMeta()!.total_items }}</span>
+                        <div class="join">
+                          <button class="join-item btn btn-xs" [disabled]="!kanbanMeta()!.has_previous" (click)="kanbanMeta()!.prevPage && changeKanbanPage(kanbanMeta()!.prevPage!, item.id)">«</button>
+                          <button class="join-item btn btn-xs">Page {{ kanbanMeta()!.page }} of {{ kanbanMeta()!.total_pages }}</button>
+                          <button class="join-item btn btn-xs" [disabled]="!kanbanMeta()!.has_next" (click)="kanbanMeta()!.nextPage && changeKanbanPage(kanbanMeta()!.nextPage!, item.id)">»</button>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  @if (meta() && meta()!.total_pages > 1) {
+    <div class="flex justify-between items-center mt-4">
+      <span class="text-sm text-base-content/70">Showing {{ items().length }} of {{ meta()!.total_items }} entries</span>
+      <div class="join">
+        <button class="join-item btn btn-sm" [disabled]="!meta()!.has_previous" (click)="meta()!.prevPage && changePage(meta()!.prevPage!)">«</button>
+        <button class="join-item btn btn-sm">Page {{ meta()!.page }} of {{ meta()!.total_pages }}</button>
+        <button class="join-item btn btn-sm" [disabled]="!meta()!.has_next" (click)="meta()!.nextPage && changePage(meta()!.nextPage!)">»</button>
+      </div>
+    </div>
+  }
+</div>

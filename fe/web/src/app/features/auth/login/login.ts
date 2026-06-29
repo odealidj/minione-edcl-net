@@ -1,13 +1,13 @@
 import { Component, inject, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { CommonModule } from '@angular/common';
 import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-login',
-  imports: [ReactiveFormsModule, CommonModule],
+  imports: [ReactiveFormsModule, CommonModule, RouterModule],
   templateUrl: './login.html',
   styleUrl: './login.css'
 })
@@ -31,9 +31,9 @@ export class Login {
     if (this.loginForm.valid) {
       this.isLoading = true;
       this.errorMessage = '';
-      const { email, password } = this.loginForm.value;
+      const { email, password, rememberMe } = this.loginForm.value;
       
-      this.authService.login(email, password)
+      this.authService.login(email, password, rememberMe)
         .pipe(
           finalize(() => {
             this.isLoading = false;

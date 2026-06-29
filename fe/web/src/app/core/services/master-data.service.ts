@@ -1,48 +1,70 @@
-import { Injectable } from '@angular/core';
-import { Observable, delay, of } from 'rxjs';
-
-export interface Driver {
-  no: number;
-  sapId: string;
-  name: string;
-  nik: string;
-  lp: string;
-  badge: string;
-  isAvailable: boolean;
-  createdBy: string;
-  creationDate: string;
-}
-
-export interface Supplier {
-  no: number;
-  sapId: string;
-  abbreviation: string;
-  name: string;
-  createdBy: string;
-  creationDate: string;
-}
+import { Injectable, inject } from '@angular/core';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
+import { ApiResponse } from '../models/api.model';
+import { Driver, Supplier, Truck } from '../models/master.model';
 
 @Injectable({
   providedIn: 'root'
 })
 export class MasterDataService {
+  private http = inject(HttpClient);
 
-  constructor() { }
-
-  getDrivers(): Observable<Driver[]> {
-    const mockDrivers: Driver[] = [
-      { no: 1, sapId: 'D001', name: 'BUDI SANTOSO', nik: '3201111222333444', lp: 'LP-JABAR', badge: 'Active', isAvailable: true, createdBy: 'Admin', creationDate: '2023-01-01' },
-      { no: 2, sapId: 'D002', name: 'AGUS SUPRIYADI', nik: '3201111222333555', lp: 'LP-JATENG', badge: 'Active', isAvailable: false, createdBy: 'Admin', creationDate: '2023-02-15' },
-      { no: 3, sapId: 'D003', name: 'JOKO WIDODO', nik: '3201111222333666', lp: 'LP-JATIM', badge: 'Inactive', isAvailable: false, createdBy: 'Admin', creationDate: '2023-03-20' },
-    ];
-    return of(mockDrivers).pipe(delay(800)); // Simulate network delay
+  // Drivers
+  getDrivers(search?: string, page: number = 1, pageSize: number = 10): Observable<ApiResponse<Driver[]>> {
+    let params = new HttpParams().set('page', page).set('pageSize', pageSize);
+    if (search) params = params.set('search', search);
+    return this.http.get<ApiResponse<Driver[]>>(`${environment.apiUrl}/auth/drivers`, { params });
   }
 
-  getSuppliers(): Observable<Supplier[]> {
-    const mockSuppliers: Supplier[] = [
-      { no: 1, sapId: 'S001', abbreviation: 'PT. MAKMUR', name: 'PT. MAKMUR SENTOSA', createdBy: 'Admin', creationDate: '2023-01-05' },
-      { no: 2, sapId: 'S002', abbreviation: 'CV. JAYA', name: 'CV. JAYA ABADI', createdBy: 'Admin', creationDate: '2023-01-10' },
-    ];
-    return of(mockSuppliers).pipe(delay(800)); // Simulate network delay
+  createDriver(name: string, nik: string, phoneNumber: string): Observable<ApiResponse<string>> {
+    return this.http.post<ApiResponse<string>>(`${environment.apiUrl}/auth/drivers`, { name, nik, phoneNumber });
+  }
+
+  updateDriver(id: string, name: string, nik: string, phoneNumber: string): Observable<ApiResponse<any>> {
+    return this.http.put<ApiResponse<any>>(`${environment.apiUrl}/auth/drivers/${id}`, { name, nik, phoneNumber });
+  }
+
+  deleteDriver(id: string): Observable<ApiResponse<any>> {
+    return this.http.delete<ApiResponse<any>>(`${environment.apiUrl}/auth/drivers/${id}`);
+  }
+
+  // Suppliers
+  getSuppliers(search?: string, page: number = 1, pageSize: number = 10): Observable<ApiResponse<Supplier[]>> {
+    let params = new HttpParams().set('page', page).set('pageSize', pageSize);
+    if (search) params = params.set('search', search);
+    return this.http.get<ApiResponse<Supplier[]>>(`${environment.apiUrl}/master/suppliers`, { params });
+  }
+
+  createSupplier(supplierCode: string, name: string, address: string): Observable<ApiResponse<string>> {
+    return this.http.post<ApiResponse<string>>(`${environment.apiUrl}/master/suppliers`, { supplierCode, name, address });
+  }
+
+  updateSupplier(id: string, supplierCode: string, name: string, address: string): Observable<ApiResponse<any>> {
+    return this.http.put<ApiResponse<any>>(`${environment.apiUrl}/master/suppliers/${id}`, { supplierCode, name, address });
+  }
+
+  deleteSupplier(id: string): Observable<ApiResponse<any>> {
+    return this.http.delete<ApiResponse<any>>(`${environment.apiUrl}/master/suppliers/${id}`);
+  }
+
+  // Trucks
+  getTrucks(search?: string, page: number = 1, pageSize: number = 10): Observable<ApiResponse<Truck[]>> {
+    let params = new HttpParams().set('page', page).set('pageSize', pageSize);
+    if (search) params = params.set('search', search);
+    return this.http.get<ApiResponse<Truck[]>>(`${environment.apiUrl}/master/trucks`, { params });
+  }
+
+  createTruck(plateNumber: string, truckType: string, truckCapacity: number): Observable<ApiResponse<string>> {
+    return this.http.post<ApiResponse<string>>(`${environment.apiUrl}/master/trucks`, { plateNumber, truckType, truckCapacity });
+  }
+
+  updateTruck(id: string, plateNumber: string, truckType: string, truckCapacity: number): Observable<ApiResponse<any>> {
+    return this.http.put<ApiResponse<any>>(`${environment.apiUrl}/master/trucks/${id}`, { plateNumber, truckType, truckCapacity });
+  }
+
+  deleteTruck(id: string): Observable<ApiResponse<any>> {
+    return this.http.delete<ApiResponse<any>>(`${environment.apiUrl}/master/trucks/${id}`);
   }
 }

@@ -33,7 +33,7 @@ public class AppUsersControllerTests
     public async Task RegisterAppUser_ShouldReturnCreated_WhenSuccess()
     {
         // Arrange
-        var command = new RegisterAppUserCommand("Admin", "admin@edcl.com", "Password123!", "ADMIN");
+        var command = new RegisterAppUserCommand("Admin", "admin@edcl.com", "Password123!");
         var response = new RegisterAppUserResponse(1, "admin@edcl.com", "Admin", "ADMIN");
         
         _mediatorMock.Setup(m => m.Send(command, It.IsAny<CancellationToken>()))
@@ -52,7 +52,7 @@ public class AppUsersControllerTests
     public async Task RegisterAppUser_ShouldReturnConflict_WhenEmailInUse()
     {
         // Arrange
-        var command = new RegisterAppUserCommand("Admin", "admin@edcl.com", "Password123!", "ADMIN");
+        var command = new RegisterAppUserCommand("Admin", "admin@edcl.com", "Password123!");
         
         _mediatorMock.Setup(m => m.Send(command, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<RegisterAppUserResponse>.Failure(new Error("AppUser.EmailInUse", "Email is in use.", ErrorType.Conflict)));

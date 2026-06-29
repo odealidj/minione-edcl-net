@@ -35,6 +35,7 @@ public interface IJwtTokenService
 /// <summary>Repository port for AppUser domain operations.</summary>
 public interface IAppUserRepository
 {
+    Task<AppUser?> FindByIdAsync(long id, CancellationToken ct = default);
     Task<AppUser?> FindByEmailAsync(string email, CancellationToken ct = default);
     Task AddAsync(AppUser user, CancellationToken ct = default);
     Task SaveChangesAsync(CancellationToken ct = default);

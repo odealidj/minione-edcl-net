@@ -16,11 +16,12 @@ public sealed class RegisterAppUserCommandHandler(
         RegisterAppUserCommand request,
         CancellationToken cancellationToken)
     {
-        // 1. Verify Role exists
-        var role = await roleRepository.FindByCodeAsync(request.RoleCode, cancellationToken);
+        // 1. Verify Role exists (Default to USER)
+        var roleCode = "USER";
+        var role = await roleRepository.FindByCodeAsync(roleCode, cancellationToken);
         if (role is null)
         {
-            return Error.NotFound("Role", request.RoleCode);
+            return Error.NotFound("Role", roleCode);
         }
 
         // 2. Verify Email is unique

@@ -68,3 +68,42 @@ public sealed class RefreshToken : AuditableEntity
         ReplacedByToken = replacedBy;
     }
 }
+
+/// <summary>
+/// Refresh token entity for AppUser (Web Dashboard). 
+/// Tokens are rotated on each refresh.
+/// Schema: [auth].[app_user_refresh_tokens]
+/// </summary>
+public sealed class AppUserRefreshToken : AuditableEntity
+{
+    public long Id { get; private set; }
+    public long AppUserId { get; private set; }
+    public string Token { get; private set; } = default!;         // Hashed token stored in DB
+    public string? DeviceInfo { get; private set; }               // User-Agent or device fingerprint
+    public DateTime ExpiresAt { get; private set; }
+    public bool IsRevoked { get; private set; }
+    public DateTime? RevokedAt { get; private set; }
+    public string? ReplacedByToken { get; private set; }          // Rotation tracking
+    public AppUser? AppUser { get; private set; }
+
+    private AppUserRefreshToken() { }
+
+    public static AppUserRefreshToken Create(long appUserId, string hashedToken, int expiryDays, string? deviceInfo = null)
+        => new()
+        {
+            AppUserId = appUserId,
+            Token = hashedToken,
+            DeviceInfo = deviceInfo,
+            ExpiresAt = DateTime.UtcNow.AddDays(expiryDays),
+            IsRevoked = false
+        };
+
+    public bool IsActive => !IsRevoked && DateTime.UtcNow < ExpiresAt;
+
+    public void Revoke(string? replacedBy = null)
+    {
+        IsRevoked = true;
+        RevokedAt = DateTime.UtcNow;
+        ReplacedByToken = replacedBy;
+    }
+}

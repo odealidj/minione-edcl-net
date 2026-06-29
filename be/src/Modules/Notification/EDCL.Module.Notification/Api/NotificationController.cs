@@ -1,3 +1,4 @@
+using EDCL.Shared.Kernel.Common;
 namespace EDCL.Module.Notification.Api;
 
 using EDCL.Module.Notification.Application.Commands.MarkNotificationRead;

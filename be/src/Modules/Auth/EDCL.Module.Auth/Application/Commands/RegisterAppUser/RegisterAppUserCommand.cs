@@ -8,8 +8,7 @@ namespace EDCL.Module.Auth.Application.Commands.RegisterAppUser;
 public sealed record RegisterAppUserCommand(
     string Name,
     string Email,
-    string Password,
-    string RoleCode)
+    string Password)
     : ICommand<Result<RegisterAppUserResponse>>;
 
 // ── Response ─────────────────────────────────────────────────────────────────

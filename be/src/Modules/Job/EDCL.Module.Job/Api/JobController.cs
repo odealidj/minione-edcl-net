@@ -1,3 +1,4 @@
+using EDCL.Shared.Kernel.Common;
 using EDCL.Module.Job.Application.Commands.CompleteStop;
 using EDCL.Module.Job.Application.Commands.EndJob;
 using EDCL.Module.Job.Application.Commands.ScanKanban;

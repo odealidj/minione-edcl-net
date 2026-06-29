@@ -1,3 +1,4 @@
+using EDCL.Shared.Kernel.Common;
 using EDCL.Module.Auth.Application.Commands.CreateDriver;
 using EDCL.Shared.Http.Middlewares;
 using EDCL.Shared.Http.Responses;
@@ -40,5 +41,51 @@ public sealed class AdminDriversController(IMediator mediator) : ControllerBase
         }
 
         return Created(string.Empty, ApiResponse<CreateDriverResponse>.Created(result.Value, traceId));
+    }
+
+    [HttpGet]
+    [Authorize(Roles = "ADMIN")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<EDCL.Module.Auth.Application.DTOs.DriverDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetList([FromQuery] string? search = null, [FromQuery] int page = 1, [FromQuery] int pageSize = 10, CancellationToken cancellationToken = default)
+    {
+        var result = await mediator.Send(new Application.Queries.GetDrivers.GetDriversQuery(search, page, pageSize), cancellationToken);
+        var traceId = HttpContext.TraceIdentifier;
+        return result.IsSuccess 
+            ? Ok(ApiResponse<IReadOnlyList<EDCL.Module.Auth.Application.DTOs.DriverDto>>.Paginated(result.Value.Items, PaginationMeta.From(result.Value.PageNumber, result.Value.PageSize, result.Value.TotalCount), traceId))
+            : BadRequest(ApiResponse<object>.Fail(result.Error.Message, traceId, 400));
+    }
+
+    [HttpGet("{id}")]
+    [Authorize(Roles = "ADMIN")]
+    public async Task<IActionResult> GetById(long id, CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new Application.Queries.GetDriverById.GetDriverByIdQuery(id), cancellationToken);
+        var traceId = HttpContext.TraceIdentifier;
+        return result.IsSuccess 
+            ? Ok(ApiResponse<EDCL.Module.Auth.Application.DTOs.DriverDto>.Success(result.Value, traceId))
+            : NotFound(ApiResponse<object>.Fail(result.Error.Message, traceId, 404));
+    }
+
+    [HttpPut("{id}")]
+    [Authorize(Roles = "ADMIN")]
+    public async Task<IActionResult> Update(long id, [FromBody] Application.Commands.UpdateDriver.UpdateDriverCommand command, CancellationToken cancellationToken)
+    {
+        if (id != command.Id) return BadRequest();
+        var result = await mediator.Send(command, cancellationToken);
+        var traceId = HttpContext.TraceIdentifier;
+        return result.IsSuccess 
+            ? Ok(ApiResponse<object>.Success(null, traceId))
+            : BadRequest(ApiResponse<object>.Fail(result.Error.Message, traceId, 400));
+    }
+
+    [HttpDelete("{id}")]
+    [Authorize(Roles = "ADMIN")]
+    public async Task<IActionResult> Delete(long id, CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new Application.Commands.DeleteDriver.DeleteDriverCommand(id), cancellationToken);
+        var traceId = HttpContext.TraceIdentifier;
+        return result.IsSuccess 
+            ? Ok(ApiResponse<object>.Success(null, traceId))
+            : BadRequest(ApiResponse<object>.Fail(result.Error.Message, traceId, 400));
     }
 }

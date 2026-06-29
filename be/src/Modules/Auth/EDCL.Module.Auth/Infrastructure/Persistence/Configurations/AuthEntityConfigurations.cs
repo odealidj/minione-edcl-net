@@ -184,6 +184,17 @@ internal sealed class RoleConfiguration : IEntityTypeConfiguration<Role>
                 CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
                 CreatedBy = "SYSTEM",
                 IsDeleted = false
+            },
+            new
+            {
+                Id = 3L,
+                Code = "DRIVER",
+                Name = "Driver",
+                Description = "Driver access for mobile application",
+                IsActive = true,
+                CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                CreatedBy = "SYSTEM",
+                IsDeleted = false
             }
         );
     }
@@ -226,6 +237,23 @@ internal sealed class AppUserConfiguration : IEntityTypeConfiguration<AppUser>
             .WithMany(r => r.Users)
             .HasForeignKey(u => u.RoleId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // Seed Default Admin User
+        var adminPasswordHash = "$2b$12$Bo9S.nsQu4rwtECmOp0lTO5VCRWAvI1mkVe/pmkiLA1C7PJkE1xom"; // Password123!
+        builder.HasData(
+            new
+            {
+                Id = -1L,
+                Name = "System Admin",
+                Email = "admin@edcl.com",
+                PasswordHash = adminPasswordHash,
+                RoleId = 1L, // ADMIN role
+                IsActive = true,
+                CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                CreatedBy = "SYSTEM",
+                IsDeleted = false
+            }
+        );
     }
 
     private static void ConfigureAuditColumns<T>(EntityTypeBuilder<T> builder)
@@ -242,5 +270,29 @@ internal sealed class AppUserConfiguration : IEntityTypeConfiguration<AppUser>
         builder.Property(e => e.RowVersion).HasColumnName("row_version").IsRowVersion();
         builder.Property(e => e.TraceId).HasColumnName("trace_id").HasMaxLength(64);
         builder.HasQueryFilter(e => !e.IsDeleted);
+    }
+}
+
+internal sealed class AppUserRefreshTokenConfiguration : IEntityTypeConfiguration<AppUserRefreshToken>
+{
+    public void Configure(EntityTypeBuilder<AppUserRefreshToken> builder)
+    {
+        builder.ToTable("app_user_refresh_tokens");
+        builder.HasKey(rt => rt.Id);
+        builder.Property(rt => rt.Id).UseIdentityColumn();
+        builder.Property(rt => rt.Token).HasMaxLength(500).IsRequired();
+        builder.Property(rt => rt.DeviceInfo).HasMaxLength(500);
+        builder.Property(rt => rt.ExpiresAt).HasColumnType("datetime2(7)").IsRequired();
+        builder.Property(rt => rt.RevokedAt).HasColumnType("datetime2(7)");
+        builder.Property(rt => rt.ReplacedByToken).HasMaxLength(500);
+
+        builder.HasIndex(rt => rt.Token).HasDatabaseName("IX_app_user_refresh_tokens_token");
+        builder.HasIndex(rt => new { rt.AppUserId, rt.IsRevoked })
+            .HasDatabaseName("IX_app_user_refresh_tokens_active");
+
+        builder.HasOne(rt => rt.AppUser)
+            .WithMany() // AppUser doesn't have a navigation property for refresh tokens
+            .HasForeignKey(rt => rt.AppUserId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

@@ -168,6 +168,54 @@ try
     // Swagger UI & Scalar UI (dev only or configurable)
     if (app.Environment.IsDevelopment())
     {
+        // Intercept OpenAPI JSON generation to inject Bearer token configuration dynamically
+        app.Use(async (context, next) =>
+        {
+            if (context.Request.Path == "/openapi/v1.json")
+            {
+                var originalBody = context.Response.Body;
+                using var memStream = new MemoryStream();
+                context.Response.Body = memStream;
+
+                await next();
+
+                memStream.Position = 0;
+                var responseBody = new StreamReader(memStream).ReadToEnd();
+
+                // Inject security schemes
+                string securityConfig = "\"securitySchemes\": {\"Bearer\": {\"type\": \"http\",\"scheme\": \"bearer\",\"bearerFormat\": \"JWT\"}},";
+                if (responseBody.Contains("\"components\": {"))
+                {
+                    responseBody = responseBody.Replace("\"components\": {", "\"components\": {" + securityConfig);
+                }
+                else if (responseBody.Contains("\"components\":{"))
+                {
+                    responseBody = responseBody.Replace("\"components\":{", "\"components\":{" + securityConfig);
+                }
+                else
+                {
+                    responseBody = responseBody.Replace("\"openapi\":", "\"components\":{" + securityConfig.TrimEnd(',') + "},\"openapi\":");
+                }
+
+                // Inject global security requirement
+                if (responseBody.Contains("\"info\": {"))
+                {
+                    responseBody = responseBody.Replace("\"info\": {", "\"security\": [{\"Bearer\": []}],\"info\": {");
+                }
+                else
+                {
+                    responseBody = responseBody.Replace("\"info\":", "\"security\":[{\"Bearer\":[]}],\"info\":");
+                }
+
+                var bytes = System.Text.Encoding.UTF8.GetBytes(responseBody);
+                context.Response.Body = originalBody;
+                context.Response.ContentLength = bytes.Length;
+                await context.Response.Body.WriteAsync(bytes);
+                return;
+            }
+            await next();
+        });
+
         app.UseSwaggerUI(c =>
         {
             c.SwaggerEndpoint("/openapi/v1.json", "EDCL Mini API v1");
@@ -178,6 +226,10 @@ try
         {
             opts.Title  = "EDCL Mini API";
             opts.Theme  = Scalar.AspNetCore.ScalarTheme.DeepSpace;
+            opts.Authentication = new ScalarAuthenticationOptions
+            {
+                PreferredSecuritySchemes = new[] { "Bearer" }
+            };
         });
     }
 
