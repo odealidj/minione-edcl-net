@@ -23,7 +23,7 @@ export class MasterDataService {
   }
 
   updateDriver(id: number, name: string, nik: string, phoneNumber: string, transporterId?: number | null): Observable<ApiResponse<any>> {
-    return this.http.put<ApiResponse<any>>(`${environment.apiUrl}/auth/drivers/${id}`, { name, nik, phoneNumber, transporterId });
+    return this.http.put<ApiResponse<any>>(`${environment.apiUrl}/auth/drivers/${id}`, { id, name, nik, phoneNumber, transporterId });
   }
 
   deleteDriver(id: number): Observable<ApiResponse<any>> {
@@ -42,7 +42,7 @@ export class MasterDataService {
   }
 
   updateSupplier(id: number, supplierCode: string, name: string, address: string): Observable<ApiResponse<any>> {
-    return this.http.put<ApiResponse<any>>(`${environment.apiUrl}/master/suppliers/${id}`, { supplierCode, name, address });
+    return this.http.put<ApiResponse<any>>(`${environment.apiUrl}/master/suppliers/${id}`, { id, supplierCode, name, address });
   }
 
   deleteSupplier(id: number): Observable<ApiResponse<any>> {
@@ -61,7 +61,7 @@ export class MasterDataService {
   }
 
   updateTruck(id: number, plateNumber: string, truckType: string, truckCapacity: number): Observable<ApiResponse<any>> {
-    return this.http.put<ApiResponse<any>>(`${environment.apiUrl}/master/trucks/${id}`, { plateNumber, truckType, truckCapacity });
+    return this.http.put<ApiResponse<any>>(`${environment.apiUrl}/master/trucks/${id}`, { id, plateNumber, truckType, truckCapacity });
   }
 
   deleteTruck(id: number): Observable<ApiResponse<any>> {

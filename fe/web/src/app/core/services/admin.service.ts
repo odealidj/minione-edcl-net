@@ -34,7 +34,7 @@ export class AdminService {
   }
 
   updateTransporter(id: number, name: string): Observable<ApiResponse<any>> {
-    return this.http.put<ApiResponse<any>>(`${environment.apiUrl}/master/transporters/${id}`, { name });
+    return this.http.put<ApiResponse<any>>(`${environment.apiUrl}/master/transporters/${id}`, { id, name });
   }
 
   deleteTransporter(id: number): Observable<ApiResponse<any>> {
