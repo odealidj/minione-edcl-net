@@ -17,13 +17,13 @@ public class JobReminderService(JobDbContext dbContext, IPublishEndpoint publish
         var pickupOrder = await dbContext.PickupOrders
             .FirstOrDefaultAsync(x => x.Id == pickupOrderId);
 
-        if (pickupOrder == null || pickupOrder.Status == "CANCELLED")
-            return; // Job is no longer valid
+        if (pickupOrder == null || pickupOrder.Status == "CANCELLED" || pickupOrder.DriverId == null)
+            return; // Job is no longer valid or no driver assigned
 
         var reminderEvent = new JobReminderIntegrationEvent
         {
             PickupOrderId = pickupOrder.Id,
-            DriverId = pickupOrder.DriverId,
+            DriverId = pickupOrder.DriverId.Value,
             RouteCode = pickupOrder.RouteCode,
             Cycle = pickupOrder.CycleCode,
             PickupDate = pickupOrder.PickupDate,

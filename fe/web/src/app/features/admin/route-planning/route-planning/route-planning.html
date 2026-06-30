@@ -1,0 +1,92 @@
+<div class="p-6">
+  <div class="flex justify-between items-center mb-6">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-800">Route Planning</h1>
+      <p class="text-sm text-gray-500">Manage pickup orders and supplier sequences</p>
+    </div>
+    <button class="btn btn-primary" routerLink="/admin/route-planning/new">
+      <i class="fas fa-plus mr-2"></i> Create New Route Plan
+    </button>
+  </div>
+
+  <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+      <div class="relative">
+        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+        <input type="text" [(ngModel)]="search" (keyup.enter)="onSearch()" placeholder="Search PO No, Route, Cycle..." 
+               class="input input-sm input-bordered w-64 pl-9 bg-white">
+      </div>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="table w-full">
+        <thead>
+          <tr class="bg-gray-50/50 text-gray-500 uppercase text-xs">
+            <th>PO No</th>
+            <th>Date</th>
+            <th>Route / Cycle</th>
+            <th>Est. Departure</th>
+            <th>Driver</th>
+            <th>Status</th>
+            <th class="text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="loading">
+            <td colspan="7" class="text-center py-8">
+              <span class="loading loading-spinner loading-md text-primary"></span>
+            </td>
+          </tr>
+          <tr *ngIf="!loading && orders.length === 0">
+            <td colspan="7" class="text-center py-8 text-gray-500">No route plans found</td>
+          </tr>
+          <tr *ngFor="let order of orders" class="hover:bg-gray-50/50 transition-colors">
+            <td class="font-medium text-gray-900">{{order.poNo}}</td>
+            <td>{{order.pickupDate | date:'dd MMM yyyy'}}</td>
+            <td>
+              <span class="badge badge-ghost badge-sm font-mono">{{order.routeCode}}</span> / 
+              <span class="badge badge-ghost badge-sm font-mono">{{order.cycleCode}}</span>
+            </td>
+            <td>{{order.estimatedDepartureTime}}</td>
+            <td>
+              <span *ngIf="order.driverId">Driver ID: {{order.driverId}}</span>
+              <span *ngIf="!order.driverId" class="text-gray-400 italic">Unassigned</span>
+            </td>
+            <td>
+              <span class="badge" [ngClass]="{
+                'badge-warning': order.status === 'PENDING',
+                'badge-info': order.status === 'ON_PROGRESS',
+                'badge-success': order.status === 'COMPLETED'
+              }">{{order.status}}</span>
+            </td>
+            <td class="text-right">
+              <button class="btn btn-ghost btn-sm text-blue-600" [routerLink]="['/admin/route-planning', order.id]">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button class="btn btn-ghost btn-sm text-red-600" (click)="deleteOrder(order.id)" 
+                      [disabled]="order.status !== 'PENDING' || deletingId === order.id">
+                <span *ngIf="deletingId === order.id" class="loading loading-spinner loading-xs"></span>
+                <i *ngIf="deletingId !== order.id" class="fas fa-trash"></i>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="p-4 border-t border-gray-100 flex justify-between items-center bg-gray-50/50" *ngIf="meta && meta.total_pages > 1">
+      <span class="text-sm text-gray-500">
+        Showing {{(meta.page - 1) * meta.page_size + 1}} to 
+        {{math.min(meta.page * meta.page_size, meta.total_items)}} of {{meta.total_items}} entries
+      </span>
+      <div class="join">
+        <button class="join-item btn btn-sm" [disabled]="meta.page === 1" (click)="changePage(meta.page - 1)">«</button>
+        <button *ngFor="let p of pages" class="join-item btn btn-sm" [class.btn-active]="p === meta.page" (click)="changePage(p)">
+          {{p}}
+        </button>
+        <button class="join-item btn btn-sm" [disabled]="meta.page === meta.total_pages" (click)="changePage(meta.page + 1)">»</button>
+      </div>
+    </div>
+  </div>
+</div>

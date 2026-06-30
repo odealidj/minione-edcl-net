@@ -1,0 +1,176 @@
+<div class="p-6 pb-24">
+  <div class="flex items-center mb-6">
+    <button class="btn btn-circle btn-ghost mr-4" routerLink="/admin/route-planning">
+      <i class="fas fa-arrow-left"></i>
+    </button>
+    <div>
+      <h1 class="text-2xl font-bold text-gray-800">{{ orderId ? 'Edit Route Plan' : 'Create Route Plan' }}</h1>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="text-center py-12">
+    <span class="loading loading-spinner loading-lg text-primary"></span>
+  </div>
+
+  <form *ngIf="!loading" [formGroup]="form" (ngSubmit)="onSubmit()">
+    <!-- Header Section -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+      <h2 class="text-lg font-semibold mb-4 text-gray-700">General Information</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="form-control">
+          <label class="label"><span class="label-text">PO Number <span class="text-red-500">*</span></span></label>
+          <input type="text" formControlName="poNo" class="input input-bordered w-full" placeholder="e.g. PO-2023-10-01" />
+        </div>
+        <div class="form-control">
+          <label class="label"><span class="label-text">Pickup Date <span class="text-red-500">*</span></span></label>
+          <input type="date" formControlName="pickupDate" class="input input-bordered w-full" />
+        </div>
+        <div class="form-control">
+          <label class="label"><span class="label-text">Est. Departure Time <span class="text-red-500">*</span></span></label>
+          <input type="time" step="1" formControlName="estimatedDepartureTime" class="input input-bordered w-full" />
+        </div>
+        <div class="form-control">
+          <label class="label"><span class="label-text">Route Code <span class="text-red-500">*</span></span></label>
+          <input type="text" formControlName="routeCode" class="input input-bordered w-full" />
+        </div>
+        <div class="form-control">
+          <label class="label"><span class="label-text">Cycle Code <span class="text-red-500">*</span></span></label>
+          <input type="text" formControlName="cycleCode" class="input input-bordered w-full" />
+        </div>
+        <div class="form-control">
+          <label class="label"><span class="label-text">Driver</span></label>
+          <select formControlName="driverId" class="select select-bordered w-full">
+            <option [ngValue]="null">-- Unassigned --</option>
+            <option *ngFor="let d of drivers" [ngValue]="d.id">{{d.name}} ({{d.nik}})</option>
+          </select>
+        </div>
+        <div class="form-control">
+          <label class="label"><span class="label-text">Truck</span></label>
+          <select formControlName="truckId" class="select select-bordered w-full">
+            <option [ngValue]="null">-- Unassigned --</option>
+            <option *ngFor="let t of trucks" [ngValue]="t.id">{{t.plateNumber}} ({{t.truckType}})</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stops Section (Drag & Drop) -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-lg font-semibold text-gray-700">Suppliers (Stops) Sequence</h2>
+        <button type="button" class="btn btn-sm btn-outline btn-primary" (click)="addStop()">
+          <i class="fas fa-plus mr-2"></i> Add Stop
+        </button>
+      </div>
+
+      <div formArrayName="stops" cdkDropList (cdkDropListDropped)="drop($event)">
+        <div *ngIf="stops.length === 0" class="text-center py-6 text-gray-500 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+          No stops added yet. Click "Add Stop" to begin.
+        </div>
+
+        <div *ngFor="let stop of stops.controls; let i = index" [formGroupName]="i" 
+             cdkDrag class="mb-4 bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
+          
+          <!-- Stop Header -->
+          <div class="bg-gray-100/80 p-3 flex items-center justify-between border-b border-gray-200 cursor-move" cdkDragHandle>
+            <div class="flex items-center gap-3">
+              <i class="fas fa-grip-vertical text-gray-400"></i>
+              <span class="badge badge-primary badge-sm">Stop {{i + 1}}</span>
+              <div class="form-control w-64">
+                <select formControlName="supplierId" class="select select-sm select-bordered w-full bg-white">
+                  <option [ngValue]="null" disabled>Select Supplier</option>
+                  <option *ngFor="let s of suppliers" [ngValue]="s.id">{{s.supplierCode}} - {{s.name}}</option>
+                </select>
+              </div>
+            </div>
+            <button type="button" class="btn btn-ghost btn-sm text-red-500" (click)="removeStop(i)">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+
+          <!-- Manifests inside Stop -->
+          <div class="p-4">
+            <div class="flex justify-between items-center mb-3">
+              <h3 class="text-sm font-medium text-gray-600">Manifests to Pickup</h3>
+              <div>
+                <button type="button" class="btn btn-xs btn-outline mr-2" (click)="openManifestModal(i)">
+                  <i class="fas fa-check-square mr-1"></i> Select Existing
+                </button>
+                <button type="button" class="btn btn-xs btn-outline btn-secondary" (click)="addManualManifest(i)">
+                  <i class="fas fa-plus mr-1"></i> Add Manual
+                </button>
+              </div>
+            </div>
+
+            <div formArrayName="manifests">
+              <div *ngFor="let mf of getManifestsForStop(i).controls; let j = index" [formGroupName]="j" 
+                   class="flex items-center gap-2 mb-2">
+                <input type="text" formControlName="manifestNo" class="input input-sm input-bordered flex-1" placeholder="Manifest No*" />
+                <input type="number" formControlName="totalKanban" class="input input-sm input-bordered w-24" placeholder="Total KB*" />
+                <input type="text" formControlName="orderType" class="input input-sm input-bordered w-24" placeholder="Type (ORG)" />
+                <input type="number" formControlName="totalSkid" class="input input-sm input-bordered w-24" placeholder="Skids" />
+                <input type="text" formControlName="dockCode" class="input input-sm input-bordered w-24" placeholder="Dock" />
+                <button type="button" class="btn btn-ghost btn-sm text-red-500" (click)="removeManifest(i, j)">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+              <div *ngIf="getManifestsForStop(i).controls.length === 0" class="text-xs text-gray-400 italic py-2">
+                No manifests added to this stop.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Floating Action Bar -->
+    <div class="fixed bottom-0 left-64 right-0 bg-white border-t border-gray-200 p-4 flex justify-end gap-3 z-40">
+      <button type="button" class="btn btn-ghost" routerLink="/admin/route-planning">Cancel</button>
+      <button type="submit" class="btn btn-primary" [disabled]="form.invalid || saving">
+        <span *ngIf="saving" class="loading loading-spinner loading-sm mr-2"></span>
+        {{ orderId ? 'Save Changes' : 'Create Route Plan' }}
+      </button>
+    </div>
+  </form>
+</div>
+
+<!-- Modal Select Manifest -->
+<div class="modal" [class.modal-open]="showManifestModal">
+  <div class="modal-box w-11/12 max-w-3xl">
+    <h3 class="font-bold text-lg mb-4">Select Cargo Manifests</h3>
+    
+    <div *ngIf="manifestLoading" class="text-center py-6">
+      <span class="loading loading-spinner loading-md"></span>
+    </div>
+
+    <div *ngIf="!manifestLoading" class="overflow-y-auto max-h-96">
+      <table class="table table-xs w-full">
+        <thead>
+          <tr>
+            <th>Select</th>
+            <th>Manifest No</th>
+            <th>Total Kanban</th>
+            <th>Supplier ID</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let m of availableManifests" class="hover">
+            <td>
+              <input type="checkbox" class="checkbox checkbox-sm" 
+                     [checked]="selectedManifests.has(m.id)" 
+                     (change)="toggleManifestSelection(m)">
+            </td>
+            <td>{{m.manifestNo}}</td>
+            <td>{{m.totalKanban}}</td>
+            <td>{{m.supplierId}}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="modal-action">
+      <button class="btn btn-ghost" (click)="closeManifestModal()">Cancel</button>
+      <button class="btn btn-primary" (click)="confirmManifestSelection()">Confirm Selection</button>
+    </div>
+  </div>
+</div>

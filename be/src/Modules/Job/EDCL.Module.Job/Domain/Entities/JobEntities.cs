@@ -9,7 +9,7 @@ namespace EDCL.Module.Job.Domain.Entities;
 public sealed class PickupOrder : AuditableEntity
 {
     public long Id { get; private set; }
-    public long DriverId { get; private set; }
+    public long? DriverId { get; private set; }
     public long? TruckId { get; private set; }
     public string PoNo { get; private set; } = default!;
     public DateTime PickupDate { get; private set; }
@@ -28,10 +28,10 @@ public sealed class PickupOrder : AuditableEntity
 
     private PickupOrder() { }
 
-    public static PickupOrder Create(long driverId, long? truckId, string poNo, DateTime pickupDate, string routeCode, string cycleCode, TimeSpan estimatedDepartureTime)
+    public static PickupOrder Create(long? driverId, long? truckId, string poNo, DateTime pickupDate, string routeCode, string cycleCode, TimeSpan estimatedDepartureTime)
         => new() { DriverId = driverId, TruckId = truckId, PoNo = poNo, PickupDate = pickupDate, RouteCode = routeCode, CycleCode = cycleCode, EstimatedDepartureTime = estimatedDepartureTime, Status = PickupOrderStatus.Pending };
 
-    public void Assign(long driverId, long? truckId)
+    public void Assign(long? driverId, long? truckId)
     {
         DriverId = driverId;
         TruckId = truckId;

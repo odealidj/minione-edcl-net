@@ -33,6 +33,8 @@ export const routes: Routes = [
 
       { path: 'operations/monitoring', component: Monitoring },
       { path: 'admin/users', loadComponent: () => import('./features/admin/user-management/user-management').then(c => c.UserManagementComponent), canActivate: [adminGuard] },
+      { path: 'admin/route-planning', loadComponent: () => import('./features/admin/route-planning/route-planning/route-planning').then(c => c.RoutePlanningComponent), canActivate: [adminGuard] },
+      { path: 'admin/route-planning/:id', loadComponent: () => import('./features/admin/route-planning/route-planning-form/route-planning-form').then(c => c.RoutePlanningFormComponent), canActivate: [adminGuard] },
       // Fallback for sub-routes
       { path: '**', redirectTo: 'dashboard' }
     ]
