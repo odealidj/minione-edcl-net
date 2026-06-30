@@ -22,6 +22,7 @@
       <table class="table w-full">
         <thead>
           <tr class="bg-gray-50/50 text-gray-500 uppercase text-xs">
+            <th class="w-12"></th>
             <th>PO No</th>
             <th>Date</th>
             <th>Route / Cycle</th>
@@ -33,15 +34,22 @@
         </thead>
         <tbody>
           <tr *ngIf="loading">
-            <td colspan="7" class="text-center py-8">
+            <td colspan="8" class="text-center py-8">
               <span class="loading loading-spinner loading-md text-primary"></span>
             </td>
           </tr>
           <tr *ngIf="!loading && orders.length === 0">
-            <td colspan="7" class="text-center py-8 text-gray-500">No route plans found</td>
+            <td colspan="8" class="text-center py-8 text-gray-500">No route plans found</td>
           </tr>
-          <tr *ngFor="let order of orders" class="hover:bg-gray-50/50 transition-colors">
-            <td class="font-medium text-gray-900">{{order.poNo}}</td>
+          <ng-container *ngFor="let order of orders">
+            <tr class="hover:bg-gray-50/50 transition-colors" [class.bg-blue-50/30]="expandedRows.has(order.id)">
+              <td class="text-center">
+                <button class="btn btn-ghost btn-xs btn-square" (click)="toggleRow(order.id)">
+                  <span *ngIf="loadingDetails.has(order.id)" class="loading loading-spinner loading-xs text-primary"></span>
+                  <i *ngIf="!loadingDetails.has(order.id)" class="fas" [ngClass]="expandedRows.has(order.id) ? 'fa-chevron-down text-primary' : 'fa-chevron-right text-gray-400'"></i>
+                </button>
+              </td>
+              <td class="font-medium text-gray-900">{{order.poNo}}</td>
             <td>{{order.pickupDate | date:'dd MMM yyyy'}}</td>
             <td>
               <span class="badge badge-ghost badge-sm font-mono">{{order.routeCode}}</span> / 
@@ -59,17 +67,70 @@
                 'badge-success': order.status === 'COMPLETED'
               }">{{order.status}}</span>
             </td>
-            <td class="text-right">
-              <button class="btn btn-ghost btn-sm text-blue-600" [routerLink]="['/admin/route-planning', order.id]">
-                <i class="fas fa-edit"></i>
-              </button>
-              <button class="btn btn-ghost btn-sm text-red-600" (click)="deleteOrder(order.id)" 
-                      [disabled]="order.status !== 'PENDING' || deletingId === order.id">
-                <span *ngIf="deletingId === order.id" class="loading loading-spinner loading-xs"></span>
-                <i *ngIf="deletingId !== order.id" class="fas fa-trash"></i>
-              </button>
-            </td>
-          </tr>
+              <td class="text-right">
+                <button class="btn btn-ghost btn-sm text-blue-600" [routerLink]="['/admin/route-planning', order.id]">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-ghost btn-sm text-red-600" (click)="deleteOrder(order.id)" 
+                        [disabled]="order.status !== 'PENDING' || deletingId === order.id">
+                  <span *ngIf="deletingId === order.id" class="loading loading-spinner loading-xs"></span>
+                  <i *ngIf="deletingId !== order.id" class="fas fa-trash"></i>
+                </button>
+              </td>
+            </tr>
+            
+            <!-- Expanded Details Row -->
+            <tr *ngIf="expandedRows.has(order.id)" class="bg-gray-50/30">
+              <td></td>
+              <td colspan="7" class="p-0 border-b-0">
+                <div class="py-4 pr-4">
+                  <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden" *ngIf="orderDetailsCache.get(order.id) as details">
+                    <table class="table table-sm w-full">
+                      <thead class="bg-gray-100/50 text-gray-500">
+                        <tr>
+                          <th class="w-16 text-center">Seq</th>
+                          <th>Supplier ID</th>
+                          <th>Status</th>
+                          <th>Arrived At</th>
+                          <th>Manifests</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr *ngIf="!details.details || details.details.length === 0">
+                          <td colspan="5" class="text-center py-4 text-gray-400 italic text-sm">No suppliers scheduled for this route.</td>
+                        </tr>
+                        <tr *ngFor="let stop of details.details" class="border-b border-gray-100 last:border-0 hover:bg-gray-50">
+                          <td class="text-center">
+                            <span class="badge badge-sm badge-neutral">{{stop.sequence}}</span>
+                          </td>
+                          <td class="font-medium text-sm">{{stop.supplierId}}</td>
+                          <td>
+                            <span class="text-xs font-semibold px-2 py-1 rounded-full" [ngClass]="{
+                              'bg-yellow-100 text-yellow-800': stop.status === 'PENDING',
+                              'bg-green-100 text-green-800': stop.status === 'ARRIVED' || stop.status === 'COMPLETED'
+                            }">{{stop.status}}</span>
+                          </td>
+                          <td class="text-sm text-gray-500">
+                            {{stop.arrivedAt ? (stop.arrivedAt | date:'dd/MM HH:mm') : '-'}}
+                          </td>
+                          <td>
+                            <div class="flex flex-wrap gap-1">
+                              <span *ngIf="!stop.manifests || stop.manifests.length === 0" class="text-xs text-gray-400">-</span>
+                              <div *ngFor="let m of stop.manifests" class="tooltip tooltip-primary" [attr.data-tip]="m.totalKanban + ' Kanbans | ' + m.orderType">
+                                <span class="badge badge-sm badge-outline border-blue-200 bg-blue-50 text-blue-700 cursor-help">
+                                  <i class="fas fa-box text-[10px] mr-1"></i> {{m.manifestNo}}
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </ng-container>
         </tbody>
       </table>
     </div>
