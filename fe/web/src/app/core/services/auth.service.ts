@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable, tap, finalize } from 'rxjs';
+import { BehaviorSubject, Observable, tap, finalize, throwError } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { jwtDecode } from 'jwt-decode';
 
@@ -60,6 +60,28 @@ export class AuthService {
     return this.http.post<any>(`${this.apiUrl}/users/register`, { name, email, password, roleCode });
   }
 
+  refreshToken(): Observable<any> {
+    const refreshToken = this.getRefreshToken();
+    if (!refreshToken) {
+      return throwError(() => new Error('No refresh token available'));
+    }
+
+    return this.http.post<any>(`${this.apiUrl}/users/refresh-token`, { rawRefreshToken: refreshToken })
+      .pipe(
+        tap(response => {
+          if (response && response.data && response.data.accessToken) {
+            const storage = localStorage.getItem('refresh_token') ? localStorage : sessionStorage;
+            
+            storage.setItem('access_token', response.data.accessToken);
+            if (response.data.refreshToken) {
+              storage.setItem('refresh_token', response.data.refreshToken);
+            }
+            this.currentUserSubject.next(this.decodeToken(response.data.accessToken));
+          }
+        })
+      );
+  }
+
   getUsers(page: number = 1, pageSize: number = 10): Observable<any> {
     return this.http.get<any>(`${this.apiUrl}/users?page=${page}&pageSize=${pageSize}`);
   }
@@ -91,5 +113,9 @@ export class AuthService {
 
   getToken(): string | null {
     return localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
+  }
+
+  getRefreshToken(): string | null {
+    return localStorage.getItem('refresh_token') || sessionStorage.getItem('refresh_token');
   }
 }

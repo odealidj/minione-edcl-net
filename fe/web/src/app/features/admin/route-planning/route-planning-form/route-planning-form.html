@@ -37,19 +37,43 @@
           <label class="label"><span class="label-text">Cycle Code <span class="text-red-500">*</span></span></label>
           <input type="text" formControlName="cycleCode" class="input input-bordered w-full" />
         </div>
-        <div class="form-control">
+        <div class="form-control relative">
           <label class="label"><span class="label-text">Driver</span></label>
-          <select formControlName="driverId" class="select select-bordered w-full">
-            <option [ngValue]="null">-- Unassigned --</option>
-            <option *ngFor="let d of drivers" [ngValue]="d.id">{{d.name}} ({{d.nik}})</option>
-          </select>
+          <div class="relative w-full">
+            <input type="text" 
+                   class="input input-bordered w-full" 
+                   placeholder="Search and select driver..." 
+                   [value]="selectedDriverName" 
+                   (focus)="driverDropdownOpen = true"
+                   (blur)="onDriverBlur()"
+                   (input)="onDriverSearch($event)" />
+            <ul *ngIf="driverDropdownOpen" class="absolute z-50 menu p-2 shadow bg-base-100 rounded-box w-full max-h-60 overflow-y-auto mt-1 flex-nowrap border border-gray-200">
+              <li *ngIf="filteredDrivers.length === 0"><a class="pointer-events-none text-gray-500">No driver found</a></li>
+              <li><a (mousedown)="selectDriver(null)">-- Unassigned --</a></li>
+              <li *ngFor="let d of filteredDrivers">
+                <a (mousedown)="selectDriver(d)">{{d.name}} ({{d.nik}})</a>
+              </li>
+            </ul>
+          </div>
         </div>
-        <div class="form-control">
+        <div class="form-control relative">
           <label class="label"><span class="label-text">Truck</span></label>
-          <select formControlName="truckId" class="select select-bordered w-full">
-            <option [ngValue]="null">-- Unassigned --</option>
-            <option *ngFor="let t of trucks" [ngValue]="t.id">{{t.plateNumber}} ({{t.truckType}})</option>
-          </select>
+          <div class="relative w-full">
+            <input type="text" 
+                   class="input input-bordered w-full" 
+                   placeholder="Search and select truck..." 
+                   [value]="selectedTruckName" 
+                   (focus)="truckDropdownOpen = true"
+                   (blur)="onTruckBlur()"
+                   (input)="onTruckSearch($event)" />
+            <ul *ngIf="truckDropdownOpen" class="absolute z-50 menu p-2 shadow bg-base-100 rounded-box w-full max-h-60 overflow-y-auto mt-1 flex-nowrap border border-gray-200">
+              <li *ngIf="filteredTrucks.length === 0"><a class="pointer-events-none text-gray-500">No truck found</a></li>
+              <li><a (mousedown)="selectTruck(null)">-- Unassigned --</a></li>
+              <li *ngFor="let t of filteredTrucks">
+                <a (mousedown)="selectTruck(t)">{{t.plateNumber}} ({{t.vehicleType || '-'}})</a>
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>

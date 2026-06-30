@@ -3,7 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ApiResponse } from '../models/api.model';
-import { PickupOrder, CreatePickupOrderCommand, UpdatePickupOrderCommand } from '../models/route-planning.model';
+import { PickupOrder, CreatePickupOrderCommand, UpdatePickupOrderCommand, BffManifestDetail } from '../models/route-planning.model';
 
 @Injectable({
   providedIn: 'root'
@@ -36,5 +36,10 @@ export class RoutePlanningService {
 
   deletePickupOrder(id: number): Observable<ApiResponse<boolean>> {
     return this.http.delete<ApiResponse<boolean>>(`${this.apiUrl}/${id}`);
+  }
+
+  getManifestDetail(manifestNo: string): Observable<ApiResponse<BffManifestDetail>> {
+    const bffUrl = `${environment.apiUrl}/bff/manifests/${encodeURIComponent(manifestNo)}/detail`;
+    return this.http.get<ApiResponse<BffManifestDetail>>(bffUrl);
   }
 }

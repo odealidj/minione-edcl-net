@@ -2,7 +2,8 @@ import { Component, inject, OnInit, ChangeDetectorRef, ChangeDetectionStrategy }
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { RoutePlanningService } from '../../../../core/services/route-planning.service';
-import { PickupOrder } from '../../../../core/models/route-planning.model';
+import { MasterDataService } from '../../../../core/services/master-data.service';
+import { PickupOrder, BffManifestDetail } from '../../../../core/models/route-planning.model';
 import { PaginationMeta } from '../../../../core/models/api.model';
 import { FormsModule } from '@angular/forms';
 
@@ -14,6 +15,7 @@ import { FormsModule } from '@angular/forms';
 })
 export class RoutePlanningComponent implements OnInit {
   private routeService = inject(RoutePlanningService);
+  private masterDataService = inject(MasterDataService);
   private cdr = inject(ChangeDetectorRef);
 
   orders: PickupOrder[] = [];
@@ -27,8 +29,25 @@ export class RoutePlanningComponent implements OnInit {
   orderDetailsCache: Map<number, PickupOrder> = new Map();
   loadingDetails: Set<number> = new Set();
 
+  selectedManifest: BffManifestDetail | null = null;
+  loadingManifest: boolean = false;
+
+  driversMap: Map<number, string> = new Map();
+
   ngOnInit(): void {
+    this.loadDrivers();
     this.loadOrders();
+  }
+
+  loadDrivers() {
+    this.masterDataService.getDrivers('', 1, 100).subscribe({
+      next: (res) => {
+        if (res.data) {
+          res.data.forEach(d => this.driversMap.set(d.id, d.name));
+          this.cdr.markForCheck();
+        }
+      }
+    });
   }
 
   pages: number[] = [];
@@ -108,5 +127,35 @@ export class RoutePlanningComponent implements OnInit {
         }
       });
     }
+  }
+
+  viewManifest(manifestNo: string) {
+    this.loadingManifest = true;
+    this.selectedManifest = null;
+    this.cdr.markForCheck();
+    
+    // Using a modal element from daisyUI
+    const modal = document.getElementById('manifest_modal') as HTMLDialogElement;
+    if (modal) modal.showModal();
+
+    this.routeService.getManifestDetail(manifestNo).subscribe({
+      next: (res) => {
+        this.selectedManifest = res.data ?? null;
+        this.loadingManifest = false;
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        console.error('Failed to load manifest details', err);
+        this.loadingManifest = false;
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  closeManifestModal() {
+    const modal = document.getElementById('manifest_modal') as HTMLDialogElement;
+    if (modal) modal.close();
+    this.selectedManifest = null;
+    this.cdr.markForCheck();
   }
 }

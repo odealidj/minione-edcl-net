@@ -68,6 +68,30 @@ public sealed class AppUsersController(IMediator mediator) : ControllerBase
     }
 
     /// <summary>
+    /// Refreshes an AppUser's access token using a refresh token.
+    /// </summary>
+    [HttpPost("refresh-token")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(ApiResponse<EDCL.Module.Auth.Application.Commands.Login.LoginAppUserResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> RefreshToken(
+        [FromBody] EDCL.Module.Auth.Application.Commands.RefreshToken.RefreshTokenCommand request,
+        CancellationToken cancellationToken)
+    {
+        var command = new EDCL.Module.Auth.Application.Commands.RefreshAppUserToken.RefreshAppUserTokenCommand(
+            RawRefreshToken: request.RawRefreshToken,
+            DeviceInfo: Request.Headers.UserAgent.ToString());
+
+        var result = await mediator.Send(command, cancellationToken);
+        var traceId = HttpContext.GetTraceId();
+
+        return result.Match<IActionResult>(
+            onSuccess: data => Ok(ApiResponse<EDCL.Module.Auth.Application.Commands.Login.LoginAppUserResponse>.Success(data, traceId)),
+            onFailure: error => Unauthorized(
+                ApiResponse<object>.Fail(error.Message, traceId, 401)));
+    }
+
+    /// <summary>
     /// Logs out an AppUser by revoking their refresh token.
     /// </summary>
     [HttpPost("logout")]

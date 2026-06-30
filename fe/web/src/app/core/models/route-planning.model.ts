@@ -94,3 +94,24 @@ export interface UpdatePickupOrderCommand {
   estimatedDepartureTime: string;
   stops: UpdatePickupOrderDetailDto[];
 }
+
+export interface BffManifestPart {
+  no: number;
+  partNo: string;
+  uniqNo: string;
+  pcsKbn: number;
+  boxType: string;
+  noOfKbn: string;
+}
+
+export interface BffManifestDetail {
+  manifestNo: string;
+  orderType: string;
+  dockCode: string;
+  scanStatus: string;
+  totalKanban: number;
+  scannedKanban: number;
+  orderNo: string | null;
+  pLaneNo: string | null;
+  parts: BffManifestPart[];
+}

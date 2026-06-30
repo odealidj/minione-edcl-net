@@ -22,19 +22,19 @@
     <table class="table table-zebra w-full">
       <thead>
         <tr>
-          <th>Plate</th><th>Type</th><th>Capacity</th>
+          <th>Plate</th><th>Vehicle Type</th>
           <th class="w-24 text-center">Actions</th>
         </tr>
       </thead>
       <tbody>
         @if (isLoading()) {
-          <tr><td colspan="4" class="text-center py-8"><span class="loading loading-spinner loading-lg text-primary"></span></td></tr>
+          <tr><td colspan="3" class="text-center py-8"><span class="loading loading-spinner loading-lg text-primary"></span></td></tr>
         } @else if (items().length === 0) {
-          <tr><td colspan="4" class="text-center py-8 text-base-content/50">No data found.</td></tr>
+          <tr><td colspan="3" class="text-center py-8 text-base-content/50">No data found.</td></tr>
         } @else {
           @for (item of items(); track item.id) {
             <tr>
-              <td>{{ item.plateNumber }}</td><td>{{ item.truckType }}</td><td>{{ item.truckCapacity }}</td>
+              <td>{{ item.plateNumber }}</td><td>{{ item.vehicleType }}</td>
               <td class="text-center">
                 <div class="join">
                   <button class="btn btn-sm btn-ghost join-item text-info" (click)="openModal(item)">Edit</button>
@@ -71,13 +71,9 @@
           <label class="label"><span class="label-text">Plate Number</span></label>
           <input type="text" formControlName="plateNumber" class="input input-bordered w-full" placeholder="Enter Plate Number" />
         </div>
-        <div class="form-control w-full">
-          <label class="label"><span class="label-text">Type</span></label>
-          <input type="text" formControlName="truckType" class="input input-bordered w-full" placeholder="Enter Type" />
-        </div>
-        <div class="form-control w-full">
-          <label class="label"><span class="label-text">Capacity</span></label>
-          <input type="number" formControlName="truckCapacity" class="input input-bordered w-full" placeholder="Enter Capacity" />
+        <div class="form-control mb-4">
+          <label class="label"><span class="label-text">Vehicle Type</span></label>
+          <input type="text" formControlName="vehicleType" class="input input-bordered w-full" placeholder="Enter Vehicle Type" />
         </div>
       </div>
       <div class="modal-action mt-6">

@@ -43,8 +43,8 @@ export interface Supplier {
 export interface Truck {
   id: number;
   plateNumber: string;
-  truckType: string;
-  truckCapacity: number;
+  vehicleType: string;
+  isActive?: boolean;
   createdBy: string;
   createdOnUtc: string;
 }

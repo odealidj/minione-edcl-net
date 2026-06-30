@@ -56,12 +56,12 @@ export class MasterDataService {
     return this.http.get<ApiResponse<Truck[]>>(`${environment.apiUrl}/master/trucks`, { params });
   }
 
-  createTruck(plateNumber: string, truckType: string, truckCapacity: number): Observable<ApiResponse<string>> {
-    return this.http.post<ApiResponse<string>>(`${environment.apiUrl}/master/trucks`, { plateNumber, truckType, truckCapacity });
+  createTruck(plateNumber: string, vehicleType: string): Observable<ApiResponse<string>> {
+    return this.http.post<ApiResponse<string>>(`${environment.apiUrl}/master/trucks`, { plateNumber, vehicleType });
   }
 
-  updateTruck(id: number, plateNumber: string, truckType: string, truckCapacity: number): Observable<ApiResponse<any>> {
-    return this.http.put<ApiResponse<any>>(`${environment.apiUrl}/master/trucks/${id}`, { id, plateNumber, truckType, truckCapacity });
+  updateTruck(id: number, plateNumber: string, vehicleType: string): Observable<ApiResponse<any>> {
+    return this.http.put<ApiResponse<any>>(`${environment.apiUrl}/master/trucks/${id}`, { id, plateNumber, vehicleType });
   }
 
   deleteTruck(id: number): Observable<ApiResponse<any>> {

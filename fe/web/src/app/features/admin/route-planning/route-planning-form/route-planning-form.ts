@@ -31,6 +31,15 @@ export class RoutePlanningFormComponent implements OnInit {
   drivers: Driver[] = [];
   trucks: Truck[] = [];
 
+  // Custom Dropdown State
+  filteredDrivers: Driver[] = [];
+  selectedDriverName: string = '';
+  driverDropdownOpen: boolean = false;
+
+  filteredTrucks: Truck[] = [];
+  selectedTruckName: string = '';
+  truckDropdownOpen: boolean = false;
+
   // Manifest Selection Modal
   showManifestModal: boolean = false;
   currentStopIndex: number = -1;
@@ -103,8 +112,87 @@ export class RoutePlanningFormComponent implements OnInit {
 
   loadMasterData() {
     this.masterService.getSuppliers('', 1, 1000).subscribe(res => this.suppliers = res.data);
-    this.masterService.getDrivers('', 1, 1000).subscribe(res => this.drivers = res.data);
-    this.masterService.getTrucks('', 1, 1000).subscribe(res => this.trucks = res.data);
+    this.masterService.getDrivers('', 1, 1000).subscribe(res => {
+      this.drivers = res.data;
+      this.filteredDrivers = [...this.drivers];
+      
+      const currentDriverId = this.form.get('driverId')?.value;
+      if (currentDriverId) {
+        const d = this.drivers.find(x => x.id === currentDriverId);
+        if (d) this.selectedDriverName = `${d.name} (${d.nik})`;
+      }
+    });
+    this.masterService.getTrucks('', 1, 1000).subscribe(res => {
+      this.trucks = res.data;
+      this.filteredTrucks = [...this.trucks];
+
+      const currentTruckId = this.form.get('truckId')?.value;
+      if (currentTruckId) {
+        const t = this.trucks.find(x => x.id === currentTruckId);
+        if (t) this.selectedTruckName = `${t.plateNumber} (${t.vehicleType || '-'})`;
+      }
+    });
+  }
+
+  // Driver Dropdown Methods
+  onDriverSearch(event: Event) {
+    this.driverDropdownOpen = true;
+    const term = (event.target as HTMLInputElement).value.toLowerCase();
+    if (!term) {
+      this.filteredDrivers = [...this.drivers];
+    } else {
+      this.filteredDrivers = this.drivers.filter(d => 
+        d.name.toLowerCase().includes(term) || d.nik.toLowerCase().includes(term)
+      );
+    }
+  }
+
+  onDriverBlur() {
+    // Delay slightly so that mousedown on options can fire before the dropdown is removed
+    setTimeout(() => {
+      this.driverDropdownOpen = false;
+    }, 200);
+  }
+
+  selectDriver(driver: Driver | null) {
+    if (driver) {
+      this.form.patchValue({ driverId: driver.id });
+      this.selectedDriverName = `${driver.name} (${driver.nik})`;
+    } else {
+      this.form.patchValue({ driverId: null });
+      this.selectedDriverName = '';
+    }
+    this.driverDropdownOpen = false;
+  }
+
+  // Truck Dropdown Methods
+  onTruckSearch(event: Event) {
+    this.truckDropdownOpen = true;
+    const term = (event.target as HTMLInputElement).value.toLowerCase();
+    if (!term) {
+      this.filteredTrucks = [...this.trucks];
+    } else {
+      this.filteredTrucks = this.trucks.filter(t => 
+        t.plateNumber.toLowerCase().includes(term) || (t.vehicleType && t.vehicleType.toLowerCase().includes(term))
+      );
+    }
+  }
+
+  onTruckBlur() {
+    setTimeout(() => {
+      this.truckDropdownOpen = false;
+    }, 200);
+  }
+
+  selectTruck(truck: Truck | null) {
+    if (truck) {
+      this.form.patchValue({ truckId: truck.id });
+      this.selectedTruckName = `${truck.plateNumber} (${truck.vehicleType || '-'})`;
+    } else {
+      this.form.patchValue({ truckId: null });
+      this.selectedTruckName = '';
+    }
+    this.truckDropdownOpen = false;
   }
 
   loadOrder(id: number) {
@@ -121,6 +209,18 @@ export class RoutePlanningFormComponent implements OnInit {
           driverId: order.driverId,
           truckId: order.truckId
         });
+
+        // Try to set the selected driver name if drivers are already loaded
+        if (order.driverId && this.drivers.length > 0) {
+          const d = this.drivers.find(x => x.id === order.driverId);
+          if (d) this.selectedDriverName = `${d.name} (${d.nik})`;
+        }
+
+        // Try to set the selected truck name if trucks are already loaded
+        if (order.truckId && this.trucks.length > 0) {
+          const t = this.trucks.find(x => x.id === order.truckId);
+          if (t) this.selectedTruckName = `${t.plateNumber} (${t.vehicleType || '-'})`;
+        }
 
         // Load stops
         this.stops.clear();

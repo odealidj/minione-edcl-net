@@ -32,8 +32,7 @@ export class TruckComponent implements OnInit {
   constructor() {
     this.form = this.fb.group({
       plateNumber: ['', Validators.required],
-      truckType: ['', Validators.required],
-      truckCapacity: [0, [Validators.required, Validators.min(1)]]
+      vehicleType: ['', Validators.required]
     });
   }
 
@@ -73,7 +72,7 @@ export class TruckComponent implements OnInit {
     if (item) {
       this.isEditMode = true;
       this.editingId = item.id;
-      this.form.patchValue({ plateNumber: item.plateNumber, truckType: item.truckType, truckCapacity: item.truckCapacity });
+      this.form.patchValue({ plateNumber: item.plateNumber, vehicleType: item.vehicleType });
     } else {
       this.isEditMode = false;
       this.editingId = null;
@@ -92,13 +91,13 @@ export class TruckComponent implements OnInit {
     const val = this.form.value;
 
     if (this.isEditMode && this.editingId) {
-      this.service.updateTruck(this.editingId, val.plateNumber, val.truckType, val.truckCapacity).subscribe({
+      this.service.updateTruck(this.editingId, val.plateNumber, val.vehicleType).subscribe({
         next: () => { this.isSaving = false; this.closeModal(); this.loadData(); },
         error: (err) => { console.error(err); this.isSaving = false; }
       });
     } else {
-      this.service.createTruck(val.plateNumber, val.truckType, val.truckCapacity).subscribe({
-        next: () => { this.isSaving = false; this.closeModal(); this.currentPage = 1; this.loadData(); },
+      this.service.createTruck(val.plateNumber, val.vehicleType).subscribe({
+        next: () => { this.isSaving = false; this.closeModal(); this.loadData(); },
         error: (err) => { console.error(err); this.isSaving = false; }
       });
     }
