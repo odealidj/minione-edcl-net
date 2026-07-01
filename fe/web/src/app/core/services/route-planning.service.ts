@@ -26,6 +26,13 @@ export class RoutePlanningService {
     return this.http.get<ApiResponse<PickupOrder>>(`${this.apiUrl}/${id}`);
   }
 
+  getPickupOrderStopManifests(id: number, stopId: number, page: number = 1, pageSize: number = 30): Observable<ApiResponse<any[]>> {
+    let params = new HttpParams()
+      .set('page', page)
+      .set('pageSize', pageSize);
+    return this.http.get<ApiResponse<any[]>>(`${this.apiUrl}/${id}/stops/${stopId}/manifests`, { params });
+  }
+
   createPickupOrder(command: CreatePickupOrderCommand): Observable<ApiResponse<number>> {
     return this.http.post<ApiResponse<number>>(this.apiUrl, command);
   }

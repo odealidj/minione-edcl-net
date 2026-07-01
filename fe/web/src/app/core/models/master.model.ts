@@ -53,7 +53,9 @@ export interface Truck {
 export interface Manifest {
   id: number;
   manifestNo: string;
+  supplierCode: string;
   supplierName: string;
+  status: string;
   totalKanbans: number;
   totalParts: number;
 }

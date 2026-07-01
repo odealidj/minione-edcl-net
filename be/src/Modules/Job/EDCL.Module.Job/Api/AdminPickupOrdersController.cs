@@ -70,4 +70,14 @@ public class AdminPickupOrdersController(IMediator mediator) : ControllerBase
             ? Ok(ApiResponse<bool>.Success(result.Value, traceId, 200, "Deleted successfully"))
             : BadRequest(ApiResponse<object>.Fail(result.Error.Message, traceId, 400));
     }
+
+    [HttpGet("{id}/stops/{stopId}/manifests")]
+    public async Task<IActionResult> GetManifests(long id, long stopId, [FromQuery] int page = 1, [FromQuery] int pageSize = 30, CancellationToken cancellationToken = default)
+    {
+        var result = await mediator.Send(new EDCL.Module.Job.Application.Queries.AdminGetPickupOrderManifests.AdminGetPickupOrderManifestsQuery(id, stopId, page, pageSize), cancellationToken);
+        var traceId = HttpContext.TraceIdentifier;
+        return result.IsSuccess
+            ? Ok(ApiResponse<IReadOnlyList<EDCL.Module.Job.Application.Queries.AdminGetPickupOrderById.AdminPickupOrderManifestDto>>.Paginated(result.Value.Items, PaginationMeta.From(result.Value.PageNumber, result.Value.PageSize, result.Value.TotalCount), traceId))
+            : BadRequest(ApiResponse<object>.Fail(result.Error.Message, traceId, 400));
+    }
 }

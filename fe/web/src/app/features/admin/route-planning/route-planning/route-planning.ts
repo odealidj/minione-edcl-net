@@ -33,9 +33,14 @@ export class RoutePlanningComponent implements OnInit {
   loadingManifest: boolean = false;
 
   driversMap: Map<number, string> = new Map();
+  suppliersMap: Map<number, string> = new Map();
+
+  manifestPageSize: number = 30;
+  manifestPageMap: Map<string, number> = new Map();
 
   ngOnInit(): void {
     this.loadDrivers();
+    this.loadSuppliers();
     this.loadOrders();
   }
 
@@ -44,6 +49,17 @@ export class RoutePlanningComponent implements OnInit {
       next: (res) => {
         if (res.data) {
           res.data.forEach(d => this.driversMap.set(d.id, d.name));
+          this.cdr.markForCheck();
+        }
+      }
+    });
+  }
+
+  loadSuppliers() {
+    this.masterDataService.getSuppliers('', 1, 1000).subscribe({
+      next: (res) => {
+        if (res.data) {
+          res.data.forEach(s => this.suppliersMap.set(s.id, `${s.supplierCode} - ${s.name}`));
           this.cdr.markForCheck();
         }
       }
@@ -115,6 +131,10 @@ export class RoutePlanningComponent implements OnInit {
         next: (res) => {
           if (res.data) {
             this.orderDetailsCache.set(orderId, res.data);
+            // Load page 1 of manifests for each stop
+            res.data.details?.forEach((stop, idx) => {
+              this.loadStopManifests(orderId, stop.id, idx, 1);
+            });
           }
           this.loadingDetails.delete(orderId);
           this.cdr.markForCheck();
@@ -157,5 +177,36 @@ export class RoutePlanningComponent implements OnInit {
     if (modal) modal.close();
     this.selectedManifest = null;
     this.cdr.markForCheck();
+  }
+
+  // Level 3 (Manifest) Pagination Methods
+  manifestDataMap: Map<string, { items: any[], meta: any, loading: boolean }> = new Map();
+
+  getManifestData(orderId: number, stopIndex: number) {
+    const key = `${orderId}_${stopIndex}`;
+    return this.manifestDataMap.get(key) || { items: [], meta: null, loading: false };
+  }
+
+  loadStopManifests(orderId: number, stopId: number, stopIndex: number, page: number) {
+    const key = `${orderId}_${stopIndex}`;
+    const currentData = this.manifestDataMap.get(key) || { items: [], meta: null, loading: false };
+    this.manifestDataMap.set(key, { ...currentData, loading: true });
+    this.cdr.markForCheck();
+
+    this.routeService.getPickupOrderStopManifests(orderId, stopId, page, this.manifestPageSize).subscribe({
+      next: (res) => {
+        this.manifestDataMap.set(key, {
+          items: res.data ?? [],
+          meta: res.pagination ?? null,
+          loading: false
+        });
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        console.error('Failed to load stop manifests', err);
+        this.manifestDataMap.set(key, { ...currentData, loading: false });
+        this.cdr.markForCheck();
+      }
+    });
   }
 }

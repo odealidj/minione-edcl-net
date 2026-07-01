@@ -14,6 +14,7 @@ export interface PickupOrderManifest {
   orderType: string;
   totalSkid: number;
   dockCode: string;
+  totalPart?: number;
   kanbans: PickupOrderKanban[];
 }
 
@@ -48,6 +49,7 @@ export interface CreatePickupOrderManifestDto {
   orderType: string;
   totalSkid: number;
   dockCode: string;
+  totalPart?: number;
 }
 
 export interface CreatePickupOrderDetailDto {
@@ -74,6 +76,7 @@ export interface UpdatePickupOrderManifestDto {
   orderType: string;
   totalSkid: number;
   dockCode: string;
+  totalPart?: number;
 }
 
 export interface UpdatePickupOrderDetailDto {

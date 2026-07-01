@@ -1,8 +1,10 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
+import { filter, switchMap, tap, catchError, distinctUntilChanged } from 'rxjs/operators';
+import { of } from 'rxjs';
 import { RoutePlanningService } from '../../../../core/services/route-planning.service';
 import { MasterDataService } from '../../../../core/services/master-data.service';
 import { CargoService } from '../../../../core/services/cargo.service';
@@ -21,6 +23,7 @@ export class RoutePlanningFormComponent implements OnInit {
   private cargoService = inject(CargoService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private cdr = inject(ChangeDetectorRef);
 
   form!: FormGroup;
   orderId: number | null = null;
@@ -40,12 +43,32 @@ export class RoutePlanningFormComponent implements OnInit {
   selectedTruckName: string = '';
   truckDropdownOpen: boolean = false;
 
+  // Local UI state for each stop
+  stopUIStates: {
+    page: number;
+    pageSize: number;
+    search: string;
+    selectedCheckboxes: Set<number>;
+    isLoading?: boolean;
+    supplierDropdownOpen?: boolean;
+    supplierSearchText?: string;
+    supplierName?: string;
+  }[] = [];
+
   // Manifest Selection Modal
   showManifestModal: boolean = false;
   currentStopIndex: number = -1;
   availableManifests: any[] = [];
   selectedManifests: Set<number> = new Set();
   manifestLoading: boolean = false;
+  
+  manifestModalState = {
+    search: '',
+    page: 1,
+    pageSize: 10,
+    totalPages: 1,
+    supplierCode: ''
+  };
 
   ngOnInit() {
     this.initForm();
@@ -77,18 +100,163 @@ export class RoutePlanningFormComponent implements OnInit {
     return this.form.get('stops') as FormArray;
   }
 
-  addStop(supplierId: number = 0, sequence: number = this.stops.length + 1) {
+  addStop(supplierId: number | null = null, sequence: number = this.stops.length + 1) {
     const stopGroup = this.fb.group({
       supplierId: [supplierId, Validators.required],
       sequence: [sequence],
       manifests: this.fb.array([])
     });
+    
+    this.setupStopSupplierSubscription(stopGroup);
+    
+    this.stopUIStates.push({
+      page: 1,
+      pageSize: 5,
+      search: '',
+      selectedCheckboxes: new Set<number>(),
+      isLoading: false,
+      supplierDropdownOpen: false,
+      supplierSearchText: '',
+      supplierName: ''
+    });
+    
     this.stops.push(stopGroup);
+  }
+
+  setupStopSupplierSubscription(stopGroup: FormGroup) {
+    stopGroup.get('supplierId')?.valueChanges.pipe(
+      distinctUntilChanged(),
+      filter(newSupplierId => !!newSupplierId),
+      tap(() => {
+        const stopIndex = this.stops.controls.indexOf(stopGroup);
+        if (this.stopUIStates[stopIndex]) {
+          this.stopUIStates[stopIndex].isLoading = true;
+          const manifestsArray = stopGroup.get('manifests') as FormArray;
+          manifestsArray.clear();
+        }
+      }),
+      switchMap(newSupplierId => {
+        const supplier = this.suppliers.find(s => s.id === newSupplierId);
+        if (!supplier) return of({ data: [] });
+        return this.cargoService.getManifests('', supplier.supplierCode, 'Pending', 1, 1000).pipe(
+          catchError(() => of({ data: [] }))
+        );
+      })
+    ).subscribe((res: any) => {
+      const stopIndex = this.stops.controls.indexOf(stopGroup);
+      if (this.stopUIStates[stopIndex]) {
+        const manifestsArray = stopGroup.get('manifests') as FormArray;
+        res.data.forEach((m: any) => {
+          manifestsArray.push(this.fb.group({
+            manifestNo: [m.manifestNo, Validators.required],
+            totalKanban: [m.totalKanbans, Validators.required],
+            totalPart: [m.totalParts || 0],
+            orderType: ['ORG'],
+            totalSkid: [1],
+            dockCode: ['-']
+          }));
+        });
+        this.stopUIStates[stopIndex].isLoading = false;
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   removeStop(index: number) {
     this.stops.removeAt(index);
+    this.stopUIStates.splice(index, 1);
     this.updateSequences();
+  }
+
+  getVisibleManifests(stopIndex: number) {
+    const manifestsArray = this.getManifestsForStop(stopIndex);
+    const state = this.stopUIStates[stopIndex];
+    if (!state) return { items: [], totalCount: 0, totalPages: 1 };
+    
+    let filtered = manifestsArray.controls.map((control, idx) => ({ control, originalIndex: idx }));
+    
+    if (state.search) {
+      const term = state.search.toLowerCase();
+      filtered = filtered.filter(item => {
+        const val = item.control.value;
+        return val.manifestNo?.toLowerCase().includes(term);
+      });
+    }
+    
+    const start = (state.page - 1) * state.pageSize;
+    const paginated = filtered.slice(start, start + state.pageSize);
+    
+    return {
+      items: paginated,
+      totalCount: filtered.length,
+      totalPages: Math.ceil(filtered.length / state.pageSize) || 1
+    };
+  }
+
+  getStopSummary(stopIndex: number) {
+    const manifestsArray = this.getManifestsForStop(stopIndex);
+    let totalManifest = manifestsArray.length;
+    let totalKanban = 0;
+    let totalPart = 0;
+    
+    manifestsArray.controls.forEach(c => {
+      totalKanban += +(c.value.totalKanban || 0);
+      totalPart += +(c.value.totalPart || 0);
+    });
+    
+    return { totalManifest, totalKanban, totalPart };
+  }
+
+  toggleManifestCheckbox(stopIndex: number, manifestIndex: number) {
+    const state = this.stopUIStates[stopIndex];
+    if (state.selectedCheckboxes.has(manifestIndex)) {
+      state.selectedCheckboxes.delete(manifestIndex);
+    } else {
+      state.selectedCheckboxes.add(manifestIndex);
+    }
+  }
+
+  toggleSelectAllManifests(stopIndex: number, event: any) {
+    const state = this.stopUIStates[stopIndex];
+    const visible = this.getVisibleManifests(stopIndex);
+    if (event.target.checked) {
+      visible.items.forEach(m => state.selectedCheckboxes.add(m.originalIndex));
+    } else {
+      visible.items.forEach(m => state.selectedCheckboxes.delete(m.originalIndex));
+    }
+  }
+
+  bulkDeleteManifests(stopIndex: number) {
+    const manifestsArray = this.getManifestsForStop(stopIndex);
+    const state = this.stopUIStates[stopIndex];
+    
+    const indicesToDelete = Array.from(state.selectedCheckboxes).sort((a, b) => b - a);
+    indicesToDelete.forEach(idx => {
+      manifestsArray.removeAt(idx);
+    });
+    
+    state.selectedCheckboxes.clear();
+    
+    // adjust page if necessary
+    const visible = this.getVisibleManifests(stopIndex);
+    if (state.page > visible.totalPages && visible.totalPages > 0) {
+      state.page = visible.totalPages;
+    }
+  }
+
+  onStopManifestSearch(stopIndex: number, term: string) {
+    if (this.stopUIStates[stopIndex]) {
+      this.stopUIStates[stopIndex].search = term;
+      this.stopUIStates[stopIndex].page = 1;
+    }
+  }
+
+  onStopManifestPageChange(stopIndex: number, newPage: number) {
+    const state = this.stopUIStates[stopIndex];
+    const totalPages = this.getVisibleManifests(stopIndex).totalPages;
+    if (state && newPage >= 1 && newPage <= totalPages) {
+      state.page = newPage;
+    }
   }
 
   getManifestsForStop(stopIndex: number) {
@@ -101,6 +269,7 @@ export class RoutePlanningFormComponent implements OnInit {
 
   drop(event: CdkDragDrop<string[]>) {
     moveItemInArray(this.stops.controls, event.previousIndex, event.currentIndex);
+    moveItemInArray(this.stopUIStates, event.previousIndex, event.currentIndex);
     this.updateSequences();
   }
 
@@ -111,7 +280,16 @@ export class RoutePlanningFormComponent implements OnInit {
   }
 
   loadMasterData() {
-    this.masterService.getSuppliers('', 1, 1000).subscribe(res => this.suppliers = res.data);
+    this.masterService.getSuppliers('', 1, 1000).subscribe(res => {
+      this.suppliers = res.data;
+      this.stops.controls.forEach((c, idx) => {
+        const sid = c.get('supplierId')?.value;
+        if (sid && this.stopUIStates[idx]) {
+          const s = this.suppliers.find(x => x.id === sid);
+          if (s) this.stopUIStates[idx].supplierName = `${s.supplierCode} - ${s.name}`;
+        }
+      });
+    });
     this.masterService.getDrivers('', 1, 1000).subscribe(res => {
       this.drivers = res.data;
       this.filteredDrivers = [...this.drivers];
@@ -134,6 +312,57 @@ export class RoutePlanningFormComponent implements OnInit {
     });
   }
 
+  // Supplier Dropdown Methods (Per Stop)
+  getFilteredSuppliers(stopIndex: number) {
+    const state = this.stopUIStates[stopIndex];
+    if (!state || !state.supplierSearchText) return this.suppliers;
+    const term = state.supplierSearchText.toLowerCase();
+    return this.suppliers.filter(s => 
+      s.supplierCode?.toLowerCase().includes(term) || 
+      s.name?.toLowerCase().includes(term)
+    );
+  }
+
+  onSupplierSearch(stopIndex: number, event: any) {
+    if (this.stopUIStates[stopIndex]) {
+      this.stopUIStates[stopIndex].supplierSearchText = event.target.value;
+      this.stopUIStates[stopIndex].supplierName = event.target.value;
+    }
+  }
+
+  onSupplierBlur(stopIndex: number) {
+    setTimeout(() => {
+      if (this.stopUIStates[stopIndex]) {
+        this.stopUIStates[stopIndex].supplierDropdownOpen = false;
+        
+        // Reset name to selected supplier if they didn't select anything
+        const control = this.stops.at(stopIndex).get('supplierId');
+        if (control?.value) {
+          const s = this.suppliers.find(x => x.id === control.value);
+          if (s) {
+            this.stopUIStates[stopIndex].supplierName = `${s.supplierCode} - ${s.name}`;
+          }
+        } else {
+          this.stopUIStates[stopIndex].supplierName = '';
+        }
+        this.cdr.detectChanges();
+      }
+    }, 200);
+  }
+
+  selectSupplier(stopIndex: number, supplier: any) {
+    if (this.stopUIStates[stopIndex]) {
+      this.stops.at(stopIndex).get('supplierId')?.setValue(supplier?.id || null);
+      if (supplier) {
+        this.stopUIStates[stopIndex].supplierName = `${supplier.supplierCode} - ${supplier.name}`;
+      } else {
+        this.stopUIStates[stopIndex].supplierName = '';
+      }
+      this.stopUIStates[stopIndex].supplierDropdownOpen = false;
+      this.stopUIStates[stopIndex].supplierSearchText = '';
+    }
+  }
+
   // Driver Dropdown Methods
   onDriverSearch(event: Event) {
     this.driverDropdownOpen = true;
@@ -151,6 +380,7 @@ export class RoutePlanningFormComponent implements OnInit {
     // Delay slightly so that mousedown on options can fire before the dropdown is removed
     setTimeout(() => {
       this.driverDropdownOpen = false;
+      this.cdr.detectChanges();
     }, 200);
   }
 
@@ -181,6 +411,7 @@ export class RoutePlanningFormComponent implements OnInit {
   onTruckBlur() {
     setTimeout(() => {
       this.truckDropdownOpen = false;
+      this.cdr.detectChanges();
     }, 200);
   }
 
@@ -224,6 +455,7 @@ export class RoutePlanningFormComponent implements OnInit {
 
         // Load stops
         this.stops.clear();
+        this.stopUIStates = [];
         order.details?.forEach(stop => {
           const stopGroup = this.fb.group({
             supplierId: [stop.supplierId, Validators.required],
@@ -231,15 +463,33 @@ export class RoutePlanningFormComponent implements OnInit {
             manifests: this.fb.array([])
           });
           const manifestsArray = stopGroup.get('manifests') as FormArray;
-          stop.manifests?.forEach(m => {
-            manifestsArray.push(this.fb.group({
-              manifestNo: [m.manifestNo, Validators.required],
-              totalKanban: [m.totalKanban, Validators.required],
-              orderType: [m.orderType],
-              totalSkid: [m.totalSkid],
-              dockCode: [m.dockCode]
-            }));
+          
+          this.routeService.getPickupOrderStopManifests(order.id, stop.id, 1, 1000).subscribe({
+            next: (res) => {
+              res.data?.forEach(m => {
+                manifestsArray.push(this.fb.group({
+                  manifestNo: [m.manifestNo, Validators.required],
+                  totalKanban: [m.totalKanban, Validators.required],
+                  totalPart: [m.totalPart || 0],
+                  orderType: [m.orderType],
+                  totalSkid: [m.totalSkid],
+                  dockCode: [m.dockCode]
+                }));
+              });
+              this.cdr.markForCheck();
+            }
           });
+          
+          this.setupStopSupplierSubscription(stopGroup);
+          
+          this.stopUIStates.push({
+            page: 1,
+            pageSize: 5,
+            search: '',
+            selectedCheckboxes: new Set<number>(),
+            isLoading: false
+          });
+          
           this.stops.push(stopGroup);
         });
         
@@ -256,12 +506,59 @@ export class RoutePlanningFormComponent implements OnInit {
     this.currentStopIndex = stopIndex;
     this.showManifestModal = true;
     this.selectedManifests.clear();
+    
+    // Auto-filter by supplier if selected
+    const stop = this.stops.at(stopIndex) as FormGroup;
+    const supplierId = stop.get('supplierId')?.value;
+    let supplierCode = '';
+    
+    if (supplierId) {
+      const supplier = this.suppliers.find(s => s.id === supplierId);
+      if (supplier) supplierCode = supplier.supplierCode;
+    }
+
+    this.manifestModalState = {
+      search: '',
+      page: 1,
+      pageSize: 10,
+      totalPages: 1,
+      supplierCode: supplierCode
+    };
+
+    this.loadModalManifests();
+  }
+
+  loadModalManifests() {
     this.manifestLoading = true;
-    // Fetch manifests from cargo service. For simplicity fetching all first page
-    this.cargoService.getManifests().subscribe(res => {
-      this.availableManifests = res.data;
-      this.manifestLoading = false;
+    this.cargoService.getManifests(
+      this.manifestModalState.search,
+      this.manifestModalState.supplierCode,
+      'Pending',
+      this.manifestModalState.page,
+      this.manifestModalState.pageSize
+    ).subscribe({
+      next: (res) => {
+        this.availableManifests = res.data;
+        this.manifestModalState.totalPages = res.pagination?.total_pages || 1;
+        this.manifestLoading = false;
+      },
+      error: () => {
+        this.manifestLoading = false;
+      }
     });
+  }
+
+  onManifestSearch(term: string) {
+    this.manifestModalState.search = term;
+    this.manifestModalState.page = 1;
+    this.loadModalManifests();
+  }
+
+  onManifestPageChange(newPage: number) {
+    if (newPage >= 1 && newPage <= this.manifestModalState.totalPages) {
+      this.manifestModalState.page = newPage;
+      this.loadModalManifests();
+    }
   }
 
   closeManifestModal() {
@@ -281,13 +578,18 @@ export class RoutePlanningFormComponent implements OnInit {
     const manifestsArray = this.getManifestsForStop(this.currentStopIndex);
     this.availableManifests.forEach(m => {
       if (this.selectedManifests.has(m.id)) {
-        manifestsArray.push(this.fb.group({
-          manifestNo: [m.manifestNo, Validators.required],
-          totalKanban: [m.totalKanban, Validators.required],
-          orderType: ['ORG'],
-          totalSkid: [1],
-          dockCode: ['-']
-        }));
+        // Prevent duplicate manifest addition
+        const exists = manifestsArray.value.some((extM: any) => extM.manifestNo === m.manifestNo);
+        if (!exists) {
+          manifestsArray.push(this.fb.group({
+            manifestNo: [m.manifestNo, Validators.required],
+            totalKanban: [m.totalKanbans, Validators.required],
+            totalPart: [m.totalParts || 0],
+            orderType: ['ORG'],
+            totalSkid: [1],
+            dockCode: ['-']
+          }));
+        }
       }
     });
     this.closeManifestModal();
@@ -299,6 +601,7 @@ export class RoutePlanningFormComponent implements OnInit {
     manifestsArray.push(this.fb.group({
       manifestNo: ['', Validators.required],
       totalKanban: [1, Validators.required],
+      totalPart: [0],
       orderType: ['ORG'],
       totalSkid: [1],
       dockCode: ['-']

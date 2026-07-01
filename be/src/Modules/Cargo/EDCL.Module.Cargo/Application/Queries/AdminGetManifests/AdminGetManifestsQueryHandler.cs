@@ -19,8 +19,17 @@ internal sealed class AdminGetManifestsQueryHandler(CargoDbContext dbContext)
         
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
-            var searchTerm = request.Search.ToLower();
-            query = query.Where(x => x.ManifestNo.ToLower().Contains(searchTerm) || x.SupplierName.ToLower().Contains(searchTerm));
+            query = query.Where(x => x.ManifestNo.Contains(request.Search) || x.SupplierName.Contains(request.Search));
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.SupplierCode))
+        {
+            query = query.Where(x => x.SupplierCode == request.SupplierCode);
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Status))
+        {
+            query = query.Where(x => x.Status == request.Status);
         }
 
         query = query.AsNoTracking();
@@ -33,9 +42,11 @@ internal sealed class AdminGetManifestsQueryHandler(CargoDbContext dbContext)
             .Select(x => new AdminManifestDto(
                 x.Id, 
                 x.ManifestNo, 
+                x.SupplierCode,
                 x.SupplierName, 
                 x.Kanbans.Count(), 
-                x.Parts.Count()
+                x.Parts.Count(),
+                x.Status
             ))
             .ToListAsync(cancellationToken);
 

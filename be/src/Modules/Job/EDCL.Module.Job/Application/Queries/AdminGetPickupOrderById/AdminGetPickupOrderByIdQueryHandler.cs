@@ -15,7 +15,7 @@ internal sealed class AdminGetPickupOrderByIdQueryHandler(JobDbContext dbContext
     {
         var pickupOrder = await dbContext.PickupOrders
             .AsNoTracking()
-            .Include(x => x.Details).ThenInclude(x => x.Manifests).ThenInclude(x => x.Kanbans)
+            .Include(x => x.Details)
             .FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
 
         if (pickupOrder == null)
@@ -26,12 +26,7 @@ internal sealed class AdminGetPickupOrderByIdQueryHandler(JobDbContext dbContext
             pickupOrder.RouteCode, pickupOrder.CycleCode, pickupOrder.EstimatedDepartureTime, pickupOrder.Status, pickupOrder.StartedAt, pickupOrder.CompletedAt,
             pickupOrder.Details.OrderBy(d => d.Sequence).Select(d => new AdminPickupOrderDetailDto(
                 d.Id, d.SupplierId, d.Sequence, d.Status, d.ArrivedAt, d.PickedUpAt,
-                d.Manifests.Select(m => new AdminPickupOrderManifestDto(
-                    m.Id, m.ManifestNo, m.Status, m.TotalKanban, m.ScannedKanban, m.OrderType, m.TotalSkid, m.DockCode,
-                    m.Kanbans.Select(k => new AdminPickupOrderKanbanDto(
-                        k.Id, k.KanbanCode, k.Status, k.ScannedAt
-                    )).ToList()
-                )).ToList()
+                new List<AdminPickupOrderManifestDto>()
             )).ToList()
         );
 

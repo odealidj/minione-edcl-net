@@ -12,9 +12,11 @@ export class CargoService {
   private http = inject(HttpClient);
   private baseUrl = environment.apiUrl + '/master/cargo';
 
-  getManifests(search?: string, page: number = 1, pageSize: number = 10): Observable<ApiResponse<Manifest[]>> {
+  getManifests(search?: string, supplierCode?: string, status?: string, page: number = 1, pageSize: number = 10): Observable<ApiResponse<Manifest[]>> {
     let params = new HttpParams().set('page', page).set('pageSize', pageSize);
     if (search) params = params.set('search', search);
+    if (supplierCode) params = params.set('supplierCode', supplierCode);
+    if (status) params = params.set('status', status);
     return this.http.get<ApiResponse<Manifest[]>>(`${this.baseUrl}/manifests`, { params });
   }
 

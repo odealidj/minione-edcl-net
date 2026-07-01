@@ -22,6 +22,6 @@ internal sealed class AdminGetManifestByIdQueryHandler(CargoDbContext dbContext)
 
         if (x is null) return Result<AdminManifestDto>.Failure(Error.NotFound("Manifest.NotFound", "Manifest not found."));
 
-        return Result<AdminManifestDto>.Success(new AdminManifestDto(x.Id, x.ManifestNo, x.SupplierName, x.Kanbans.Count, x.Parts.Count));
+        return Result<AdminManifestDto>.Success(new AdminManifestDto(x.Id, x.ManifestNo, x.SupplierCode, x.SupplierName, x.Kanbans.Count, x.Parts.Count, x.Status));
     }
 }
