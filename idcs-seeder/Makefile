@@ -33,5 +33,8 @@ seed-race-condition:
 seed-bulk:
 	dotnet run bulk
 
+seed-k6-clean:
+	cd ../be/tests/k6/EDCL.K6Seeder && dotnet run clean
+
 seed-edcl-master:
 	dotnet run edcl-master

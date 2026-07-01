@@ -138,7 +138,7 @@ export class RoutePlanningFormComponent implements OnInit {
       switchMap(newSupplierId => {
         const supplier = this.suppliers.find(s => s.id === newSupplierId);
         if (!supplier) return of({ data: [] });
-        return this.cargoService.getManifests('', supplier.supplierCode, 'Pending', 1, 1000).pipe(
+        return this.cargoService.getManifests('', supplier.supplierCode, 'Pending', false, 1, 1000).pipe(
           catchError(() => of({ data: [] }))
         );
       })
@@ -534,6 +534,7 @@ export class RoutePlanningFormComponent implements OnInit {
       this.manifestModalState.search,
       this.manifestModalState.supplierCode,
       'Pending',
+      false,
       this.manifestModalState.page,
       this.manifestModalState.pageSize
     ).subscribe({

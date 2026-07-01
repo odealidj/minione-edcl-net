@@ -19,6 +19,11 @@ public class Manifest : AuditableEntity
     // Status can be Pending, Scanned, etc.
     public string Status { get; private set; } = "Pending";
 
+    public bool IsAssignedToRoute { get; private set; } = false;
+
+    public void AssignToRoute() => IsAssignedToRoute = true;
+    public void UnassignFromRoute() => IsAssignedToRoute = false;
+
     private readonly List<ManifestPart> _parts = new();
     public IReadOnlyCollection<ManifestPart> Parts => _parts.AsReadOnly();
 

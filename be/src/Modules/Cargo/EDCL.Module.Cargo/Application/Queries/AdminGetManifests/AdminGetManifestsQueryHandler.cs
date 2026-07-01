@@ -32,6 +32,11 @@ internal sealed class AdminGetManifestsQueryHandler(CargoDbContext dbContext)
             query = query.Where(x => x.Status == request.Status);
         }
 
+        if (request.IsAssignedToRoute.HasValue)
+        {
+            query = query.Where(x => x.IsAssignedToRoute == request.IsAssignedToRoute.Value);
+        }
+
         query = query.AsNoTracking();
 
         var totalCount = await query.CountAsync(cancellationToken);

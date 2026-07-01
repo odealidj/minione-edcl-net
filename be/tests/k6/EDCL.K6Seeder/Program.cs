@@ -48,6 +48,25 @@ namespace EDCL.K6Seeder
             // Ensure connection
             await authDb.Database.CanConnectAsync();
 
+            if (args.Contains("clean", StringComparer.OrdinalIgnoreCase))
+            {
+                Console.WriteLine("Cleaning up K6 Seed Data...");
+                await jobDb.Database.ExecuteSqlRawAsync("DELETE FROM job.pickup_order_kanbans WHERE PickupOrderManifestId IN (SELECT Id FROM job.pickup_order_manifests WHERE ManifestNo LIKE 'MAN-K6-%')");
+                await jobDb.Database.ExecuteSqlRawAsync("DELETE FROM job.pickup_order_manifests WHERE ManifestNo LIKE 'MAN-K6-%'");
+                await jobDb.Database.ExecuteSqlRawAsync("DELETE FROM job.pickup_order_details WHERE PickupOrderId IN (SELECT Id FROM job.pickup_orders WHERE delivery_no LIKE 'PO-K6-%')");
+                await jobDb.Database.ExecuteSqlRawAsync("DELETE FROM job.pickup_orders WHERE delivery_no LIKE 'PO-K6-%'");
+                
+                await driverDb.Database.ExecuteSqlRawAsync("DELETE FROM driver.suppliers WHERE SupplierCode = 'SUP-K6'");
+                
+                await authDb.Database.ExecuteSqlRawAsync("DELETE FROM auth.drivers WHERE Nik LIKE 'NIK-K6-%'");
+                
+                var jsonPathDelete = Path.Combine(Directory.GetCurrentDirectory(), "..", "users.json");
+                if (File.Exists(jsonPathDelete)) File.Delete(jsonPathDelete);
+                
+                Console.WriteLine("Cleanup Complete!");
+                return;
+            }
+
             int targetVUs = 100; // How many concurrent drivers you want to simulate
             Console.WriteLine($"Seeding {targetVUs} Virtual Users (Drivers) and Jobs...");
 

@@ -35,7 +35,7 @@ export class ManifestComponent implements OnInit {
 
   loadData(): void {
     this.isLoading.set(true);
-    this.service.getManifests(this.searchQuery, undefined, undefined, this.currentPage, this.pageSize).subscribe({
+    this.service.getManifests(this.searchQuery, undefined, undefined, undefined, this.currentPage, this.pageSize).subscribe({
       next: (res) => {
         if (res.status === 'success') {
           this.items.set(res.data);

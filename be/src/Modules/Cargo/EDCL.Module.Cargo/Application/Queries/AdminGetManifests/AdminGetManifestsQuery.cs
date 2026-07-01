@@ -5,7 +5,7 @@ using EDCL.Module.Cargo.Application.DTOs;
 
 namespace EDCL.Module.Cargo.Application.Queries.AdminGetManifests;
 
-public sealed record AdminGetManifestsQuery(string? Search = null, string? SupplierCode = null, string? Status = null, int PageNumber = 1, int PageSize = 10) 
+public sealed record AdminGetManifestsQuery(string? Search = null, string? SupplierCode = null, string? Status = null, bool? IsAssignedToRoute = null, int PageNumber = 1, int PageSize = 10) 
     : IRequest<Result<AdminGetManifestsResponse>>;
 
 public sealed record AdminGetManifestsResponse(

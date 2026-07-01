@@ -5,6 +5,9 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Linq;
+using EDCL.Shared.Kernel.Events;
+using Hangfire;
 
 namespace EDCL.Module.Job.Application.Commands.AdminCreatePickupOrder;
 
@@ -15,6 +18,23 @@ internal sealed class AdminCreatePickupOrderCommandHandler(JobDbContext dbContex
     {
         if (await dbContext.PickupOrders.AnyAsync(x => x.PoNo == request.PoNo, cancellationToken))
             return Result<long>.Failure(Error.Conflict("PickupOrder.Duplicate", $"PO No '{request.PoNo}' already exists."));
+
+        var requestedManifestNos = request.Stops.SelectMany(s => s.Manifests).Select(m => m.ManifestNo).ToList();
+        
+        var conflictingManifests = await dbContext.PickupOrders
+            .Where(po => po.Status == PickupOrderStatus.Pending || po.Status == PickupOrderStatus.OnProgress)
+            .SelectMany(po => po.Details)
+            .SelectMany(d => d.Manifests)
+            .Where(m => requestedManifestNos.Contains(m.ManifestNo))
+            .Select(m => m.ManifestNo)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        if (conflictingManifests.Any())
+        {
+            var conflicts = string.Join(", ", conflictingManifests);
+            return Result<long>.Failure(Error.Conflict("Manifest.DoubleBooking", $"The following manifests are already assigned to an active route: {conflicts}"));
+        }
 
         var pickupOrder = PickupOrder.Create(request.DriverId, request.TruckId, request.PoNo, request.PickupDate, request.RouteCode, request.CycleCode, request.EstimatedDepartureTime);
 
@@ -33,6 +53,9 @@ internal sealed class AdminCreatePickupOrderCommandHandler(JobDbContext dbContex
 
         dbContext.PickupOrders.Add(pickupOrder);
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        // Publish event asynchronously via Hangfire for resilience (retries if Cargo DB fails)
+        BackgroundJob.Enqueue<IMediator>(m => m.Publish(new ManifestsAssignedToRouteIntegrationEvent(requestedManifestNos, true), CancellationToken.None));
 
         return Result<long>.Success(pickupOrder.Id);
     }

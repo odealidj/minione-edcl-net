@@ -14,9 +14,9 @@ public class AdminCargoController(IMediator mediator) : ControllerBase
 {
     [HttpGet("manifests")]
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<Application.DTOs.AdminManifestDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetManifests([FromQuery] string? search = null, [FromQuery] string? supplierCode = null, [FromQuery] string? status = null, [FromQuery] int page = 1, [FromQuery] int pageSize = 10, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> GetManifests([FromQuery] string? search = null, [FromQuery] string? supplierCode = null, [FromQuery] string? status = null, [FromQuery] bool? isAssignedToRoute = null, [FromQuery] int page = 1, [FromQuery] int pageSize = 10, CancellationToken cancellationToken = default)
     {
-        var result = await mediator.Send(new Application.Queries.AdminGetManifests.AdminGetManifestsQuery(search, supplierCode, status, page, pageSize), cancellationToken);
+        var result = await mediator.Send(new Application.Queries.AdminGetManifests.AdminGetManifestsQuery(search, supplierCode, status, isAssignedToRoute, page, pageSize), cancellationToken);
         var traceId = HttpContext.TraceIdentifier;
         return result.IsSuccess 
             ? Ok(ApiResponse<IReadOnlyList<Application.DTOs.AdminManifestDto>>.Paginated(result.Value.Items, PaginationMeta.From(result.Value.PageNumber, result.Value.PageSize, result.Value.TotalCount), traceId))
