@@ -23,15 +23,16 @@ be/
 ├── src/
 │   ├── Gateway/               # API Gateway (YARP) - Single Point of Entry
 │   ├── Host/                  # Main Web API (.NET Host)
-│   ├── Modules/               # Fitur Utama (Auth, Job, Cargo, Notification)
+│   ├── Modules/               # Fitur Utama (Auth, Job, Cargo, Driver, Notification)
 │   └── Shared/                # Kernel, Interfaces, & Infrastructure
 ├── workers/                   # Background Services terpisah
 │   ├── EDCL.Worker.Ingestion/ # Worker untuk konsumsi data awal
 │   ├── EDCL.Worker.Outbox/    # Worker untuk pola Transactional Outbox
 │   └── EDCL.Worker.Reporter/  # Worker untuk pelaporan / agregasi data
-├── tests/                     # Unit Tests menggunakan xUnit & Moq
+├── tests/                     # Tests (Unit, Integration, E2E) menggunakan xUnit, Moq, dan k6
 ├── docker-compose.yml         # Konfigurasi container service
-└── Makefile                   # Shortcut eksekusi environment
+├── Makefile                   # Shortcut eksekusi environment
+└── edcl-api-requests.http     # Koleksi request untuk testing API via REST Client
 ```
 
 > **Catatan Penting:** Modul hanya boleh berkomunikasi satu sama lain melalui kontrak *interface* yang ada di `Shared.Kernel` atau melalui *Event/Message* di RabbitMQ.
@@ -79,13 +80,26 @@ Anda dapat mengecek kesehatan seluruh komponen sistem (API, Database, Redis, Rab
 GET http://localhost:5293/health
 ```
 
-Untuk daftar lengkap API Request yang didukung, silakan lihat file `EDCL.Gateway.http` di dalam folder `src/Gateway/EDCL.Gateway/`.
+Untuk daftar lengkap API Request yang didukung, Anda dapat menggunakan file `edcl-api-requests.http` yang ada di *root* direktori `be/` atau file `EDCL.Gateway.http` di dalam folder `src/Gateway/EDCL.Gateway/`. Keduanya dapat dijalankan menggunakan ekstensi REST Client di VS Code.
 
 ---
 
 ## 🧪 Testing
 
-Proyek ini dilengkapi dengan Unit Test menggunakan **xUnit**. Untuk menjalankan test:
-```bash
-dotnet test tests/EDCL.UnitTests/
-```
+Proyek ini dilengkapi dengan *suite testing* yang komprehensif menggunakan **xUnit**, **Moq**, dan **k6**.
+
+### Menjalankan Test
+
+- **Unit Test**: 
+  ```bash
+  dotnet test tests/EDCL.UnitTests/
+  ```
+- **Integration Test**:
+  ```bash
+  dotnet test tests/EDCL.IntegrationTests/
+  ```
+- **End-to-End (E2E) Test**:
+  ```bash
+  dotnet test tests/EDCL.E2ETests/
+  ```
+- **Performance / Load Test**: Skrip uji beban dan performa berada di folder `tests/k6/` (perlu dijalankan menggunakan *tool* k6).
