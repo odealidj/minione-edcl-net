@@ -536,11 +536,11 @@ class Program
 
         Console.WriteLine("Seeding Transporter...");
         var transporterId = await conn.ExecuteScalarAsync<long?>(
-            "SELECT Id FROM edcl.auth.transporters WHERE Name = 'Hikari Logistics'");
+            "SELECT Id FROM edcl.driver.transporters WHERE Name = 'Hikari Logistics'");
         if (transporterId == null)
         {
             transporterId = await conn.QuerySingleAsync<long>(@"
-                INSERT INTO edcl.auth.transporters (Name, created_at, created_by, is_deleted) 
+                INSERT INTO edcl.driver.transporters (Name, created_at, created_by, is_deleted) 
                 OUTPUT INSERTED.Id 
                 VALUES ('Hikari Logistics', GETUTCDATE(), 'System', 0)");
             Console.WriteLine($"Inserted Transporter ID: {transporterId}");
@@ -553,9 +553,10 @@ class Program
         if (truckId == null)
         {
             truckId = await conn.QuerySingleAsync<long>(@"
-                INSERT INTO edcl.driver.trucks (PlateNumber, VehicleType, created_at, created_by, is_deleted) 
+                INSERT INTO edcl.driver.trucks (TransporterId, PlateNumber, VehicleType, created_at, created_by, is_deleted) 
                 OUTPUT INSERTED.Id 
-                VALUES ('B 9607 PXT', 'Wingbox', GETUTCDATE(), 'System', 0)");
+                VALUES (@TransporterId, 'B 9607 PXT', 'Wingbox', GETUTCDATE(), 'System', 0)",
+                new { TransporterId = transporterId });
             Console.WriteLine($"Inserted Truck ID: {truckId}");
         }
         else Console.WriteLine($"Truck already exists. ID: {truckId}");

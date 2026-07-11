@@ -38,11 +38,7 @@ internal sealed class DriverConfiguration : IEntityTypeConfiguration<Driver>
         builder.HasIndex(d => new { d.IsActive, d.PhoneNumber })
             .HasDatabaseName("IX_drivers_active_phone_perf");
 
-        // ── Relationships ─────────────────────────────────────────────────
-        builder.HasOne(d => d.Transporter)
-            .WithMany(t => t.Drivers)
-            .HasForeignKey(d => d.TransporterId)
-            .OnDelete(DeleteBehavior.SetNull);
+
 
         builder.HasMany(d => d.PhoneHistories)
             .WithOne(ph => ph.Driver)
@@ -82,34 +78,6 @@ internal sealed class DriverConfiguration : IEntityTypeConfiguration<Driver>
     }
 }
 
-internal sealed class TransporterConfiguration : IEntityTypeConfiguration<Transporter>
-{
-    public void Configure(EntityTypeBuilder<Transporter> builder)
-    {
-        builder.ToTable("transporters");
-        builder.HasKey(t => t.Id);
-        builder.Property(t => t.Id).UseIdentityColumn();
-        builder.Property(t => t.Name).HasMaxLength(150).IsRequired();
-
-        ConfigureAuditColumns(builder);
-    }
-
-    private static void ConfigureAuditColumns<T>(EntityTypeBuilder<T> builder)
-        where T : AuditableEntity
-    {
-        builder.Property(e => e.CreatedAt).HasColumnName("created_at")
-            .HasColumnType("datetime2(7)").HasDefaultValueSql("GETUTCDATE()").IsRequired();
-        builder.Property(e => e.CreatedBy).HasColumnName("created_by").HasMaxLength(100).IsRequired();
-        builder.Property(e => e.UpdatedAt).HasColumnName("updated_at").HasColumnType("datetime2(7)");
-        builder.Property(e => e.UpdatedBy).HasColumnName("updated_by").HasMaxLength(100);
-        builder.Property(e => e.IsDeleted).HasColumnName("is_deleted").HasDefaultValue(false);
-        builder.Property(e => e.DeletedAt).HasColumnName("deleted_at").HasColumnType("datetime2(7)");
-        builder.Property(e => e.DeletedBy).HasColumnName("deleted_by").HasMaxLength(100);
-        builder.Property(e => e.RowVersion).HasColumnName("row_version").IsRowVersion();
-        builder.Property(e => e.TraceId).HasColumnName("trace_id").HasMaxLength(64);
-        builder.HasQueryFilter(e => !e.IsDeleted);
-    }
-}
 
 internal sealed class DriverPhoneHistoryConfiguration : IEntityTypeConfiguration<DriverPhoneHistory>
 {

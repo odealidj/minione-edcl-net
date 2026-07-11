@@ -308,8 +308,6 @@ namespace EDCL.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("UIX_drivers_active_phone")
                         .HasFilter("[IsActive] = 1");
 
-                    b.HasIndex("TransporterId");
-
                     b.HasIndex("IsActive", "PhoneNumber")
                         .HasDatabaseName("IX_drivers_active_phone_perf");
 
@@ -570,72 +568,6 @@ namespace EDCL.Infrastructure.Persistence.Migrations
                         });
                 });
 
-            modelBuilder.Entity("EDCL.Module.Auth.Domain.Entities.Transporter", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2(7)")
-                        .HasColumnName("created_at")
-                        .HasDefaultValueSql("GETUTCDATE()");
-
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("created_by");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2(7)")
-                        .HasColumnName("deleted_at");
-
-                    b.Property<string>("DeletedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("deleted_by");
-
-                    b.Property<bool>("IsDeleted")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false)
-                        .HasColumnName("is_deleted");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion")
-                        .HasColumnName("row_version");
-
-                    b.Property<string>("TraceId")
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)")
-                        .HasColumnName("trace_id");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2(7)")
-                        .HasColumnName("updated_at");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("updated_by");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("transporters", "auth");
-                });
-
             modelBuilder.Entity("EDCL.Module.Auth.Domain.Entities.AppUser", b =>
                 {
                     b.HasOne("EDCL.Module.Auth.Domain.Entities.Role", "Role")
@@ -656,16 +588,6 @@ namespace EDCL.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("AppUser");
-                });
-
-            modelBuilder.Entity("EDCL.Module.Auth.Domain.Entities.Driver", b =>
-                {
-                    b.HasOne("EDCL.Module.Auth.Domain.Entities.Transporter", "Transporter")
-                        .WithMany("Drivers")
-                        .HasForeignKey("TransporterId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("Transporter");
                 });
 
             modelBuilder.Entity("EDCL.Module.Auth.Domain.Entities.DriverPhoneHistory", b =>
@@ -700,11 +622,6 @@ namespace EDCL.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("EDCL.Module.Auth.Domain.Entities.Role", b =>
                 {
                     b.Navigation("Users");
-                });
-
-            modelBuilder.Entity("EDCL.Module.Auth.Domain.Entities.Transporter", b =>
-                {
-                    b.Navigation("Drivers");
                 });
 #pragma warning restore 612, 618
         }

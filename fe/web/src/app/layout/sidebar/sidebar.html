@@ -24,6 +24,15 @@
   <div class="divider text-xs uppercase text-base-content/50 my-1">Data Master</div>
   
   <li>
+    <a [routerLink]="manifestItem.route" routerLinkActive="active bg-primary text-primary-content rounded-xl shadow-md shadow-primary/20 hover:bg-primary/90" class="rounded-xl transition-all hover:bg-base-200">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+        <path stroke-linecap="round" stroke-linejoin="round" [attr.d]="manifestItem.icon" />
+      </svg>
+      {{ manifestItem.title }}
+    </a>
+  </li>
+  
+  <li>
     <details open>
       <summary class="rounded-xl hover:bg-base-200">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">

@@ -6,7 +6,7 @@ namespace EDCL.Module.Driver.Infrastructure.Persistence;
 
 /// <summary>
 /// EF Core DbContext for the Driver module.
-/// Owns: [driver].[suppliers], [driver].[trucks]
+/// Owns: [driver].[suppliers], [driver].[trucks], [driver].[transporters], [driver].[truck_driver_assignments]
 ///
 /// This context NEVER queries tables from other module schemas.
 /// Cross-domain reads go through port interfaces.
@@ -18,6 +18,8 @@ public sealed class DriverDbContext(
 {
     public DbSet<Supplier> Suppliers => Set<Supplier>();
     public DbSet<Truck> Trucks => Set<Truck>();
+    public DbSet<Transporter> Transporters => Set<Transporter>();
+    public DbSet<TruckDriverAssignment> TruckDriverAssignments => Set<TruckDriverAssignment>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {

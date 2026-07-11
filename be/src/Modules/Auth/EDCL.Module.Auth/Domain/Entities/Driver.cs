@@ -20,7 +20,7 @@ public sealed class Driver : AuditableEntity
     public string? PhotoUrl { get; private set; }
 
     // Navigation
-    public Transporter? Transporter { get; private set; }
+
     public ICollection<DriverPhoneHistory> PhoneHistories { get; private set; } = [];
     public ICollection<RefreshToken> RefreshTokens { get; private set; } = [];
 

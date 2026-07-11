@@ -24,6 +24,7 @@ export interface Driver {
   nik: string;
   phoneNumber: string;
   transporterId?: number | null;
+  transporterName?: string | null;
   createdBy: string;
   createdOnUtc: string;
 }
@@ -44,6 +45,8 @@ export interface Truck {
   id: number;
   plateNumber: string;
   vehicleType: string;
+  transporterId?: number | null;
+  transporterName?: string | null;
   isActive?: boolean;
   createdBy: string;
   createdOnUtc: string;

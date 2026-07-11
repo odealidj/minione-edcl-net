@@ -3,7 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ApiResponse } from '../models/api.model';
-import { Driver, Supplier, Truck } from '../models/master.model';
+import { Driver, Supplier, Truck, Transporter } from '../models/master.model';
 
 @Injectable({
   providedIn: 'root'
@@ -11,23 +11,30 @@ import { Driver, Supplier, Truck } from '../models/master.model';
 export class MasterDataService {
   private http = inject(HttpClient);
 
+  // Transporters
+  getTransporters(search?: string, page: number = 1, pageSize: number = 100): Observable<ApiResponse<Transporter[]>> {
+    let params = new HttpParams().set('page', page).set('pageSize', pageSize);
+    if (search) params = params.set('search', search);
+    return this.http.get<ApiResponse<Transporter[]>>(`${environment.apiUrl}/master/transporters`, { params });
+  }
+
   // Drivers
   getDrivers(search?: string, page: number = 1, pageSize: number = 10): Observable<ApiResponse<Driver[]>> {
     let params = new HttpParams().set('page', page).set('pageSize', pageSize);
     if (search) params = params.set('search', search);
-    return this.http.get<ApiResponse<Driver[]>>(`${environment.apiUrl}/auth/drivers`, { params });
+    return this.http.get<ApiResponse<Driver[]>>(`${environment.apiUrl}/master/drivers`, { params });
   }
 
   createDriver(name: string, nik: string, phoneNumber: string, transporterId?: number | null): Observable<ApiResponse<string>> {
-    return this.http.post<ApiResponse<string>>(`${environment.apiUrl}/auth/drivers`, { name, nik, phoneNumber, transporterId });
+    return this.http.post<ApiResponse<string>>(`${environment.apiUrl}/master/drivers`, { name, nik, phoneNumber, transporterId });
   }
 
   updateDriver(id: number, name: string, nik: string, phoneNumber: string, transporterId?: number | null): Observable<ApiResponse<any>> {
-    return this.http.put<ApiResponse<any>>(`${environment.apiUrl}/auth/drivers/${id}`, { id, name, nik, phoneNumber, transporterId });
+    return this.http.put<ApiResponse<any>>(`${environment.apiUrl}/master/drivers/${id}`, { id, name, nik, phoneNumber, transporterId });
   }
 
   deleteDriver(id: number): Observable<ApiResponse<any>> {
-    return this.http.delete<ApiResponse<any>>(`${environment.apiUrl}/auth/drivers/${id}`);
+    return this.http.delete<ApiResponse<any>>(`${environment.apiUrl}/master/drivers/${id}`);
   }
 
   // Suppliers
@@ -56,15 +63,35 @@ export class MasterDataService {
     return this.http.get<ApiResponse<Truck[]>>(`${environment.apiUrl}/master/trucks`, { params });
   }
 
-  createTruck(plateNumber: string, vehicleType: string): Observable<ApiResponse<string>> {
-    return this.http.post<ApiResponse<string>>(`${environment.apiUrl}/master/trucks`, { plateNumber, vehicleType });
+  createTruck(plateNumber: string, vehicleType: string, transporterId: number): Observable<ApiResponse<string>> {
+    return this.http.post<ApiResponse<string>>(`${environment.apiUrl}/master/trucks`, { plateNumber, vehicleType, transporterId });
   }
 
-  updateTruck(id: number, plateNumber: string, vehicleType: string): Observable<ApiResponse<any>> {
-    return this.http.put<ApiResponse<any>>(`${environment.apiUrl}/master/trucks/${id}`, { id, plateNumber, vehicleType });
+  updateTruck(id: number, plateNumber: string, vehicleType: string | null, transporterId: number): Observable<ApiResponse<any>> {
+    return this.http.put<ApiResponse<any>>(`${environment.apiUrl}/master/trucks/${id}`, { id, plateNumber, vehicleType, transporterId });
   }
 
   deleteTruck(id: number): Observable<ApiResponse<any>> {
     return this.http.delete<ApiResponse<any>>(`${environment.apiUrl}/master/trucks/${id}`);
+  }
+
+  assignDriverToTruck(truckId: number, driverId: number): Observable<ApiResponse<any>> {
+    return this.http.post<ApiResponse<any>>(`${environment.apiUrl}/master/trucks/${truckId}/assign`, { driverId });
+  }
+
+  unassignDriverFromTruck(truckId: number, driverId: number): Observable<ApiResponse<any>> {
+    return this.http.post<ApiResponse<any>>(`${environment.apiUrl}/master/trucks/${truckId}/unassign`, { driverId });
+  }
+
+  getAvailableTrucks(transporterId: number): Observable<ApiResponse<any[]>> {
+    return this.http.get<ApiResponse<any[]>>(`${environment.apiUrl}/master/trucks/assignments/available-trucks?transporterId=${transporterId}`);
+  }
+
+  getAvailableDrivers(transporterId: number): Observable<ApiResponse<any[]>> {
+    return this.http.get<ApiResponse<any[]>>(`${environment.apiUrl}/master/trucks/assignments/available-drivers?transporterId=${transporterId}`);
+  }
+
+  getTruckAssignments(): Observable<ApiResponse<any[]>> {
+    return this.http.get<ApiResponse<any[]>>(`${environment.apiUrl}/master/trucks/assignments`);
   }
 }

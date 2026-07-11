@@ -1,3 +1,3 @@
-namespace EDCL.Module.Auth.Application.DTOs;
+namespace EDCL.Module.Driver.Application.DTOs;
 
 public sealed record TransporterDto(long Id, string Name);

@@ -1,14 +1,14 @@
 using EDCL.Shared.Kernel.Common;
-using EDCL.Module.Auth.Infrastructure.Persistence;
+using EDCL.Module.Driver.Infrastructure.Persistence;
 using EDCL.Shared.Kernel.Domain;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace EDCL.Module.Auth.Application.Commands.DeleteTransporter;
+namespace EDCL.Module.Driver.Application.Commands.DeleteTransporter;
 
-internal sealed class DeleteTransporterCommandHandler(AuthDbContext dbContext) 
+internal sealed class DeleteTransporterCommandHandler(DriverDbContext dbContext) 
     : IRequestHandler<DeleteTransporterCommand, Result>
 {
     public async Task<Result> Handle(DeleteTransporterCommand request, CancellationToken cancellationToken)

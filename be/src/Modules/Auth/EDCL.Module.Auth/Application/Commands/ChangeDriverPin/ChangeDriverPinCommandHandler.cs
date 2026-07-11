@@ -77,7 +77,7 @@ public sealed class ChangeDriverPinCommandHandler(
             Name: driver.Name,
             Nik: driver.Nik,
             PhotoUrl: driver.PhotoUrl,
-            TransporterName: driver.Transporter?.Name,
+            TransporterName: null,
             AccessToken: accessToken,
             RefreshToken: rawRefreshToken,
             AccessTokenExpiresAt: accessExpiry,

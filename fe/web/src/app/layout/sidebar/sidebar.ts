@@ -17,15 +17,17 @@ export class Sidebar {
   }
 
   menuItems = [
-    { title: 'Dashboard', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6', route: '/dashboard' },
+    { title: 'Dashboard', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6', route: '/dashboard' }
   ];
+
+  manifestItem = { title: 'Manifests', icon: 'M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z', route: '/manifests' };
   
   masterItems = [
-    { title: 'Supplier', route: '/master/supplier' },
-    { title: 'Truck', route: '/master/truck' },
     { title: 'Transporter', route: '/master/transporter' },
     { title: 'Driver', route: '/master/driver' },
-    { title: 'Manifest', route: '/master/manifest' }
+    { title: 'Truck', route: '/master/truck' },
+    { title: 'Truck Assignments', route: '/master/truck-assignments' },
+    { title: 'Supplier', route: '/master/supplier' }
   ];
   
   operationItems = [

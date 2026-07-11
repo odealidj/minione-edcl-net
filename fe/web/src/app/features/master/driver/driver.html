@@ -1,24 +1,39 @@
 <div class="container mx-auto space-y-4">
-  <app-page-header title="Drivers" buttonText="Add New" (actionClick)="openModal()"></app-page-header>
+  <app-page-header title="Drivers" buttonText="Add New" (actionClick)="openModal()">
+    <button *ngIf="selectedIds().size > 0" class="btn btn-error" (click)="deleteSelected()" [disabled]="isDeletingSelected()">
+      @if (isDeletingSelected()) { <span class="loading loading-spinner loading-sm"></span> }
+      Delete Selected ({{ selectedIds().size }})
+    </button>
+  </app-page-header>
 
   <app-card>
     <app-search-bar placeholder="Search..." (search)="onSearch($event)"></app-search-bar>
     <table class="table w-full">
       <thead>
         <tr class="bg-base-200/50 text-base-content/50 uppercase text-xs">
-          <th>Name</th><th>NIK</th><th>Phone</th>
+          <th class="w-12 text-center align-middle">
+            <label class="cursor-pointer flex items-center justify-center">
+              <input type="checkbox" class="checkbox checkbox-sm checkbox-primary rounded" (change)="toggleAll($event)" [checked]="isAllSelected()">
+            </label>
+          </th>
+          <th>Name</th><th>NIK</th><th>Phone</th><th>Transporter</th>
           <th class="w-24 text-center">Actions</th>
         </tr>
       </thead>
       <tbody>
         @if (isLoading()) {
-          <tr><td colspan="4" class="text-center py-8"><span class="loading loading-spinner loading-lg text-primary"></span></td></tr>
+          <tr><td colspan="6" class="text-center py-8"><span class="loading loading-spinner loading-lg text-primary"></span></td></tr>
         } @else if (items().length === 0) {
-          <tr><td colspan="4" class="text-center py-8 text-base-content/50">No data found.</td></tr>
+          <tr><td colspan="6" class="text-center py-8 text-base-content/50">No data found.</td></tr>
         } @else {
           @for (item of items(); track item.id) {
             <tr class="hover:bg-base-200/50 transition-colors">
-              <td>{{ item.name }}</td><td>{{ item.nik }}</td><td>{{ item.phoneNumber }}</td>
+              <td class="text-center align-middle">
+                <label class="cursor-pointer flex items-center justify-center">
+                  <input type="checkbox" class="checkbox checkbox-sm checkbox-primary rounded" (change)="toggleSelection(item.id)" [checked]="isSelected(item.id)">
+                </label>
+              </td>
+              <td>{{ item.name }}</td><td>{{ item.nik }}</td><td>{{ item.phoneNumber }}</td><td>{{ item.transporterName || '-' }}</td>
               <td class="text-center">
                 <div class="join">
                   <button class="btn btn-sm btn-ghost join-item text-info" (click)="openModal(item)">Edit</button>

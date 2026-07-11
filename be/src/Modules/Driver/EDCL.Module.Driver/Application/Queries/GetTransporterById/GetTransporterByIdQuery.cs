@@ -1,8 +1,8 @@
 using EDCL.Shared.Kernel.Common;
 using EDCL.Shared.Kernel.Domain;
 using MediatR;
-using EDCL.Module.Auth.Application.DTOs;
+using EDCL.Module.Driver.Application.DTOs;
 
-namespace EDCL.Module.Auth.Application.Queries.GetTransporterById;
+namespace EDCL.Module.Driver.Application.Queries.GetTransporterById;
 
 public sealed record GetTransporterByIdQuery(long Id) : IRequest<Result<TransporterDto>>;

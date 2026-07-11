@@ -6,7 +6,7 @@ namespace EDCL.Module.Auth.Infrastructure.Persistence;
 
 /// <summary>
 /// EF Core DbContext for the Auth module.
-/// Owns: [auth].drivers, [auth].transporters,
+/// Owns: [auth].drivers,
 ///       [auth].driver_phone_histories, [auth].refresh_tokens
 ///
 /// This context NEVER queries tables from other module schemas.
@@ -18,7 +18,6 @@ public sealed class AuthDbContext(
     : DbContext(options)
 {
     public DbSet<Driver> Drivers => Set<Driver>();
-    public DbSet<Transporter> Transporters => Set<Transporter>();
     public DbSet<DriverPhoneHistory> DriverPhoneHistories => Set<DriverPhoneHistory>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<AppUserRefreshToken> AppUserRefreshTokens => Set<AppUserRefreshToken>();

@@ -2,13 +2,7 @@ using EDCL.Shared.Kernel.Domain;
 
 namespace EDCL.Module.Auth.Domain.Entities;
 
-public sealed class Transporter : AuditableEntity
-{
-    public long Id { get; private set; }
-    public string Name { get; private set; } = default!;
-    public ICollection<Driver> Drivers { get; private set; } = [];
-    private Transporter() { }
-}
+
 
 public sealed class DriverPhoneHistory : AuditableEntity
 {

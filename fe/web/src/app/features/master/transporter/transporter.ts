@@ -1,5 +1,6 @@
-import { Component, OnInit, inject, ViewChild, ElementRef, signal } from '@angular/core';
+import { Component, OnInit, inject, ViewChild, ElementRef, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { forkJoin } from 'rxjs';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
 import { Transporter } from '../../../core/models/master.model';
 import { PaginationMeta } from '../../../core/models/api.model';
@@ -24,6 +25,9 @@ export class TransporterComponent implements OnInit {
   searchQuery = '';
   currentPage = 1;
   pageSize = 10;
+  
+  selectedIds = signal<Set<number>>(new Set());
+  isDeletingSelected = signal(false);
 
   @ViewChild('crudModal') crudModal!: ElementRef<HTMLDialogElement>;
   form: FormGroup;
@@ -76,6 +80,55 @@ export class TransporterComponent implements OnInit {
     this.pageSize = size;
     this.currentPage = 1;
     this.loadData();
+  }
+
+  toggleSelection(id: number): void {
+    const current = new Set(this.selectedIds());
+    if (current.has(id)) {
+      current.delete(id);
+    } else {
+      current.add(id);
+    }
+    this.selectedIds.set(current);
+  }
+
+  toggleAll(event: Event): void {
+    const isChecked = (event.target as HTMLInputElement).checked;
+    if (isChecked) {
+      this.selectedIds.set(new Set(this.items().map(i => i.id)));
+    } else {
+      this.selectedIds.set(new Set());
+    }
+  }
+
+  isAllSelected(): boolean {
+    return this.items().length > 0 && this.selectedIds().size === this.items().length;
+  }
+
+  isSelected(id: number): boolean {
+    return this.selectedIds().has(id);
+  }
+
+  deleteSelected(): void {
+    const ids = Array.from(this.selectedIds());
+    if (ids.length === 0) return;
+    
+    if (confirm(`Are you sure you want to delete ${ids.length} selected items?`)) {
+      this.isDeletingSelected.set(true);
+      const requests = ids.map(id => this.service.deleteTransporter(id));
+      
+      forkJoin(requests).subscribe({
+        next: () => {
+          this.isDeletingSelected.set(false);
+          this.selectedIds.set(new Set());
+          this.loadData();
+        },
+        error: (err) => {
+          console.error('Error deleting selected items', err);
+          this.isDeletingSelected.set(false);
+        }
+      });
+    }
   }
 
   openModal(item?: Transporter): void {

@@ -1,15 +1,15 @@
 using EDCL.Shared.Kernel.Common;
-using EDCL.Module.Auth.Infrastructure.Persistence;
+using EDCL.Module.Driver.Infrastructure.Persistence;
 using EDCL.Shared.Kernel.Domain;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using EDCL.Module.Auth.Application.DTOs;
+using EDCL.Module.Driver.Application.DTOs;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace EDCL.Module.Auth.Application.Queries.GetTransporterById;
+namespace EDCL.Module.Driver.Application.Queries.GetTransporterById;
 
-internal sealed class GetTransporterByIdQueryHandler(AuthDbContext dbContext) 
+internal sealed class GetTransporterByIdQueryHandler(DriverDbContext dbContext) 
     : IRequestHandler<GetTransporterByIdQuery, Result<TransporterDto>>
 {
     public async Task<Result<TransporterDto>> Handle(GetTransporterByIdQuery request, CancellationToken cancellationToken)

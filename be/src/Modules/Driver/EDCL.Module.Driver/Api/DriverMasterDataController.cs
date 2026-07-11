@@ -24,7 +24,7 @@ public class AdminTrucksController(IMediator mediator) : ControllerBase
             : BadRequest(ApiResponse<object>.Fail(result.Error.Message, traceId, 400));
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{id:long}")]
     public async Task<IActionResult> GetById(long id, CancellationToken cancellationToken)
     {
         var result = await mediator.Send(new Application.Queries.GetTruckById.GetTruckByIdQuery(id), cancellationToken);
@@ -44,7 +44,7 @@ public class AdminTrucksController(IMediator mediator) : ControllerBase
             : BadRequest(ApiResponse<object>.Fail(result.Error.Message, traceId, 400));
     }
 
-    [HttpPut("{id}")]
+    [HttpPut("{id:long}")]
     public async Task<IActionResult> Update(long id, [FromBody] Application.Commands.UpdateTruck.UpdateTruckCommand command, CancellationToken cancellationToken)
     {
         if (id != command.Id) return BadRequest();
@@ -55,7 +55,7 @@ public class AdminTrucksController(IMediator mediator) : ControllerBase
             : BadRequest(ApiResponse<object>.Fail(result.Error.Message, traceId, 400));
     }
 
-    [HttpDelete("{id}")]
+    [HttpDelete("{id:long}")]
     public async Task<IActionResult> Delete(long id, CancellationToken cancellationToken)
     {
         var result = await mediator.Send(new Application.Commands.DeleteTruck.DeleteTruckCommand(id), cancellationToken);
@@ -64,7 +64,63 @@ public class AdminTrucksController(IMediator mediator) : ControllerBase
             ? Ok(ApiResponse<object>.Success(null, traceId))
             : BadRequest(ApiResponse<object>.Fail(result.Error.Message, traceId, 400));
     }
+
+    [HttpPost("{id:long}/assign")]
+    public async Task<IActionResult> AssignDriver(long id, [FromBody] AssignDriverRequest request, CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new Application.Commands.AssignDriverToTruck.AssignDriverToTruckCommand(id, request.DriverId), cancellationToken);
+        var traceId = HttpContext.TraceIdentifier;
+        return result.IsSuccess
+            ? Ok(ApiResponse<object>.Success(null, traceId))
+            : BadRequest(ApiResponse<object>.Fail(result.Error.Message, traceId, 400));
+    }
+
+    [HttpPost("{id:long}/unassign")]
+    public async Task<IActionResult> UnassignDriver(long id, [FromBody] UnassignDriverRequest request, CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new Application.Commands.UnassignDriverFromTruck.UnassignDriverFromTruckCommand(id, request.DriverId), cancellationToken);
+        var traceId = HttpContext.TraceIdentifier;
+        return result.IsSuccess
+            ? Ok(ApiResponse<object>.Success(null, traceId))
+            : BadRequest(ApiResponse<object>.Fail(result.Error.Message, traceId, 400));
+    }
+
+    [HttpGet("assignments")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<Application.DTOs.TruckDriverAssignmentDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAssignments(CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new Application.Queries.GetTruckAssignments.GetTruckAssignmentsQuery(), cancellationToken);
+        var traceId = HttpContext.TraceIdentifier;
+        return result.IsSuccess
+            ? Ok(ApiResponse<IReadOnlyList<Application.DTOs.TruckDriverAssignmentDto>>.Success(result.Value, traceId))
+            : BadRequest(ApiResponse<object>.Fail(result.Error.Message, traceId, 400));
+    }
+
+    [HttpGet("assignments/available-trucks")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<Application.DTOs.TruckDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAvailableTrucks([FromQuery] long transporterId, CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new Application.Queries.GetAvailableTrucks.GetAvailableTrucksQuery(transporterId), cancellationToken);
+        var traceId = HttpContext.TraceIdentifier;
+        return result.IsSuccess
+            ? Ok(ApiResponse<IReadOnlyList<Application.DTOs.TruckDto>>.Success(result.Value, traceId))
+            : BadRequest(ApiResponse<object>.Fail(result.Error.Message, traceId, 400));
+    }
+
+    [HttpGet("assignments/available-drivers")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<Application.DTOs.AvailableDriverDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAvailableDrivers([FromQuery] long transporterId, CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new Application.Queries.GetAvailableDrivers.GetAvailableDriversQuery(transporterId), cancellationToken);
+        var traceId = HttpContext.TraceIdentifier;
+        return result.IsSuccess
+            ? Ok(ApiResponse<IReadOnlyList<Application.DTOs.AvailableDriverDto>>.Success(result.Value, traceId))
+            : BadRequest(ApiResponse<object>.Fail(result.Error.Message, traceId, 400));
+    }
 }
+
+public record AssignDriverRequest(long DriverId);
+public record UnassignDriverRequest(long DriverId);
 
 [ApiController]
 [Route("api/v1/web/master/suppliers")]

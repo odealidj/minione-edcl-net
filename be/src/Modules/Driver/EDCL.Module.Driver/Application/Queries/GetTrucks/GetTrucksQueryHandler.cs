@@ -24,7 +24,9 @@ internal sealed class GetTrucksQueryHandler(DriverDbContext dbContext)
             query = query.Where(x => x.PlateNumber.ToLower().Contains(searchTerm));
         }
 
-        query = query.AsNoTracking();
+        query = query
+            .Include(t => t.Transporter)
+            .AsNoTracking();
 
         var totalCount = await query.CountAsync(cancellationToken);
         var items = await query
@@ -33,7 +35,7 @@ internal sealed class GetTrucksQueryHandler(DriverDbContext dbContext)
             .Take(request.PageSize)
             .ToListAsync(cancellationToken);
 
-        var dtos = items.Select(x => new TruckDto(x.Id, x.PlateNumber, x.VehicleType, x.IsActive)).ToList();
+        var dtos = items.Select(x => new TruckDto(x.Id, x.PlateNumber, x.VehicleType, x.TransporterId, x.Transporter?.Name, x.IsActive)).ToList();
         var totalPages = request.PageSize > 0 ? (int)Math.Ceiling((double)totalCount / request.PageSize) : 0;
 
         return Result<GetTrucksResponse>.Success(new GetTrucksResponse(dtos, totalCount, request.PageNumber, request.PageSize, totalPages));

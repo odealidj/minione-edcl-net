@@ -1,7 +1,8 @@
-import { Component, OnInit, inject, ViewChild, ElementRef, signal } from '@angular/core';
+import { Component, OnInit, inject, ViewChild, ElementRef, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { forkJoin } from 'rxjs';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Truck } from '../../../core/models/master.model';
+import { Truck, Transporter, Driver } from '../../../core/models/master.model';
 import { PaginationMeta } from '../../../core/models/api.model';
 import { MasterDataService } from '../../../core/services/master-data.service';
 
@@ -19,11 +20,15 @@ import { CardComponent } from '../../../shared/components/card/card.component';
 })
 export class TruckComponent implements OnInit {
   items = signal<Truck[]>([]);
+  transporters = signal<Transporter[]>([]);
   meta = signal<PaginationMeta | null>(null);
   isLoading = signal(true);
   searchQuery = '';
   currentPage = 1;
   pageSize = 10;
+
+  selectedIds = signal<Set<number>>(new Set());
+  isDeletingSelected = signal(false);
 
   @ViewChild('crudModal') crudModal!: ElementRef<HTMLDialogElement>;
   form: FormGroup;
@@ -37,12 +42,25 @@ export class TruckComponent implements OnInit {
   constructor() {
     this.form = this.fb.group({
       plateNumber: ['', Validators.required],
-      vehicleType: ['', Validators.required]
+      vehicleType: ['', Validators.required],
+      transporterId: [null, Validators.required]
     });
   }
 
   ngOnInit(): void {
+    this.loadTransporters();
     this.loadData();
+  }
+
+  loadTransporters(): void {
+    this.service.getTransporters().subscribe({
+      next: (res) => {
+        if (res.status === 'success') {
+          this.transporters.set(res.data);
+        }
+      },
+      error: (err) => console.error('Failed to load transporters', err)
+    });
   }
 
   loadData(): void {
@@ -79,11 +97,60 @@ export class TruckComponent implements OnInit {
     this.loadData();
   }
 
+  toggleSelection(id: number): void {
+    const current = new Set(this.selectedIds());
+    if (current.has(id)) {
+      current.delete(id);
+    } else {
+      current.add(id);
+    }
+    this.selectedIds.set(current);
+  }
+
+  toggleAll(event: Event): void {
+    const isChecked = (event.target as HTMLInputElement).checked;
+    if (isChecked) {
+      this.selectedIds.set(new Set(this.items().map(i => i.id)));
+    } else {
+      this.selectedIds.set(new Set());
+    }
+  }
+
+  isAllSelected(): boolean {
+    return this.items().length > 0 && this.selectedIds().size === this.items().length;
+  }
+
+  isSelected(id: number): boolean {
+    return this.selectedIds().has(id);
+  }
+
+  deleteSelected(): void {
+    const ids = Array.from(this.selectedIds());
+    if (ids.length === 0) return;
+    
+    if (confirm(`Are you sure you want to delete ${ids.length} selected items?`)) {
+      this.isDeletingSelected.set(true);
+      const requests = ids.map(id => this.service.deleteTruck(id));
+      
+      forkJoin(requests).subscribe({
+        next: () => {
+          this.isDeletingSelected.set(false);
+          this.selectedIds.set(new Set());
+          this.loadData();
+        },
+        error: (err) => {
+          console.error('Error deleting selected items', err);
+          this.isDeletingSelected.set(false);
+        }
+      });
+    }
+  }
+
   openModal(item?: Truck): void {
     if (item) {
       this.isEditMode = true;
       this.editingId = item.id;
-      this.form.patchValue({ plateNumber: item.plateNumber, vehicleType: item.vehicleType });
+      this.form.patchValue({ plateNumber: item.plateNumber, vehicleType: item.vehicleType, transporterId: item.transporterId });
     } else {
       this.isEditMode = false;
       this.editingId = null;
@@ -102,12 +169,12 @@ export class TruckComponent implements OnInit {
     const val = this.form.value;
 
     if (this.isEditMode && this.editingId) {
-      this.service.updateTruck(this.editingId, val.plateNumber, val.vehicleType).subscribe({
+      this.service.updateTruck(this.editingId, val.plateNumber, val.vehicleType, val.transporterId).subscribe({
         next: () => { this.isSaving = false; this.closeModal(); this.loadData(); },
         error: (err) => { console.error(err); this.isSaving = false; }
       });
     } else {
-      this.service.createTruck(val.plateNumber, val.vehicleType).subscribe({
+      this.service.createTruck(val.plateNumber, val.vehicleType, val.transporterId).subscribe({
         next: () => { this.isSaving = false; this.closeModal(); this.loadData(); },
         error: (err) => { console.error(err); this.isSaving = false; }
       });

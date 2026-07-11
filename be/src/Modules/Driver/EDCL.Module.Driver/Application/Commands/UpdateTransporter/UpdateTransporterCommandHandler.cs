@@ -1,14 +1,14 @@
 using EDCL.Shared.Kernel.Common;
-using EDCL.Module.Auth.Infrastructure.Persistence;
+using EDCL.Module.Driver.Infrastructure.Persistence;
 using EDCL.Shared.Kernel.Domain;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace EDCL.Module.Auth.Application.Commands.UpdateTransporter;
+namespace EDCL.Module.Driver.Application.Commands.UpdateTransporter;
 
-internal sealed class UpdateTransporterCommandHandler(AuthDbContext dbContext) 
+internal sealed class UpdateTransporterCommandHandler(DriverDbContext dbContext) 
     : IRequestHandler<UpdateTransporterCommand, Result>
 {
     public async Task<Result> Handle(UpdateTransporterCommand request, CancellationToken cancellationToken)
@@ -18,7 +18,7 @@ internal sealed class UpdateTransporterCommandHandler(AuthDbContext dbContext)
             
         if (entity is null) return Result.Failure(Error.NotFound("Transporter.NotFound", "Transporter not found."));
 
-        typeof(EDCL.Module.Auth.Domain.Entities.Transporter).GetProperty("Name")!.SetValue(entity, request.Name);
+        typeof(EDCL.Module.Driver.Domain.Entities.Transporter).GetProperty("Name")!.SetValue(entity, request.Name);
         await dbContext.SaveChangesAsync(cancellationToken);
         return Result.Success();
     }

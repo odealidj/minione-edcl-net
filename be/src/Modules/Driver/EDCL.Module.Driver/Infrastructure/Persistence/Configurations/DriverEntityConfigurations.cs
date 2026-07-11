@@ -56,9 +56,89 @@ internal sealed class TruckConfiguration : IEntityTypeConfiguration<Truck>
         builder.Property(t => t.VehicleType).HasMaxLength(100);
         builder.Property(t => t.IsActive).HasDefaultValue(true);
 
+        builder.Property(t => t.TransporterId).IsRequired();
+
         ConfigureAuditColumns(builder);
 
         builder.HasIndex(t => t.PlateNumber).IsUnique().HasDatabaseName("UQ_trucks_plate_number");
+
+        builder.HasOne(t => t.Transporter)
+            .WithMany() // Transporter doesn't have a navigation collection for Trucks right now
+            .HasForeignKey(t => t.TransporterId)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+
+    private static void ConfigureAuditColumns<T>(EntityTypeBuilder<T> builder)
+        where T : AuditableEntity
+    {
+        builder.Property(e => e.CreatedAt).HasColumnName("created_at")
+            .HasColumnType("datetime2(7)").HasDefaultValueSql("GETUTCDATE()").IsRequired();
+        builder.Property(e => e.CreatedBy).HasColumnName("created_by").HasMaxLength(100).IsRequired();
+        builder.Property(e => e.UpdatedAt).HasColumnName("updated_at").HasColumnType("datetime2(7)");
+        builder.Property(e => e.UpdatedBy).HasColumnName("updated_by").HasMaxLength(100);
+        builder.Property(e => e.IsDeleted).HasColumnName("is_deleted").HasDefaultValue(false);
+        builder.Property(e => e.DeletedAt).HasColumnName("deleted_at").HasColumnType("datetime2(7)");
+        builder.Property(e => e.DeletedBy).HasColumnName("deleted_by").HasMaxLength(100);
+        builder.Property(e => e.RowVersion).HasColumnName("row_version").IsRowVersion();
+        builder.Property(e => e.TraceId).HasColumnName("trace_id").HasMaxLength(64);
+        builder.HasQueryFilter(e => !e.IsDeleted);
+    }
+}
+
+internal sealed class TransporterConfiguration : IEntityTypeConfiguration<Transporter>
+{
+    public void Configure(EntityTypeBuilder<Transporter> builder)
+    {
+        builder.ToTable("transporters");
+        builder.HasKey(t => t.Id);
+        builder.Property(t => t.Id).UseIdentityColumn();
+        builder.Property(t => t.Name).HasMaxLength(150).IsRequired();
+
+        ConfigureAuditColumns(builder);
+    }
+
+    private static void ConfigureAuditColumns<T>(EntityTypeBuilder<T> builder)
+        where T : AuditableEntity
+    {
+        builder.Property(e => e.CreatedAt).HasColumnName("created_at")
+            .HasColumnType("datetime2(7)").HasDefaultValueSql("GETUTCDATE()").IsRequired();
+        builder.Property(e => e.CreatedBy).HasColumnName("created_by").HasMaxLength(100).IsRequired();
+        builder.Property(e => e.UpdatedAt).HasColumnName("updated_at").HasColumnType("datetime2(7)");
+        builder.Property(e => e.UpdatedBy).HasColumnName("updated_by").HasMaxLength(100);
+        builder.Property(e => e.IsDeleted).HasColumnName("is_deleted").HasDefaultValue(false);
+        builder.Property(e => e.DeletedAt).HasColumnName("deleted_at").HasColumnType("datetime2(7)");
+        builder.Property(e => e.DeletedBy).HasColumnName("deleted_by").HasMaxLength(100);
+        builder.Property(e => e.RowVersion).HasColumnName("row_version").IsRowVersion();
+        builder.Property(e => e.TraceId).HasColumnName("trace_id").HasMaxLength(64);
+        builder.HasQueryFilter(e => !e.IsDeleted);
+    }
+}
+
+internal sealed class TruckDriverAssignmentConfiguration : IEntityTypeConfiguration<TruckDriverAssignment>
+{
+    public void Configure(EntityTypeBuilder<TruckDriverAssignment> builder)
+    {
+        builder.ToTable("truck_driver_assignments");
+        builder.HasKey(a => a.Id);
+        builder.Property(a => a.Id).UseIdentityColumn();
+
+        builder.Property(a => a.TruckId).IsRequired();
+        builder.Property(a => a.DriverId).IsRequired();
+        builder.Property(a => a.IsActive).HasDefaultValue(true);
+        builder.Property(a => a.AssignedAt).HasColumnType("datetime2(7)").IsRequired();
+        builder.Property(a => a.UnassignedAt).HasColumnType("datetime2(7)");
+
+        ConfigureAuditColumns(builder);
+
+        builder.HasIndex(a => new { a.TruckId, a.IsActive }).HasDatabaseName("IX_assignments_truck_active");
+        builder.HasIndex(a => new { a.DriverId, a.IsActive }).HasDatabaseName("IX_assignments_driver_active");
+
+        builder.HasOne(a => a.Truck)
+            .WithMany(t => t.Assignments)
+            .HasForeignKey(a => a.TruckId)
+            .OnDelete(DeleteBehavior.Cascade);
+            
+        // No navigation property from Driver since Driver is in Auth module.
     }
 
     private static void ConfigureAuditColumns<T>(EntityTypeBuilder<T> builder)

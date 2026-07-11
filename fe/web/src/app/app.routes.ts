@@ -12,6 +12,7 @@ import { adminGuard } from './core/guards/admin.guard';
 import { TransporterComponent } from './features/master/transporter/transporter';
 import { TruckComponent } from './features/master/truck/truck';
 import { ManifestComponent } from './features/master/manifest/manifest';
+import { TruckAssignment } from './features/master/truck-assignment/truck-assignment';
 
 
 export const routes: Routes = [
@@ -27,9 +28,11 @@ export const routes: Routes = [
       { path: 'master/driver', component: DriverComponent },
       { path: 'master/supplier', component: SupplierComponent },
 
+      { path: 'manifests', component: ManifestComponent },
+
       { path: 'master/transporter', component: TransporterComponent, canActivate: [adminGuard] },
       { path: 'master/truck', component: TruckComponent },
-      { path: 'master/manifest', component: ManifestComponent },
+      { path: 'master/truck-assignments', component: TruckAssignment },
 
       { path: 'operations/monitoring', component: Monitoring },
       { path: 'admin/users', loadComponent: () => import('./features/admin/user-management/user-management').then(c => c.UserManagementComponent), canActivate: [adminGuard] },

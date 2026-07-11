@@ -10,12 +10,10 @@ public sealed class DriverRepository(AuthDbContext db) : IDriverRepository
 {
     public Task<Driver?> FindActiveByPhoneAsync(string phoneNumber, CancellationToken ct)
         => db.Drivers
-            .Include(d => d.Transporter)
             .FirstOrDefaultAsync(d => d.PhoneNumber == phoneNumber && d.IsActive, ct);
 
     public Task<Driver?> FindByIdAsync(long id, CancellationToken ct)
         => db.Drivers
-            .Include(d => d.Transporter)
             .FirstOrDefaultAsync(d => d.Id == id, ct);
 
     public Task<Driver?> FindByNikAsync(string nik, CancellationToken ct)
@@ -39,7 +37,7 @@ public sealed class RefreshTokenRepository(AuthDbContext db) : IRefreshTokenRepo
 {
     public Task<RefreshToken?> FindByHashedTokenAsync(string hashedToken, CancellationToken ct)
         => db.RefreshTokens
-            .Include(rt => rt.Driver).ThenInclude(d => d!.Transporter)
+            .Include(rt => rt.Driver)
             .FirstOrDefaultAsync(rt => rt.Token == hashedToken, ct);
 
     public Task<IList<RefreshToken>> GetActiveTokensByDriverAsync(long driverId, CancellationToken ct)
@@ -64,7 +62,6 @@ public sealed class DriverPortAdapter(AuthDbContext db) : IDriverPort
     public async Task<DriverInfo?> GetActiveDriverByIdAsync(long driverId, CancellationToken ct)
     {
         var driver = await db.Drivers
-            .Include(d => d.Transporter)
             .AsNoTracking()
             .FirstOrDefaultAsync(d => d.Id == driverId && d.IsActive, ct);
 
@@ -76,8 +73,45 @@ public sealed class DriverPortAdapter(AuthDbContext db) : IDriverPort
             Name: driver.Name,
             PhoneNumber: driver.PhoneNumber,
             PhotoUrl: driver.PhotoUrl,
-            TransporterName: driver.Transporter?.Name,
+            TransporterId: driver.TransporterId,
+            TransporterName: null, // Transporter has been moved to Driver module
             IsActive: driver.IsActive);
+    }
+
+    public async Task<IReadOnlyList<DriverInfo>> GetDriversByIdsAsync(IEnumerable<long> driverIds, CancellationToken ct)
+    {
+        var drivers = await db.Drivers
+            .AsNoTracking()
+            .Where(d => driverIds.Contains(d.Id))
+            .ToListAsync(ct);
+
+        return drivers.Select(driver => new DriverInfo(
+            Id: driver.Id,
+            Nik: driver.Nik,
+            Name: driver.Name,
+            PhoneNumber: driver.PhoneNumber,
+            PhotoUrl: driver.PhotoUrl,
+            TransporterId: driver.TransporterId,
+            TransporterName: null,
+            IsActive: driver.IsActive)).ToList();
+    }
+
+    public async Task<IReadOnlyList<DriverInfo>> GetActiveDriversByTransporterIdAsync(long transporterId, CancellationToken ct)
+    {
+        var drivers = await db.Drivers
+            .AsNoTracking()
+            .Where(d => d.TransporterId == transporterId && d.IsActive && !d.IsDeleted)
+            .ToListAsync(ct);
+
+        return drivers.Select(driver => new DriverInfo(
+            Id: driver.Id,
+            Nik: driver.Nik,
+            Name: driver.Name,
+            PhoneNumber: driver.PhoneNumber,
+            PhotoUrl: driver.PhotoUrl,
+            TransporterId: driver.TransporterId,
+            TransporterName: null,
+            IsActive: driver.IsActive)).ToList();
     }
 }
 
