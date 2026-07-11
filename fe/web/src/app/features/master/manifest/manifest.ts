@@ -5,10 +5,16 @@ import { Manifest, ManifestKanban } from '../../../core/models/master.model';
 import { PaginationMeta } from '../../../core/models/api.model';
 import { CargoService } from '../../../core/services/cargo.service';
 
+import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
+import { PaginationComponent } from '../../../shared/components/pagination/pagination.component';
+import { SearchBarComponent } from '../../../shared/components/search-bar/search-bar.component';
+import { SearchInputComponent } from '../../../shared/components/search-input/search-input.component';
+import { CardComponent } from '../../../shared/components/card/card.component';
+
 @Component({
   selector: 'app-manifest',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, PageHeaderComponent, PaginationComponent, SearchBarComponent, SearchInputComponent, CardComponent],
   templateUrl: './manifest.html',
   styleUrl: './manifest.css'
 })
@@ -58,6 +64,12 @@ export class ManifestComponent implements OnInit {
 
   changePage(page: number): void {
     this.currentPage = page;
+    this.loadData();
+  }
+
+  changePageSize(size: number): void {
+    this.pageSize = size;
+    this.currentPage = 1;
     this.loadData();
   }
 

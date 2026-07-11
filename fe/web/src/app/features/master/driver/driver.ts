@@ -6,10 +6,15 @@ import { PaginationMeta } from '../../../core/models/api.model';
 import { MasterDataService } from '../../../core/services/master-data.service';
 import { AdminService } from '../../../core/services/admin.service';
 
+import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
+import { PaginationComponent } from '../../../shared/components/pagination/pagination.component';
+import { SearchBarComponent } from '../../../shared/components/search-bar/search-bar.component';
+import { CardComponent } from '../../../shared/components/card/card.component';
+
 @Component({
   selector: 'app-driver',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, PageHeaderComponent, PaginationComponent, SearchBarComponent, CardComponent],
   templateUrl: './driver.html',
   styleUrl: './driver.css'
 })
@@ -82,6 +87,12 @@ export class DriverComponent implements OnInit {
 
   changePage(page: number): void {
     this.currentPage = page;
+    this.loadData();
+  }
+
+  changePageSize(size: number): void {
+    this.pageSize = size;
+    this.currentPage = 1;
     this.loadData();
   }
 

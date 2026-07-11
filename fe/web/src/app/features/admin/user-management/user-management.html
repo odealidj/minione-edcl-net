@@ -1,21 +1,11 @@
-<div class="container mx-auto">
-  <div class="flex justify-between items-center mb-6">
-    <h1 class="text-2xl font-bold text-base-content">User Management</h1>
-  </div>
+<div class="container mx-auto space-y-4">
+  <app-page-header title="User Management"></app-page-header>
 
-  <!-- Search -->
-  <div class="flex mb-4">
-    <div class="join w-full max-w-md">
-      <input type="text" #searchInput class="input input-bordered join-item w-full" placeholder="Search Username / Name..." (keyup.enter)="onSearch(searchInput.value)" />
-      <button class="btn btn-primary join-item" (click)="onSearch(searchInput.value)">Search</button>
-    </div>
-  </div>
-
-  <!-- Table -->
-  <div class="overflow-x-auto bg-base-100 rounded-box shadow">
-    <table class="table table-zebra w-full">
+  <app-card>
+    <app-search-bar placeholder="Search Username / Name..." (search)="onSearch($event)"></app-search-bar>
+    <table class="table w-full">
       <thead>
-        <tr>
+        <tr class="bg-base-200/50 text-base-content/50 uppercase text-xs">
           <th>Name</th>
           <th>Username</th>
           <th>Email</th>
@@ -30,7 +20,7 @@
           <tr><td colspan="5" class="text-center py-8 text-base-content/50">No users found.</td></tr>
         } @else {
           @for (user of users(); track user.id) {
-            <tr>
+            <tr class="hover:bg-base-200/50 transition-colors">
               <td class="font-bold">{{ user.name }}</td>
               <td>{{ user.username || '-' }}</td>
               <td>{{ user.email }}</td>
@@ -57,19 +47,14 @@
         }
       </tbody>
     </table>
-  </div>
+  </app-card>
 
-  <!-- Pagination -->
-  @if (meta() && meta()!.total_pages > 1) {
-    <div class="flex justify-between items-center mt-4">
-      <span class="text-sm text-base-content/70">Showing {{ users().length }} of {{ meta()!.total_items }} entries</span>
-      <div class="join">
-        <button class="join-item btn btn-sm" [disabled]="!meta()!.has_previous" (click)="meta()!.prevPage && changePage(meta()!.prevPage!)">«</button>
-        <button class="join-item btn btn-sm">Page {{ meta()!.page }} of {{ meta()!.total_pages }}</button>
-        <button class="join-item btn btn-sm" [disabled]="!meta()!.has_next" (click)="meta()!.nextPage && changePage(meta()!.nextPage!)">»</button>
-      </div>
-    </div>
-  }
+  <app-pagination 
+    [meta]="meta()" 
+    [currentItemsCount]="users().length" 
+    (pageChange)="changePage($event)"
+    (pageSizeChange)="changePageSize($event)">
+  </app-pagination>
 </div>
 
 <!-- Toast Notification -->

@@ -1,27 +1,11 @@
-<div class="container mx-auto">
-  <div class="flex justify-between items-center mb-6">
-    <h1 class="text-2xl font-bold text-base-content">Transporters</h1>
-    <button class="btn btn-primary" (click)="openModal()">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-      </svg>
-      Add New
-    </button>
-  </div>
+<div class="container mx-auto space-y-4">
+  <app-page-header title="Transporters" buttonText="Add New" (actionClick)="openModal()"></app-page-header>
 
-  <!-- Search -->
-  <div class="flex mb-4">
-    <div class="join w-full max-w-md">
-      <input type="text" #searchInput class="input input-bordered join-item w-full" placeholder="Search..." (keyup.enter)="onSearch(searchInput.value)" />
-      <button class="btn btn-primary join-item" (click)="onSearch(searchInput.value)">Search</button>
-    </div>
-  </div>
-
-  <!-- Table -->
-  <div class="overflow-x-auto bg-base-100 rounded-box shadow">
-    <table class="table table-zebra w-full">
+  <app-card>
+    <app-search-bar placeholder="Search..." (search)="onSearch($event)"></app-search-bar>
+    <table class="table w-full">
       <thead>
-        <tr>
+        <tr class="bg-base-200/50 text-base-content/50 uppercase text-xs">
           <th>Name</th>
           <th class="w-24 text-center">Actions</th>
         </tr>
@@ -33,7 +17,7 @@
           <tr><td colspan="2" class="text-center py-8 text-base-content/50">No data found.</td></tr>
         } @else {
           @for (item of items(); track item.id) {
-            <tr>
+            <tr class="hover:bg-base-200/50 transition-colors">
               <td>{{ item.name }}</td>
               <td class="text-center">
                 <div class="join">
@@ -46,19 +30,14 @@
         }
       </tbody>
     </table>
-  </div>
+  </app-card>
 
-  <!-- Pagination -->
-  @if (meta() && meta()!.total_pages > 1) {
-    <div class="flex justify-between items-center mt-4">
-      <span class="text-sm text-base-content/70">Showing {{ items().length }} of {{ meta()!.total_items }} entries</span>
-      <div class="join">
-        <button class="join-item btn btn-sm" [disabled]="!meta()!.has_previous" (click)="meta()!.prevPage && changePage(meta()!.prevPage!)">«</button>
-        <button class="join-item btn btn-sm">Page {{ meta()!.page }} of {{ meta()!.total_pages }}</button>
-        <button class="join-item btn btn-sm" [disabled]="!meta()!.has_next" (click)="meta()!.nextPage && changePage(meta()!.nextPage!)">»</button>
-      </div>
-    </div>
-  }
+  <app-pagination 
+    [meta]="meta()" 
+    [currentItemsCount]="items().length" 
+    (pageChange)="changePage($event)"
+    (pageSizeChange)="changePageSize($event)">
+  </app-pagination>
 </div>
 
 <!-- Modal -->

@@ -1,21 +1,11 @@
-<div class="container mx-auto">
-  <div class="flex justify-between items-center mb-6">
-    <h1 class="text-2xl font-bold text-base-content">Manifests</h1>
-  </div>
+<div class="container mx-auto space-y-4">
+  <app-page-header title="Manifests"></app-page-header>
 
-  <!-- Search -->
-  <div class="flex mb-4">
-    <div class="join w-full max-w-md">
-      <input type="text" #searchInput class="input input-bordered join-item w-full" placeholder="Search Manifest No / Supplier..." (keyup.enter)="onSearch(searchInput.value)" />
-      <button class="btn btn-primary join-item" (click)="onSearch(searchInput.value)">Search</button>
-    </div>
-  </div>
-
-  <!-- Table -->
-  <div class="overflow-x-auto bg-base-100 rounded-box shadow">
-    <table class="table table-zebra w-full">
+  <app-card>
+    <app-search-bar placeholder="Search Manifest No / Supplier..." (search)="onSearch($event)"></app-search-bar>
+    <table class="table w-full">
       <thead>
-        <tr>
+        <tr class="bg-base-200/50 text-base-content/50 uppercase text-xs">
           <th class="w-12"></th>
           <th>Manifest No</th>
           <th>Supplier Name</th>
@@ -30,7 +20,7 @@
           <tr><td colspan="5" class="text-center py-8 text-base-content/50">No manifests found.</td></tr>
         } @else {
           @for (item of items(); track item.id) {
-            <tr>
+            <tr class="hover:bg-base-200/50 transition-colors">
               <td>
                 <button class="btn btn-square btn-sm btn-ghost" (click)="toggleExpand(item.id)">
                   @if (expandedManifestId() === item.id) {
@@ -42,11 +32,11 @@
               </td>
               <td class="font-bold">{{ item.manifestNo }}</td>
               <td>{{ item.supplierName }}</td>
-              <td class="text-center">
-                <div class="badge badge-primary badge-outline font-mono">{{ item.totalKanbans }}</div>
+              <td class="text-center font-medium text-base-content/70">
+                {{ item.totalKanbans }}
               </td>
-              <td class="text-center">
-                <div class="badge badge-secondary badge-outline font-mono">{{ item.totalParts }}</div>
+              <td class="text-center font-medium text-base-content/70">
+                {{ item.totalParts }}
               </td>
             </tr>
 
@@ -58,10 +48,7 @@
                   <div class="bg-base-100 p-4 rounded-xl shadow-inner border border-base-300">
                     <div class="flex justify-between items-center mb-4">
                       <h3 class="font-bold">Kanbans for {{ item.manifestNo }}</h3>
-                      <div class="join">
-                        <input type="text" #kSearchInput class="input input-sm input-bordered join-item" placeholder="Search Kanban..." (keyup.enter)="onKanbanSearch(kSearchInput.value, item.id)" />
-                        <button class="btn btn-sm btn-primary join-item" (click)="onKanbanSearch(kSearchInput.value, item.id)">Search</button>
-                      </div>
+                      <app-search-input placeholder="Search Kanban..." (search)="onKanbanSearch($event, item.id)"></app-search-input>
                     </div>
 
                     <table class="table table-sm w-full">
@@ -108,17 +95,12 @@
         }
       </tbody>
     </table>
-  </div>
+  </app-card>
 
-  <!-- Pagination -->
-  @if (meta() && meta()!.total_pages > 1) {
-    <div class="flex justify-between items-center mt-4">
-      <span class="text-sm text-base-content/70">Showing {{ items().length }} of {{ meta()!.total_items }} entries</span>
-      <div class="join">
-        <button class="join-item btn btn-sm" [disabled]="!meta()!.has_previous" (click)="meta()!.prevPage && changePage(meta()!.prevPage!)">«</button>
-        <button class="join-item btn btn-sm">Page {{ meta()!.page }} of {{ meta()!.total_pages }}</button>
-        <button class="join-item btn btn-sm" [disabled]="!meta()!.has_next" (click)="meta()!.nextPage && changePage(meta()!.nextPage!)">»</button>
-      </div>
-    </div>
-  }
+  <app-pagination 
+    [meta]="meta()" 
+    [currentItemsCount]="items().length" 
+    (pageChange)="changePage($event)"
+    (pageSizeChange)="changePageSize($event)">
+  </app-pagination>
 </div>

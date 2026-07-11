@@ -5,10 +5,15 @@ import { AdminService } from '../../../core/services/admin.service';
 import { User } from '../../../core/models/master.model';
 import { PaginationMeta } from '../../../core/models/api.model';
 
+import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
+import { PaginationComponent } from '../../../shared/components/pagination/pagination.component';
+import { SearchBarComponent } from '../../../shared/components/search-bar/search-bar.component';
+import { CardComponent } from '../../../shared/components/card/card.component';
+
 @Component({
   selector: 'app-user-management',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, PageHeaderComponent, PaginationComponent, SearchBarComponent, CardComponent],
   templateUrl: './user-management.html',
   styleUrl: './user-management.css'
 })
@@ -56,6 +61,12 @@ export class UserManagementComponent implements OnInit {
 
   changePage(page: number): void {
     this.currentPage = page;
+    this.loadUsers();
+  }
+
+  changePageSize(size: number): void {
+    this.pageSize = size;
+    this.currentPage = 1;
     this.loadUsers();
   }
 
