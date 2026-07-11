@@ -23,6 +23,7 @@ public class CargoDbContext(DbContextOptions<CargoDbContext> options) : DbContex
             b.Property(x => x.ManifestNo).HasMaxLength(50).IsRequired();
             b.Property(x => x.SupplierCode).HasMaxLength(20).IsRequired();
             b.Property(x => x.SupplierName).HasMaxLength(100).IsRequired();
+            b.Property(x => x.SupplierPlant).HasColumnName("supplier_plant").HasMaxLength(1).IsRequired(false);
             b.Property(x => x.OrderType).HasColumnName("order_type").HasMaxLength(10).IsRequired();
             b.Property(x => x.OrderNo).HasColumnName("order_no").HasMaxLength(50).IsRequired();
             b.Property(x => x.DockCode).HasColumnName("dock_cd").HasMaxLength(20).IsRequired();

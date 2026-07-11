@@ -35,6 +35,7 @@ public class Worker : BackgroundService
         await channel.QueueDeclareAsync("edcl_ingestion", true, false, false, null, cancellationToken: stoppingToken);
         await channel.QueueBindAsync("edcl_ingestion", "debezium_events", "#", null, cancellationToken: stoppingToken);
 
+        await channel.BasicQosAsync(0, 100, false);
         var consumer = new AsyncEventingBasicConsumer(channel);
         consumer.ReceivedAsync += async (model, ea) =>
         {
@@ -149,6 +150,7 @@ public class Worker : BackgroundService
 
     private async Task ProcessMessageAsync(string message)
     {
+        _logger.LogInformation($"RAW MESSAGE: {message}");
         using var document = JsonDocument.Parse(message);
         var root = document.RootElement;
         
@@ -229,6 +231,10 @@ public class Worker : BackgroundService
         if (after.TryGetProperty("SupplierName", out var snProp) || after.TryGetProperty("supplier_name", out snProp))
             supplierName = snProp.GetString() ?? "";
 
+        string supplierPlant = "";
+        if (after.TryGetProperty("SupplierPlant", out var spProp) || after.TryGetProperty("supplier_plant", out spProp))
+            supplierPlant = spProp.GetString() ?? "";
+
         int sequence = 0;
         if (after.TryGetProperty("Sequence", out var seqProp) || after.TryGetProperty("sequence", out seqProp))
             sequence = seqProp.GetInt32();
@@ -279,15 +285,16 @@ public class Worker : BackgroundService
                     ManifestNo = @ManifestNo,
                     SupplierCode = @SupplierCode,
                     SupplierName = @SupplierName,
+                    supplier_plant = @SupplierPlant,
                     Sequence = @Sequence,
-                    OrderType = @OrderType,
+                    order_type = @OrderType,
                     PickDate = @PickDate,
-                    Cycle = @Cycle,
-                    Status = @Status,
+                    cycle = @Cycle,
+                    status = @Status,
                     UpdatedAt = GETDATE()
             WHEN NOT MATCHED THEN
-                INSERT (Id, ManifestNo, SupplierCode, SupplierName, Sequence, OrderType, PickDate, Cycle, Status, CreatedAt, CreatedBy, IsDeleted, RowVersion)
-                VALUES (@Id, @ManifestNo, @SupplierCode, @SupplierName, @Sequence, @OrderType, @PickDate, @Cycle, @Status, @CreatedAt, 'System', 0, CAST(0 AS varbinary(8)));
+                INSERT (Id, ManifestNo, SupplierCode, SupplierName, supplier_plant, Sequence, order_type, PickDate, cycle, status, CreatedAt, CreatedBy, IsDeleted, RowVersion)
+                VALUES (@Id, @ManifestNo, @SupplierCode, @SupplierName, @SupplierPlant, @Sequence, @OrderType, @PickDate, @Cycle, @Status, @CreatedAt, 'System', 0, CAST(0 AS varbinary(8)));
                 
             SET IDENTITY_INSERT edcl.ingestion.Manifests OFF;";
 
@@ -297,6 +304,7 @@ public class Worker : BackgroundService
             ManifestNo = manifestNo, 
             SupplierCode = supplierCode, 
             SupplierName = supplierName,
+            SupplierPlant = supplierPlant,
             Sequence = sequence,
             OrderType = orderType,
             PickDate = pickDate,
@@ -365,11 +373,11 @@ public class Worker : BackgroundService
                     PartNo = @PartNo,
                     PartName = @PartName,
                     Qty = @Qty,
-                    KanbanNo = @KanbanNo,
-                    Status = @Status,
+                    kanban_no = @KanbanNo,
+                    status = @Status,
                     UpdatedAt = GETDATE()
             WHEN NOT MATCHED THEN
-                INSERT (Id, ManifestId, PartNo, PartName, Qty, KanbanNo, Status, CreatedAt, CreatedBy, IsDeleted, RowVersion)
+                INSERT (Id, ManifestId, PartNo, PartName, Qty, kanban_no, status, CreatedAt, CreatedBy, IsDeleted, RowVersion)
                 VALUES (@Id, @ManifestId, @PartNo, @PartName, @Qty, @KanbanNo, @Status, @CreatedAt, 'System', 0, CAST(0 AS varbinary(8)));
                 
             SET IDENTITY_INSERT edcl.ingestion.manifest_parts OFF;";

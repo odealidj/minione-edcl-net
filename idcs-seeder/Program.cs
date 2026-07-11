@@ -14,7 +14,7 @@ class Program
         Console.WriteLine("=== EDCL IDCS Data Seeder ===");
         if (args.Length == 0)
         {
-            Console.WriteLine("Usage: dotnet run -- [manifest|part|kanban|skid|out-of-order|race-condition|init]");
+            Console.WriteLine("Usage: dotnet run -- [init|manifest|part|kanban|skid|bulk|reset|out-of-order|race-condition|edcl-master]");
             return;
         }
 
@@ -54,6 +54,9 @@ class Program
                     break;
                 case "edcl-master":
                     await SeedEdclMasterAsync();
+                    break;
+                case "reset":
+                    await ResetDataAsync();
                     break;
                 default:
                     Console.WriteLine($"Unknown action: {action}");
@@ -118,12 +121,17 @@ class Program
                     ManifestNo NVARCHAR(50) NOT NULL,
                     SupplierCode NVARCHAR(50),
                     SupplierName NVARCHAR(100),
+                    SupplierPlant NVARCHAR(1),
                     Sequence INT,
                     OrderType NVARCHAR(20),
                     PickDate DATETIME,
                     Cycle NVARCHAR(20),
                     Status NVARCHAR(50)
                 )");
+            // Add SupplierPlant column if the table already exists without it
+            await conn.ExecuteAsync(@"
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('manifests') AND name = 'SupplierPlant')
+                    ALTER TABLE manifests ADD SupplierPlant NVARCHAR(1) NULL");
             await EnableCdcOnTableAsync(conn, "manifests");
 
             // Create manifest_parts table
@@ -213,108 +221,141 @@ class Program
         await edclConn.ExecuteAsync(@"
             IF NOT EXISTS(SELECT 1 FROM driver.suppliers WHERE SupplierCode = @SupplierCode)
             BEGIN
-                INSERT INTO driver.suppliers (SupplierCode, Name, Address, Latitude, Longitude, GeofenceRadiusMeters, IsActive, CreatedAt, CreatedBy, IsDeleted)
+                INSERT INTO driver.suppliers (SupplierCode, Name, Address, Latitude, Longitude, GeofenceRadiusMeters, IsActive, created_at, created_by, is_deleted)
                 VALUES (@SupplierCode, 'Test Supplier ' + @SupplierCode, 'Jl. Industri No. 1, Cikarang', -6.3, 107.1, 100, 1, GETUTCDATE(), 'System', 0)
             END", new { SupplierCode = supplierCode });
 
         Console.WriteLine($"Inserted Supplier: {supplierCode} with ID {id}");
     }
 
+    // ─── Static realistic data tables (based on data-real analysis) ─────────
+    private static readonly (string Code, string Name, string Plant, string Dock, string PLane)[] SupplierData = new[]
+    {
+        ("5147", "TG INOAC INDONESIA",          "2", "54", "RD23"),
+        ("5159", "ADVICS INDONESIA",             "4", "C3", "ME53"),
+        ("0003", "SUGITY CREATIVES",             "6", "53", "ME53"),
+        ("5566", "DENSO MANUFACTURING INDONESIA","1", "53", "RD23"),
+        ("T060", "TOYOTA BOSHOKU INDONESIA",     "1", "56", "ME56"),
+        ("5626", "AISIN AW INDONESIA",           "1", "C3", "ME53"),
+    };
+
+    private static readonly string[] PartNames = new[]
+    {
+        "RUN  FR DOOR GLASS  RH",  "RUN  FR DOOR GLASS  LH",
+        "RUN  RR DOOR GLASS  RH",  "RUN  RR DOOR GLASS  LH",
+        "CYLINDER ASSY  BRAKE MASTER", "PANEL  CONSOLE RR END",
+        "BOX ASSY  CONSOLE  RR",   "PANEL SUB-ASSY  CONSOLE  UPR",
+        "COVER  CONSOLE BOX HOLE", "INSERT  CONSOLE BOX  RR",
+    };
+    // ─────────────────────────────────────────────────────────────────────────
+
     private static async Task SeedManifestAsync()
     {
+        var rnd = new Random();
         using var conn = new SqlConnection(ConnectionString);
-        var manifestNo = $"MNF-{DateTime.Now:yyyyMMddHHmmss}";
-        var pickDate = DateTime.Now;
-        
+        var supplier = SupplierData[rnd.Next(SupplierData.Length)];
+        // ManifestNo format: 524 + 7 random digits, mirroring '5240093742'
+        var manifestNo = $"524{rnd.Next(0, 9999999):D7}";
+        var pickDate   = DateTime.Now;
+
         await conn.ExecuteAsync(@"
-            IF NOT EXISTS(SELECT 1 FROM suppliers WHERE SupplierCode = 'SUP-001')
-            BEGIN
+            IF NOT EXISTS(SELECT 1 FROM suppliers WHERE SupplierCode = @Code)
                 INSERT INTO suppliers (SupplierCode, SupplierName, Address)
-                VALUES ('SUP-001', 'Test Supplier', 'Jl. Industri No. 1, Cikarang')
-            END");
+                VALUES (@Code, @Name, 'Kawasan Industri Karawang')",
+            new { Code = supplier.Code, Name = supplier.Name });
 
         using var edclConn = new SqlConnection(EdclConnectionString);
         await edclConn.ExecuteAsync(@"
-            IF NOT EXISTS(SELECT 1 FROM driver.suppliers WHERE SupplierCode = 'SUP-001')
-            BEGIN
-                INSERT INTO driver.suppliers (SupplierCode, Name, Address, Latitude, Longitude, GeofenceRadiusMeters, IsActive, CreatedAt, CreatedBy, IsDeleted)
-                VALUES ('SUP-001', 'Test Supplier', 'Jl. Industri No. 1, Cikarang', -6.3, 107.1, 100, 1, GETUTCDATE(), 'System', 0)
-            END");
+            IF NOT EXISTS(SELECT 1 FROM driver.suppliers WHERE SupplierCode = @Code)
+                INSERT INTO driver.suppliers (SupplierCode, Name, Address, Latitude, Longitude, GeofenceRadiusMeters, IsActive, created_at, created_by, is_deleted)
+                VALUES (@Code, @Name, 'Kawasan Industri Karawang', -6.3, 107.1, 100, 1, GETUTCDATE(), 'System', 0)",
+            new { Code = supplier.Code, Name = supplier.Name });
 
         var id = await conn.QuerySingleAsync<long>(@"
-            INSERT INTO manifests (ManifestNo, SupplierCode, SupplierName, Sequence, OrderType, PickDate, Cycle, Status) 
+            INSERT INTO manifests (ManifestNo, SupplierCode, SupplierName, SupplierPlant, Sequence, OrderType, PickDate, Cycle, Status)
             OUTPUT INSERTED.Id
-            VALUES (@ManifestNo, 'SUP-001', 'Test Supplier', 1, 'ORG', @PickDate, 'C1', 'Pending')",
-            new { ManifestNo = manifestNo, PickDate = pickDate });
-            
-        Console.WriteLine($"Inserted Manifest: {manifestNo} with ID {id}");
+            VALUES (@ManifestNo, @SupplierCode, @SupplierName, @SupplierPlant, @Sequence, '1', @PickDate, 'C1', 'Pending')",
+            new { ManifestNo = manifestNo, SupplierCode = supplier.Code, SupplierName = supplier.Name,
+                  SupplierPlant = supplier.Plant, Sequence = rnd.Next(1, 25), PickDate = pickDate });
+
+        Console.WriteLine($"Inserted Manifest: {manifestNo} (Supplier: {supplier.Code}/{supplier.Name}, Plant: {supplier.Plant}) with ID {id}");
     }
 
     private static async Task SeedBulkAsync()
     {
-        using var conn = new SqlConnection(ConnectionString);
         var rnd = new Random();
-        Console.WriteLine("Starting bulk seed of 200 manifests, 10 parts each, plus skids and kanbans...");
+        Console.WriteLine("Starting bulk seed of 200 manifests with realistic data...");
+
+        // Seed all unique suppliers to IDCS + EDCL first
+        using (var conn = new SqlConnection(ConnectionString))
+        using (var edclConn = new SqlConnection(EdclConnectionString))
+        {
+            foreach (var s in SupplierData)
+            {
+                await conn.ExecuteAsync(@"
+                    IF NOT EXISTS(SELECT 1 FROM suppliers WHERE SupplierCode = @Code)
+                        INSERT INTO suppliers (SupplierCode, SupplierName, Address)
+                        VALUES (@Code, @Name, 'Kawasan Industri Karawang')",
+                    new { Code = s.Code, Name = s.Name });
+
+                await edclConn.ExecuteAsync(@"
+                    IF NOT EXISTS(SELECT 1 FROM driver.suppliers WHERE SupplierCode = @Code)
+                        INSERT INTO driver.suppliers (SupplierCode, Name, Address, Latitude, Longitude, GeofenceRadiusMeters, IsActive, created_at, created_by, is_deleted)
+                        VALUES (@Code, @Name, 'Kawasan Industri Karawang', -6.3, 107.1, 100, 1, GETUTCDATE(), 'System', 0)",
+                    new { Code = s.Code, Name = s.Name });
+            }
+        }
 
         for (int m = 1; m <= 200; m++)
         {
-            var manifestNo = $"MNFB-{DateTime.Now:MMddHHmmss}-{m:000}";
-            var supplierCode = $"SUP-{rnd.Next(1, 10):000}";
-            
-            // Seed supplier for bulk if it doesn't exist
-            await conn.ExecuteAsync(@"
-                IF NOT EXISTS(SELECT 1 FROM suppliers WHERE SupplierCode = @SupplierCode)
-                BEGIN
-                    INSERT INTO suppliers (SupplierCode, SupplierName, Address)
-                    VALUES (@SupplierCode, 'Bulk Supplier ' + @SupplierCode, 'Industrial Area')
-                END", new { SupplierCode = supplierCode });
+            using var conn = new SqlConnection(ConnectionString);
+            var supplier   = SupplierData[rnd.Next(SupplierData.Length)];
+            // ManifestNo: 524 + 7 digit, mirroring real data like '5240093742'
+            var manifestNo = $"524{rnd.Next(0, 9999999):D7}";
+            var seq        = rnd.Next(1, 25);
 
-            using var edclConn = new SqlConnection(EdclConnectionString);
-            await edclConn.ExecuteAsync(@"
-                IF NOT EXISTS(SELECT 1 FROM driver.suppliers WHERE SupplierCode = @SupplierCode)
-                BEGIN
-                    INSERT INTO driver.suppliers (SupplierCode, Name, Address, Latitude, Longitude, GeofenceRadiusMeters, IsActive, CreatedAt, CreatedBy, IsDeleted)
-                    VALUES (@SupplierCode, 'Bulk Supplier ' + @SupplierCode, 'Industrial Area', -6.3, 107.1, 100, 1, GETUTCDATE(), 'System', 0)
-                END", new { SupplierCode = supplierCode });
-            
             var manifestId = await conn.QuerySingleAsync<long>(@"
-                INSERT INTO manifests (ManifestNo, SupplierCode, SupplierName, Sequence, OrderType, PickDate, Cycle, Status) 
+                INSERT INTO manifests (ManifestNo, SupplierCode, SupplierName, SupplierPlant, Sequence, OrderType, PickDate, Cycle, Status)
                 OUTPUT INSERTED.Id
-                VALUES (@ManifestNo, @SupplierCode, 'Bulk Supplier', 1, 'ORG', @PickDate, 'C1', 'Pending')",
-                new { ManifestNo = manifestNo, SupplierCode = supplierCode, PickDate = DateTime.Now });
+                VALUES (@ManifestNo, @SupplierCode, @SupplierName, @SupplierPlant, @Sequence, '1', @PickDate, 'C1', 'Pending')",
+                new { ManifestNo = manifestNo, SupplierCode = supplier.Code, SupplierName = supplier.Name,
+                      SupplierPlant = supplier.Plant, Sequence = seq, PickDate = DateTime.Now });
 
-            // 1 Skid per Manifest
-            var skidNo = $"SKD-B{m:000}-{rnd.Next(100, 999)}";
+            // 1 Skid per Manifest — format: SKD + 4 alphanumeric
+            var skidNo = $"SKD{rnd.Next(1000, 9999)}";
             await conn.ExecuteAsync(@"
-                INSERT INTO manifest_skids (ManifestId, SkidNo) 
-                VALUES (@ManifestId, @SkidNo)",
+                INSERT INTO manifest_skids (ManifestId, SkidNo) VALUES (@ManifestId, @SkidNo)",
                 new { ManifestId = manifestId, SkidNo = skidNo });
 
-            // 10 Parts per Manifest
-            for (int p = 1; p <= 10; p++)
+            // 5–10 Parts per Manifest — realistic PartNo format: 6digits + 1letter + 5digits
+            int partCount = rnd.Next(5, 11);
+            for (int p = 1; p <= partCount; p++)
             {
-                var partNo = $"PRTB-{rnd.Next(1000, 9999)}";
-                
-                await conn.ExecuteAsync(@"
-                    INSERT INTO manifest_parts (ManifestId, PartNo, PartName, Qty, Uom) 
-                    VALUES (@ManifestId, @PartNo, 'Bulk Part', 10, 'PCS')",
-                    new { ManifestId = manifestId, PartNo = partNo });
+                // e.g. '681410D25000'
+                var partNo   = $"{rnd.Next(100000, 999999)}{(char)('A' + rnd.Next(26))}{rnd.Next(10000, 99999)}";
+                var partName = PartNames[rnd.Next(PartNames.Length)];
+                // KanbanNo: 1 letter + 3 digits, e.g. 'F585'
+                var kanbanNo = $"{(char)('A' + rnd.Next(26))}{rnd.Next(100, 999)}";
 
-                // 2 Kanbans per Part
-                for (int k = 1; k <= 2; k++)
+                await conn.ExecuteAsync(@"
+                    INSERT INTO manifest_parts (ManifestId, PartNo, PartName, Qty, Uom)
+                    VALUES (@ManifestId, @PartNo, @PartName, @Qty, 'PCS')",
+                    new { ManifestId = manifestId, PartNo = partNo, PartName = partName, Qty = rnd.Next(1, 33) });
+
+                // 1–3 Kanbans per Part — KanbanCd: 'K' + 5 digits, e.g. 'K00001'
+                int kanbanCount = rnd.Next(1, 4);
+                for (int k = 1; k <= kanbanCount; k++)
                 {
-                    var kanban = $"KBNB-{m:000}-{p:00}-{k}";
+                    var kanbanCd = $"K{rnd.Next(1, 99999):D5}";
                     await conn.ExecuteAsync(@"
-                        INSERT INTO manifest_kanbans (ManifestId, PartNo, KanbanCd) 
+                        INSERT INTO manifest_kanbans (ManifestId, PartNo, KanbanCd)
                         VALUES (@ManifestId, @PartNo, @KanbanCd)",
-                        new { ManifestId = manifestId, PartNo = partNo, KanbanCd = kanban });
+                        new { ManifestId = manifestId, PartNo = partNo, KanbanCd = kanbanCd });
                 }
             }
 
             if (m % 20 == 0)
-            {
                 Console.WriteLine($"Progress: {m}/200 manifests seeded.");
-            }
         }
         Console.WriteLine("Bulk seed completed successfully!");
     }
@@ -322,44 +363,55 @@ class Program
 
     private static async Task SeedPartAsync()
     {
+        var rnd = new Random();
         using var conn = new SqlConnection(ConnectionString);
         var manifestId = await conn.QueryFirstOrDefaultAsync<long?>("SELECT TOP 1 Id FROM manifests ORDER BY Id DESC");
-        
+
         if (manifestId == null)
         {
             Console.WriteLine("No manifests found. Please seed a manifest first.");
             return;
         }
 
-        var partNo = $"PRT-{new Random().Next(1000, 9999)}";
+        // Realistic PartNo: 6digits + 1letter + 5digits, e.g. '681410D25000'
+        var partNo   = $"{rnd.Next(100000, 999999)}{(char)('A' + rnd.Next(26))}{rnd.Next(10000, 99999)}";
+        var partName = PartNames[rnd.Next(PartNames.Length)];
         var id = await conn.QuerySingleAsync<long>(@"
-            INSERT INTO manifest_parts (ManifestId, PartNo, PartName, Qty, Uom) 
+            INSERT INTO manifest_parts (ManifestId, PartNo, PartName, Qty, Uom)
             OUTPUT INSERTED.Id
-            VALUES (@ManifestId, @PartNo, 'Test Part', 10, 'PCS')",
-            new { ManifestId = manifestId, PartNo = partNo });
-            
-        Console.WriteLine($"Inserted Part: {partNo} with ID {id} for ManifestId {manifestId}");
+            VALUES (@ManifestId, @PartNo, @PartName, @Qty, 'PCS')",
+            new { ManifestId = manifestId, PartNo = partNo, PartName = partName, Qty = rnd.Next(1, 33) });
+
+        Console.WriteLine($"Inserted Part: {partNo} ({partName}) with ID {id} for ManifestId {manifestId}");
     }
 
     private static async Task SeedKanbanAsync()
     {
+        var rnd = new Random();
         using var conn = new SqlConnection(ConnectionString);
         var manifestId = await conn.QueryFirstOrDefaultAsync<long?>("SELECT TOP 1 Id FROM manifests ORDER BY Id DESC");
-        
+
         if (manifestId == null)
         {
             Console.WriteLine("No manifests found.");
             return;
         }
 
-        var kanban = $"KBN-{new Random().Next(1000, 9999)}";
+        // Re-use the latest part from this manifest, or create a new one
+        var partNo = await conn.QueryFirstOrDefaultAsync<string?>(
+            "SELECT TOP 1 PartNo FROM manifest_parts WHERE ManifestId = @ManifestId ORDER BY Id DESC",
+            new { ManifestId = manifestId });
+        partNo ??= $"{rnd.Next(100000, 999999)}{(char)('A' + rnd.Next(26))}{rnd.Next(10000, 99999)}";
+
+        // KanbanCd: 'K' + 5 digits, e.g. 'K00023'
+        var kanbanCd = $"K{rnd.Next(1, 99999):D5}";
         var id = await conn.QuerySingleAsync<long>(@"
-            INSERT INTO manifest_kanbans (ManifestId, PartNo, KanbanCd) 
+            INSERT INTO manifest_kanbans (ManifestId, PartNo, KanbanCd)
             OUTPUT INSERTED.Id
-            VALUES (@ManifestId, 'PRT-XXXX', @KanbanCd)",
-            new { ManifestId = manifestId, KanbanCd = kanban });
-            
-        Console.WriteLine($"Inserted Kanban: {kanban} with ID {id}");
+            VALUES (@ManifestId, @PartNo, @KanbanCd)",
+            new { ManifestId = manifestId, PartNo = partNo, KanbanCd = kanbanCd });
+
+        Console.WriteLine($"Inserted Kanban: {kanbanCd} (Part: {partNo}) with ID {id}");
     }
 
     private static async Task SeedSkidAsync()
@@ -402,37 +454,79 @@ class Program
 
     private static async Task SeedRaceConditionAsync()
     {
+        var rnd = new Random();
         using var conn = new SqlConnection(ConnectionString);
-        
-        var futureManifestId = 50000L + new Random().Next(1, 9999);
-        var partNo = $"PRT-RACE";
-        var manifestNo = $"MNF-RACE-{futureManifestId}";
-        var pickDate = DateTime.Now;
-        
+
+        var futureManifestId = 50000L + rnd.Next(1, 9999);
+        var partNo           = $"{rnd.Next(100000, 999999)}{(char)('A' + rnd.Next(26))}{rnd.Next(10000, 99999)}";
+        var manifestNo       = $"524{futureManifestId:D7}";
+        var pickDate         = DateTime.Now;
+
         await conn.OpenAsync();
-        
+
         var partId = await conn.QuerySingleAsync<long>(@"
-            INSERT INTO manifest_parts (ManifestId, PartNo, PartName, Qty, Uom) 
+            INSERT INTO manifest_parts (ManifestId, PartNo, PartName, Qty, Uom)
             OUTPUT INSERTED.Id
             VALUES (@ManifestId, @PartNo, 'Race Condition Part', 5, 'PCS')",
             new { ManifestId = futureManifestId, PartNo = partNo });
-            
+
         Console.WriteLine($"[RACE-CONDITION] Step 1: Inserted Part {partNo} for future ManifestId {futureManifestId}.");
-        Console.WriteLine($"[RACE-CONDITION] Waiting 3 seconds to let MassTransit fail and start Retry...");
-        
+        Console.WriteLine($"[RACE-CONDITION] Waiting 3 seconds to let Worker fail and start Retry...");
+
         await Task.Delay(3000);
-        
+
         await conn.ExecuteAsync(@"
             SET IDENTITY_INSERT manifests ON;
-            
-            INSERT INTO manifests (Id, ManifestNo, SupplierCode, SupplierName, Sequence, OrderType, PickDate, Cycle, Status) 
-            VALUES (@Id, @ManifestNo, 'SUP-002', 'Race Supplier', 1, 'ORG', @PickDate, 'C1', 'Pending');
-            
+
+            INSERT INTO manifests (Id, ManifestNo, SupplierCode, SupplierName, SupplierPlant, Sequence, OrderType, PickDate, Cycle, Status)
+            VALUES (@Id, @ManifestNo, '5566', 'DENSO MANUFACTURING INDONESIA', '1', 1, '1', @PickDate, 'C1', 'Pending');
+
             SET IDENTITY_INSERT manifests OFF;",
             new { Id = futureManifestId, ManifestNo = manifestNo, PickDate = pickDate });
-            
+
         Console.WriteLine($"[RACE-CONDITION] Step 2: Inserted Manifest {manifestNo} with ID {futureManifestId}.");
         Console.WriteLine($"[RACE-CONDITION] Watch EDCL logs: the next retry for Part {partNo} should now SUCCESS!");
+    }
+
+    private static async Task ResetDataAsync()
+    {
+        Console.WriteLine("⚠️  Starting data reset for IDCS & EDCL...");
+
+        // ── IDCS ────────────────────────────────────────────────────────────────
+        Console.WriteLine("[IDCS] Deleting manifest_kanbans, manifest_parts, manifest_skids, manifests...");
+        using (var idcsConn = new SqlConnection(ConnectionString))
+        {
+            // Delete in FK-safe order (children first)
+            await idcsConn.ExecuteAsync("DELETE FROM manifest_kanbans");
+            await idcsConn.ExecuteAsync("DELETE FROM manifest_parts");
+            await idcsConn.ExecuteAsync("DELETE FROM manifest_skids");
+            await idcsConn.ExecuteAsync("DELETE FROM manifests");
+            // Reset identity seeds so IDs restart from 1
+            await idcsConn.ExecuteAsync("DBCC CHECKIDENT ('manifest_kanbans', RESEED, 0)");
+            await idcsConn.ExecuteAsync("DBCC CHECKIDENT ('manifest_parts',    RESEED, 0)");
+            await idcsConn.ExecuteAsync("DBCC CHECKIDENT ('manifest_skids',    RESEED, 0)");
+            await idcsConn.ExecuteAsync("DBCC CHECKIDENT ('manifests',          RESEED, 0)");
+        }
+        Console.WriteLine("[IDCS] Done.");
+
+        // ── EDCL ingestion ──────────────────────────────────────────────────────
+        Console.WriteLine("[EDCL] Deleting ingestion.ManifestKanbans, ManifestParts, ManifestSkids, Manifests...");
+        using (var edclConn = new SqlConnection(EdclConnectionString))
+        {
+            // Delete in FK-safe order (children first)
+            await edclConn.ExecuteAsync("DELETE FROM edcl.ingestion.manifest_kanbans");
+            await edclConn.ExecuteAsync("DELETE FROM edcl.ingestion.manifest_parts");
+            await edclConn.ExecuteAsync("DELETE FROM edcl.ingestion.manifest_skids");
+            await edclConn.ExecuteAsync("DELETE FROM edcl.ingestion.manifests");
+            // Reset identity seeds
+            await edclConn.ExecuteAsync("DBCC CHECKIDENT ('edcl.ingestion.manifest_kanbans', RESEED, 0)");
+            await edclConn.ExecuteAsync("DBCC CHECKIDENT ('edcl.ingestion.manifest_parts',    RESEED, 0)");
+            await edclConn.ExecuteAsync("DBCC CHECKIDENT ('edcl.ingestion.manifest_skids',    RESEED, 0)");
+            await edclConn.ExecuteAsync("DBCC CHECKIDENT ('edcl.ingestion.manifests',          RESEED, 0)");
+        }
+        Console.WriteLine("[EDCL] Done.");
+
+        Console.WriteLine("✅ Reset complete. Both IDCS & EDCL manifest data cleared.");
     }
 
     private static async Task SeedEdclMasterAsync()

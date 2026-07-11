@@ -1,4 +1,4 @@
-.PHONY: idcs-up idcs-down seed-init seed-manifest seed-supplier seed-part seed-kanban seed-skid seed-out-of-order seed-race-condition seed-bulk
+.PHONY: idcs-up idcs-down seed-init seed-manifest seed-supplier seed-part seed-kanban seed-skid seed-out-of-order seed-race-condition seed-bulk seed-reset
 
 idcs-up:
 	docker-compose -f docker-compose-idcs.yml up -d
@@ -32,6 +32,9 @@ seed-race-condition:
 
 seed-bulk:
 	dotnet run bulk
+
+seed-reset:
+	dotnet run reset
 
 seed-k6-clean:
 	cd ../be/tests/k6/EDCL.K6Seeder && dotnet run clean
