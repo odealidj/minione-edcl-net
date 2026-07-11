@@ -11,15 +11,15 @@ using Xunit;
 
 namespace EDCL.UnitTests.Modules.Cargo.Controllers;
 
-public class ManifestControllerTests
+public class MobileCargoControllerTests
 {
     private readonly Mock<IMediator> _mediatorMock;
-    private readonly ManifestController _controller;
+    private readonly MobileCargoController _controller;
 
-    public ManifestControllerTests()
+    public MobileCargoControllerTests()
     {
         _mediatorMock = new Mock<IMediator>();
-        _controller = new ManifestController(_mediatorMock.Object);
+        _controller = new MobileCargoController(_mediatorMock.Object);
 
         var httpContext = new DefaultHttpContext();
         httpContext.TraceIdentifier = "test-trace-id";

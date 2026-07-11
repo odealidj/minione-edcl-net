@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace EDCL.Module.Auth.Api;
 
 [ApiController]
-[Route("api/v1/auth")]
+[Route("api/v1/web/auth/staff")]
 [Produces("application/json", "application/x-msgpack")]
 public sealed class AuthController(ISender mediator) : ControllerBase
 {

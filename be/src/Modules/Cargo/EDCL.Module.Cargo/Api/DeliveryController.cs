@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace EDCL.Module.Cargo.Api;
 
 [ApiController]
-[Route("api/v1/cargo/delivery")]
+[Route("api/v1/mobile/cargo/delivery")]
 public class DeliveryController : ControllerBase
 {
     private readonly IPublishEndpoint _publishEndpoint;

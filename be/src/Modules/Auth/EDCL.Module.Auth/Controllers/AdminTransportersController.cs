@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace EDCL.Module.Auth.Controllers;
 
 [ApiController]
-[Route("api/v1/master/transporters")]
+[Route("api/v1/web/master/transporters")]
 [Tags("Admin Master Data (Auth)")]
 [Authorize(Roles = "ADMIN")]
 public class AdminTransportersController(IMediator mediator) : ControllerBase

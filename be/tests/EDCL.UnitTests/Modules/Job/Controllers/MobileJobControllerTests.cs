@@ -19,13 +19,13 @@ using Xunit;
 
 namespace EDCL.UnitTests.Modules.Job.Controllers;
 
-public class JobControllerTests
+public class MobileJobControllerTests
 {
     private readonly Mock<IMediator> _mediatorMock;
     private readonly Mock<ICurrentUserService> _currentUserServiceMock;
-    private readonly JobController _controller;
+    private readonly MobileJobController _controller;
 
-    public JobControllerTests()
+    public MobileJobControllerTests()
     {
         _mediatorMock = new Mock<IMediator>();
         _currentUserServiceMock = new Mock<ICurrentUserService>();
@@ -33,7 +33,7 @@ public class JobControllerTests
         _currentUserServiceMock.Setup(x => x.DriverId).Returns(1);
         _currentUserServiceMock.Setup(x => x.CurrentTraceId).Returns("test-trace-id");
 
-        _controller = new JobController(_mediatorMock.Object, _currentUserServiceMock.Object);
+        _controller = new MobileJobController(_mediatorMock.Object, _currentUserServiceMock.Object);
 
         var httpContext = new DefaultHttpContext();
         httpContext.TraceIdentifier = "test-trace-id";
@@ -76,21 +76,7 @@ public class JobControllerTests
         apiResponse.Data.Should().BeTrue();
     }
 
-    [Fact]
-    public async Task AssignJob_ShouldReturnOk_WhenSuccess()
-    {
-        // Arrange
-        _mediatorMock.Setup(m => m.Send(It.IsAny<AssignJobCommand>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result<bool>.Success(true));
-
-        // Act
-        var result = await _controller.AssignJob(1, new AssignJobRequest(100, null), CancellationToken.None);
-
-        // Assert
-        var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
-        var apiResponse = okResult.Value.Should().BeOfType<ApiResponse<bool>>().Subject;
-        apiResponse.Data.Should().BeTrue();
-    }
+    // Removed AssignJob test because it was moved to AdminPickupOrdersController
 
     [Fact]
     public async Task GetRouteStops_ShouldReturnOk_WhenSuccess()

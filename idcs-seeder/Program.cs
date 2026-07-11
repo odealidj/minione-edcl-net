@@ -6,8 +6,8 @@ namespace EDCL.IdcsSeeder;
 
 class Program
 {
-    private const string ConnectionString = "Server=localhost,1466;Database=IDCS;User Id=sa;Password=IdcsPassword123!;TrustServerCertificate=True;";
-    private const string EdclConnectionString = "Server=localhost,1444;Database=edcl;User Id=sa;Password=EdclMini_123!;TrustServerCertificate=True;";
+    private const string ConnectionString = "Server=127.0.0.1,1466;Database=IDCS;User Id=sa;Password=IdcsPassword123!;TrustServerCertificate=True;";
+    private const string EdclConnectionString = "Server=127.0.0.1,1444;Database=edcl;User Id=sa;Password=EdclMini_123!;TrustServerCertificate=True;";
 
     static async Task Main(string[] args)
     {
@@ -68,7 +68,7 @@ class Program
 
     private static async Task EnsureDatabaseAndTablesAsync()
     {
-        var masterConnStr = "Server=localhost,1466;Database=master;User Id=sa;Password=IdcsPassword123!;TrustServerCertificate=True;";
+        var masterConnStr = "Server=127.0.0.1,1466;Database=master;User Id=sa;Password=IdcsPassword123!;TrustServerCertificate=True;";
         using (var masterConn = new SqlConnection(masterConnStr))
         {
             await masterConn.OpenAsync();
@@ -204,11 +204,19 @@ class Program
         var supplierCode = $"SUP-{new Random().Next(100, 999)}";
         
         var id = await conn.QuerySingleAsync<long>(@"
-            INSERT INTO suppliers (SupplierCode, SupplierName, Address) 
+            INSERT INTO suppliers (SupplierCode, SupplierName, Address)
             OUTPUT INSERTED.Id
             VALUES (@SupplierCode, 'Test Supplier ' + @SupplierCode, 'Jl. Industri No. 1, Cikarang')",
             new { SupplierCode = supplierCode });
-            
+
+        using var edclConn = new SqlConnection(EdclConnectionString);
+        await edclConn.ExecuteAsync(@"
+            IF NOT EXISTS(SELECT 1 FROM driver.suppliers WHERE SupplierCode = @SupplierCode)
+            BEGIN
+                INSERT INTO driver.suppliers (SupplierCode, Name, Address, Latitude, Longitude, GeofenceRadiusMeters, IsActive, CreatedAt, CreatedBy, IsDeleted)
+                VALUES (@SupplierCode, 'Test Supplier ' + @SupplierCode, 'Jl. Industri No. 1, Cikarang', -6.3, 107.1, 100, 1, GETUTCDATE(), 'System', 0)
+            END", new { SupplierCode = supplierCode });
+
         Console.WriteLine($"Inserted Supplier: {supplierCode} with ID {id}");
     }
 
@@ -223,6 +231,14 @@ class Program
             BEGIN
                 INSERT INTO suppliers (SupplierCode, SupplierName, Address)
                 VALUES ('SUP-001', 'Test Supplier', 'Jl. Industri No. 1, Cikarang')
+            END");
+
+        using var edclConn = new SqlConnection(EdclConnectionString);
+        await edclConn.ExecuteAsync(@"
+            IF NOT EXISTS(SELECT 1 FROM driver.suppliers WHERE SupplierCode = 'SUP-001')
+            BEGIN
+                INSERT INTO driver.suppliers (SupplierCode, Name, Address, Latitude, Longitude, GeofenceRadiusMeters, IsActive, CreatedAt, CreatedBy, IsDeleted)
+                VALUES ('SUP-001', 'Test Supplier', 'Jl. Industri No. 1, Cikarang', -6.3, 107.1, 100, 1, GETUTCDATE(), 'System', 0)
             END");
 
         var id = await conn.QuerySingleAsync<long>(@"
@@ -251,6 +267,14 @@ class Program
                 BEGIN
                     INSERT INTO suppliers (SupplierCode, SupplierName, Address)
                     VALUES (@SupplierCode, 'Bulk Supplier ' + @SupplierCode, 'Industrial Area')
+                END", new { SupplierCode = supplierCode });
+
+            using var edclConn = new SqlConnection(EdclConnectionString);
+            await edclConn.ExecuteAsync(@"
+                IF NOT EXISTS(SELECT 1 FROM driver.suppliers WHERE SupplierCode = @SupplierCode)
+                BEGIN
+                    INSERT INTO driver.suppliers (SupplierCode, Name, Address, Latitude, Longitude, GeofenceRadiusMeters, IsActive, CreatedAt, CreatedBy, IsDeleted)
+                    VALUES (@SupplierCode, 'Bulk Supplier ' + @SupplierCode, 'Industrial Area', -6.3, 107.1, 100, 1, GETUTCDATE(), 'System', 0)
                 END", new { SupplierCode = supplierCode });
             
             var manifestId = await conn.QuerySingleAsync<long>(@"

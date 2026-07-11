@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace EDCL.Module.Cargo.Api;
 
 [ApiController]
-[Route("api/v1/cargo/ingestion")]
+[Route("api/v1/web/cargo/ingestion")]
 public class IngestionController : ControllerBase
 {
     private readonly IngestionErrorChannel _errorChannel;

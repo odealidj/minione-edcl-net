@@ -14,7 +14,7 @@ using Microsoft.AspNetCore.Mvc;
 /// Controller for retrieving cargo manifests, parts, and kanbans data.
 /// </summary>
 [ApiController]
-[Route("api/v1/manifests")]
+[Route("api/v1/mobile/cargo")]
 [Authorize]
 public sealed class CargoController(IMediator mediator, ICurrentUserService currentUserService) : ControllerBase
 {

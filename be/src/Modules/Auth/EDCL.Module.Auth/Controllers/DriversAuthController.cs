@@ -11,7 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace EDCL.Module.Auth.Controllers;
 
 [ApiController]
-[Route("api/v1/auth/drivers")] // Under /auth/ to pass through Gateway's auth-route
+[Route("api/v1/mobile/auth/drivers")]
 public sealed class DriversAuthController(IMediator mediator) : ControllerBase
 {
     /// <summary>

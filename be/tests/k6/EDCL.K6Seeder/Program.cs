@@ -67,6 +67,22 @@ namespace EDCL.K6Seeder
                 return;
             }
 
+            if (args.Contains("fix-supplier", StringComparer.OrdinalIgnoreCase))
+            {
+                Console.WriteLine("Fixing missing Master Suppliers...");
+                // Insert SUP-001 if missing
+                await driverDb.Database.ExecuteSqlRawAsync(@"
+                    IF NOT EXISTS(SELECT 1 FROM driver.suppliers WHERE SupplierCode = 'SUP-001')
+                    BEGIN
+                        INSERT INTO driver.suppliers (SupplierCode, Name, Address, Latitude, Longitude, GeofenceRadiusMeters, IsActive, created_at, created_by, is_deleted)
+                        VALUES ('SUP-001', 'Test Supplier', 'Jl. Industri No. 1, Cikarang', -6.3, 107.1, 100, 1, GETUTCDATE(), 'System', 0)
+                    END");
+                
+                // We could also do it for Bulk Suppliers if they exist, but for now SUP-001 is the main issue reported by user.
+                Console.WriteLine("Missing suppliers fixed!");
+                return;
+            }
+
             int targetVUs = 100; // How many concurrent drivers you want to simulate
             Console.WriteLine($"Seeding {targetVUs} Virtual Users (Drivers) and Jobs...");
 

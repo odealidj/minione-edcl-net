@@ -1,18 +1,20 @@
 using EDCL.Module.Cargo.Application.Queries.GetManifestDetail;
 using EDCL.Shared.Http.Responses;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EDCL.Module.Cargo.Api;
 
 /// <summary>
-/// Controller for managing Ingestion Cargo data (Master Manifests).
+/// Controller for managing Mobile Ingestion Cargo data (Master Manifests).
 /// </summary>
 [ApiController]
-[Route("api/v1/cargo/manifests")]
-[Tags("Cargo Ingestion")]
-public class ManifestController(IMediator mediator) : ControllerBase
+[Route("api/v1/mobile/cargo/manifests")]
+[Tags("Cargo Ingestion (Mobile)")]
+[Authorize]
+public class MobileCargoController(IMediator mediator) : ControllerBase
 {
     /// <summary>
     /// Gets the detailed part list of a specific manifest.

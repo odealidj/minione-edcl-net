@@ -20,9 +20,9 @@ namespace EDCL.Module.Job.Api;
 /// Controller for managing Driver Jobs, Route Stops, and Kanban Scans.
 /// </summary>
 [ApiController]
-[Route("api/v1/jobs")]
+[Route("api/v1/mobile/jobs")]
 [Authorize] // Enforce JWT for all job endpoints
-public sealed class JobController(IMediator mediator, ICurrentUserService currentUserService) : ControllerBase
+public sealed class MobileJobController(IMediator mediator, ICurrentUserService currentUserService) : ControllerBase
 {
     private long DriverId => currentUserService.DriverId ?? 0;
 
@@ -71,30 +71,6 @@ public sealed class JobController(IMediator mediator, ICurrentUserService curren
         );
     }
 
-    /// <summary>
-    /// Assigns a driver to a specific pickup order job.
-    /// </summary>
-    /// <param name="id">Pickup Order ID</param>
-    /// <param name="request">Request containing the driver ID to assign.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>Boolean indicating success.</returns>
-    [HttpPost("{id}/assign")]
-    [Authorize(Roles = "Admin,Staff")]
-    [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> AssignJob(long id, [FromBody] AssignJobRequest request, CancellationToken cancellationToken)
-    {
-        var command = new EDCL.Module.Job.Application.Commands.AssignJob.AssignJobCommand(id, request.DriverId, request.TruckId);
-        var result = await mediator.Send(command, cancellationToken);
-        var traceId = currentUserService.CurrentTraceId ?? HttpContext.TraceIdentifier;
-        return result.Match<IActionResult>(
-            ok => Ok(ApiResponse<bool>.Success(ok, traceId)),
-            err => BadRequest(ApiResponse<object>.Fail(err.Message, traceId, 400))
-        );
-    }
 
     /// <summary>
     /// Retrieves all route stops for a specific pickup order job.
@@ -217,7 +193,7 @@ public sealed class JobController(IMediator mediator, ICurrentUserService curren
 public sealed record ScanKanbanRequest(string KanbanCode);
 public sealed record StartJobRequest(string OdometerPhotoUrl, int OdohmeterReading);
 
-public sealed record AssignJobRequest(long DriverId, long? TruckId = null);
+
 /// <summary>Request payload for ending a job.</summary>
 public sealed record EndJobRequest(double Latitude, double Longitude);
 /// <summary>Request payload for completing a route stop.</summary>

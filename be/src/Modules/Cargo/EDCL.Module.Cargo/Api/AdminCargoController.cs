@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace EDCL.Module.Cargo.Api;
 
 [ApiController]
-[Route("api/v1/master/cargo")]
+[Route("api/v1/web/master/cargo")]
 [Tags("Admin Master Data (Cargo)")]
 [Authorize(Roles = "ADMIN")]
 public class AdminCargoController(IMediator mediator) : ControllerBase

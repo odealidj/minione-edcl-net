@@ -15,7 +15,7 @@ using Microsoft.AspNetCore.Mvc;
 /// Controller for managing driver notifications.
 /// </summary>
 [ApiController]
-[Route("api/v1/notifications")]
+[Route("api/v1/mobile/notifications")]
 [Authorize]
 public sealed class NotificationController(IMediator mediator, ICurrentUserService currentUserService) : ControllerBase
 {

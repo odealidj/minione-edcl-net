@@ -53,7 +53,7 @@ public class AuthIntegrationTests : BaseIntegrationTest
         var command = new LoginAppUserCommand(testEmail, testPassword);
 
         // Act
-        var response = await Client.PostAsJsonAsync("/api/v1/auth/admin/login", command);
+        var response = await Client.PostAsJsonAsync("/api/v1/web/auth/staff/admin/login", command);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);

@@ -72,9 +72,9 @@ public class JobIntegrationTests : BaseIntegrationTest
         var kanbanPartNo = "PART-001";
 
         // Act
-        // Path: POST /api/v1/jobs/stops/{stopId}/manifests/{manifestId}/kanban
+        // Path: POST /api/v1/mobile/jobs/stops/{stopId}/manifests/{manifestId}/kanban
         var payload = new { kanbanCode = kanbanPartNo };
-        var response = await Client.PostAsJsonAsync($"/api/v1/jobs/stops/{pickupOrderStopId}/manifests/{manifestId}/kanban", payload);
+        var response = await Client.PostAsJsonAsync($"/api/v1/mobile/jobs/stops/{pickupOrderStopId}/manifests/{manifestId}/kanban", payload);
 
         // Assert API Response
         response.StatusCode.Should().Be(HttpStatusCode.OK);

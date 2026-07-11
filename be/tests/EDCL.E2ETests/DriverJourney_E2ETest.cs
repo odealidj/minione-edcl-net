@@ -101,7 +101,7 @@ public class DriverJourney_E2ETest : BaseIntegrationTest
         // PHASE 1: ADMIN LOGIN
         // ---------------------------------------------------------------------------------------------------------
         var adminLoginCmd = new LoginAppUserCommand(adminEmail, "Admin123!");
-        var adminLoginRes = await Client.PostAsJsonAsync("/api/v1/auth/admin/login", adminLoginCmd);
+        var adminLoginRes = await Client.PostAsJsonAsync("/api/v1/web/auth/staff/admin/login", adminLoginCmd);
         adminLoginRes.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var adminTokenResult = await DeserializeResponseAsync<LoginResponseDto>(adminLoginRes);
@@ -112,7 +112,7 @@ public class DriverJourney_E2ETest : BaseIntegrationTest
         // PHASE 2: DRIVER LOGIN
         // ---------------------------------------------------------------------------------------------------------
         var driverLoginPayload = new { phoneNumber = driverPhone, pin = driverPin };
-        var driverLoginRes = await Client.PostAsJsonAsync("/api/v1/auth/drivers/login", driverLoginPayload);
+        var driverLoginRes = await Client.PostAsJsonAsync("/api/v1/mobile/auth/drivers/login", driverLoginPayload);
         driverLoginRes.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var driverTokenResult = await DeserializeResponseAsync<LoginResponseDto>(driverLoginRes);
@@ -124,7 +124,7 @@ public class DriverJourney_E2ETest : BaseIntegrationTest
         // ---------------------------------------------------------------------------------------------------------
         // PHASE 3: GET DASHBOARD
         // ---------------------------------------------------------------------------------------------------------
-        var dashboardRes = await Client.GetAsync("/api/v1/jobs/dashboard");
+        var dashboardRes = await Client.GetAsync("/api/v1/mobile/jobs/dashboard");
         dashboardRes.StatusCode.Should().Be(HttpStatusCode.OK);
 
         // ---------------------------------------------------------------------------------------------------------
@@ -134,7 +134,7 @@ public class DriverJourney_E2ETest : BaseIntegrationTest
         Client.DefaultRequestHeaders.Add("X-Idempotency-Key", Guid.NewGuid().ToString());
         // truckId is nullable in start command
         var startJobPayload = new { pickupOrderId = pickupOrderId, truckId = (long?)null };
-        var startJobRes = await Client.PostAsJsonAsync($"/api/v1/jobs/{pickupOrderId}/start", startJobPayload);
+        var startJobRes = await Client.PostAsJsonAsync($"/api/v1/mobile/jobs/{pickupOrderId}/start", startJobPayload);
         if (startJobRes.StatusCode != HttpStatusCode.OK)
         {
              var err = await startJobRes.Content.ReadAsStringAsync();
@@ -148,7 +148,7 @@ public class DriverJourney_E2ETest : BaseIntegrationTest
         Client.DefaultRequestHeaders.Remove("X-Idempotency-Key");
         Client.DefaultRequestHeaders.Add("X-Idempotency-Key", Guid.NewGuid().ToString());
         var scanPayload = new { kanbanCode = kanbanCode };
-        var scanRes = await Client.PostAsJsonAsync($"/api/v1/jobs/stops/{stopId}/manifests/{manifestId}/kanban", scanPayload);
+        var scanRes = await Client.PostAsJsonAsync($"/api/v1/mobile/jobs/stops/{stopId}/manifests/{manifestId}/kanban", scanPayload);
         if (scanRes.StatusCode != HttpStatusCode.OK)
         {
              var err = await scanRes.Content.ReadAsStringAsync();
@@ -162,7 +162,7 @@ public class DriverJourney_E2ETest : BaseIntegrationTest
         Client.DefaultRequestHeaders.Remove("X-Idempotency-Key");
         Client.DefaultRequestHeaders.Add("X-Idempotency-Key", Guid.NewGuid().ToString());
         var completeStopPayload = new { latitude = -6.2, longitude = 106.8 };
-        var completeStopRes = await Client.PostAsJsonAsync($"/api/v1/jobs/stops/{stopId}/complete", completeStopPayload);
+        var completeStopRes = await Client.PostAsJsonAsync($"/api/v1/mobile/jobs/stops/{stopId}/complete", completeStopPayload);
         if (completeStopRes.StatusCode != HttpStatusCode.OK)
         {
              var err = await completeStopRes.Content.ReadAsStringAsync();
@@ -175,7 +175,7 @@ public class DriverJourney_E2ETest : BaseIntegrationTest
         // ---------------------------------------------------------------------------------------------------------
         Client.DefaultRequestHeaders.Remove("X-Idempotency-Key");
         Client.DefaultRequestHeaders.Add("X-Idempotency-Key", Guid.NewGuid().ToString());
-        var endJobRes = await Client.PostAsJsonAsync($"/api/v1/jobs/{pickupOrderId}/end", new { });
+        var endJobRes = await Client.PostAsJsonAsync($"/api/v1/mobile/jobs/{pickupOrderId}/end", new { });
         if (endJobRes.StatusCode != HttpStatusCode.OK)
         {
              var err = await endJobRes.Content.ReadAsStringAsync();

@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace EDCL.Module.Auth.Controllers;
 
 [ApiController]
-[Route("api/v1/auth/users")]
+[Route("api/v1/web/auth/users")]
 public sealed class AppUsersController(IMediator mediator) : ControllerBase
 {
     /// <summary>

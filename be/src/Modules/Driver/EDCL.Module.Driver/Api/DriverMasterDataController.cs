@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace EDCL.Module.Driver.Api;
 
 [ApiController]
-[Route("api/v1/master/trucks")]
+[Route("api/v1/web/master/trucks")]
 [Tags("Admin Master Data (Driver)")]
 [Authorize(Roles = "ADMIN")]
 public class AdminTrucksController(IMediator mediator) : ControllerBase
@@ -67,7 +67,7 @@ public class AdminTrucksController(IMediator mediator) : ControllerBase
 }
 
 [ApiController]
-[Route("api/v1/master/suppliers")]
+[Route("api/v1/web/master/suppliers")]
 [Tags("Admin Master Data (Driver)")]
 [Authorize(Roles = "ADMIN")]
 public class AdminSuppliersController(IMediator mediator) : ControllerBase

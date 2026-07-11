@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace EDCL.Module.Auth.Controllers;
 
 [ApiController]
-[Route("api/v1/auth/drivers")] // Under /auth/ to pass through Gateway's auth-route
+[Route("api/v1/web/master/drivers")]
 public sealed class AdminDriversController(IMediator mediator) : ControllerBase
 {
     /// <summary>

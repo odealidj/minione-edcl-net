@@ -17,7 +17,7 @@ namespace EDCL.Module.Job.Api;
 
 [ApiController]
 [Authorize(Roles = "ADMIN")]
-[Route("api/v1/admin/pickup-orders")]
+[Route("api/v1/web/jobs/pickup-orders")]
 public class AdminPickupOrdersController(IMediator mediator) : ControllerBase
 {
     [HttpGet]
@@ -80,4 +80,30 @@ public class AdminPickupOrdersController(IMediator mediator) : ControllerBase
             ? Ok(ApiResponse<IReadOnlyList<EDCL.Module.Job.Application.Queries.AdminGetPickupOrderById.AdminPickupOrderManifestDto>>.Paginated(result.Value.Items, PaginationMeta.From(result.Value.PageNumber, result.Value.PageSize, result.Value.TotalCount), traceId))
             : BadRequest(ApiResponse<object>.Fail(result.Error.Message, traceId, 400));
     }
+
+    /// <summary>
+    /// Assigns a driver to a specific pickup order job.
+    /// </summary>
+    /// <param name="id">Pickup Order ID</param>
+    /// <param name="request">Request containing the driver ID to assign.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Boolean indicating success.</returns>
+    [HttpPost("{id}/assign")]
+    [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> AssignJob(long id, [FromBody] AssignJobRequest request, CancellationToken cancellationToken)
+    {
+        var command = new EDCL.Module.Job.Application.Commands.AssignJob.AssignJobCommand(id, request.DriverId, request.TruckId);
+        var result = await mediator.Send(command, cancellationToken);
+        var traceId = HttpContext.TraceIdentifier;
+        return result.Match<IActionResult>(
+            ok => Ok(ApiResponse<bool>.Success(ok, traceId)),
+            err => BadRequest(ApiResponse<object>.Fail(err.Message, traceId, 400))
+        );
+    }
 }
+
+public sealed record AssignJobRequest(long DriverId, long? TruckId = null);
