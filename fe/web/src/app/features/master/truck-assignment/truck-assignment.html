@@ -96,6 +96,13 @@
       </tbody>
     </table>
   </app-card>
+
+  <app-pagination
+    [meta]="meta()"
+    [currentItemsCount]="items().length"
+    (pageChange)="onPageChange($event)"
+    (pageSizeChange)="onPageSizeChange($event)">
+  </app-pagination>
 </div>
 
 <!-- Assign Modal -->

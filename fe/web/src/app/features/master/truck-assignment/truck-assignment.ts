@@ -1,31 +1,36 @@
-import { Component, OnInit, inject, ViewChild, ElementRef, signal, ChangeDetectorRef, computed } from '@angular/core';
+import { Component, OnInit, inject, ViewChild, ElementRef, signal, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { forkJoin } from 'rxjs';
 import { MasterDataService } from '../../../core/services/master-data.service';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Truck, LogisticPartner, Driver } from '../../../core/models/master.model';
+import { PaginationMeta } from '../../../core/models/api.model';
 
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { SearchBarComponent } from '../../../shared/components/search-bar/search-bar.component';
 import { CardComponent } from '../../../shared/components/card/card.component';
+import { PaginationComponent } from '../../../shared/components/pagination/pagination.component';
 
 @Component({
   selector: 'app-truck-assignment',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, PageHeaderComponent, SearchBarComponent, CardComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, PageHeaderComponent, SearchBarComponent, CardComponent, PaginationComponent],
   templateUrl: './truck-assignment.html',
 })
 export class TruckAssignment implements OnInit {
   items = signal<any[]>([]);
+  meta = signal<PaginationMeta | null>(null);
   logisticPartners = signal<LogisticPartner[]>([]);
   trucks = signal<Truck[]>([]);
   drivers = signal<Driver[]>([]);
   isLoading = signal(true);
   searchQuery = '';
-  
+  currentPage = 1;
+  pageSize = 10;
+
   selectedIds = signal<Set<string>>(new Set());
   isDeletingSelected = signal(false);
-  
+
   @ViewChild('assignModal') assignModal!: ElementRef<HTMLDialogElement>;
   assignForm: FormGroup;
   isSaving = false;
@@ -95,9 +100,10 @@ export class TruckAssignment implements OnInit {
 
   loadData() {
     this.isLoading.set(true);
-    this.service.getTruckAssignments().subscribe({
+    this.service.getTruckAssignments(this.searchQuery || undefined, this.currentPage, this.pageSize).subscribe({
       next: (res) => {
         this.items.set(res.data || []);
+        if (res.pagination) this.meta.set(res.pagination);
         this.isLoading.set(false);
       },
       error: (err) => {
@@ -109,17 +115,19 @@ export class TruckAssignment implements OnInit {
 
   onSearch(query: string): void {
     this.searchQuery = query;
+    this.currentPage = 1;
+    this.loadData();
   }
 
-  get filteredAssignments() {
-    const data = this.items();
-    if (!this.searchQuery) return data;
-    const lowerQ = this.searchQuery.toLowerCase();
-    return data.filter(a => 
-      (a.plateNumber && a.plateNumber.toLowerCase().includes(lowerQ)) ||
-      (a.driverName && a.driverName.toLowerCase().includes(lowerQ)) ||
-      (a.logisticPartnerName && a.logisticPartnerName.toLowerCase().includes(lowerQ))
-    );
+  onPageChange(page: number): void {
+    this.currentPage = page;
+    this.loadData();
+  }
+
+  onPageSizeChange(size: number): void {
+    this.pageSize = size;
+    this.currentPage = 1;
+    this.loadData();
   }
 
   openAssignModal(): void {
@@ -139,12 +147,13 @@ export class TruckAssignment implements OnInit {
     if (this.assignForm.invalid) return;
     this.isSaving = true;
     const val = this.assignForm.value;
-    
+
     this.service.assignDriverToTruck(val.truckId, val.driverId).subscribe({
       next: () => {
         this.isSaving = false;
         this.cdr.detectChanges();
         this.closeAssignModal();
+        this.currentPage = 1;
         this.loadData();
       },
       error: (err) => {
@@ -184,14 +193,14 @@ export class TruckAssignment implements OnInit {
   toggleAll(event: Event): void {
     const isChecked = (event.target as HTMLInputElement).checked;
     if (isChecked) {
-      this.selectedIds.set(new Set(this.filteredAssignments.map(i => `${i.truckId}-${i.driverId}`)));
+      this.selectedIds.set(new Set(this.items().map(i => `${i.truckId}-${i.driverId}`)));
     } else {
       this.selectedIds.set(new Set());
     }
   }
 
   isAllSelected(): boolean {
-    return this.filteredAssignments.length > 0 && this.selectedIds().size === this.filteredAssignments.length;
+    return this.items().length > 0 && this.selectedIds().size === this.items().length;
   }
 
   isSelected(truckId: number, driverId: number): boolean {
@@ -201,19 +210,20 @@ export class TruckAssignment implements OnInit {
   deleteSelected(): void {
     const ids = Array.from(this.selectedIds());
     if (ids.length === 0) return;
-    
+
     if (confirm(`Are you sure you want to unassign ${ids.length} selected items?`)) {
       this.isDeletingSelected.set(true);
       const requests = ids.map(id => {
         const [truckIdStr, driverIdStr] = id.split('-');
         return this.service.unassignDriverFromTruck(Number(truckIdStr), Number(driverIdStr));
       });
-      
+
       forkJoin(requests).subscribe({
         next: () => {
           this.isDeletingSelected.set(false);
           this.selectedIds.set(new Set());
           this.cdr.detectChanges();
+          this.currentPage = 1;
           this.loadData();
         },
         error: (err) => {

@@ -26,19 +26,19 @@ export class AdminService {
   getLogisticPartners(search?: string, page: number = 1, pageSize: number = 10): Observable<ApiResponse<LogisticPartner[]>> {
     let params = new HttpParams().set('page', page).set('pageSize', pageSize);
     if (search) params = params.set('search', search);
-    return this.http.get<ApiResponse<LogisticPartner[]>>(`${environment.apiUrl}/master/logisticPartners`, { params });
+    return this.http.get<ApiResponse<LogisticPartner[]>>(`${environment.apiUrl}/master/logistic-partners`, { params });
   }
 
   createLogisticPartner(code: string, name: string): Observable<ApiResponse<string>> {
-    return this.http.post<ApiResponse<string>>(`${environment.apiUrl}/master/logisticPartners`, { code, name });
+    return this.http.post<ApiResponse<string>>(`${environment.apiUrl}/master/logistic-partners`, { code, name });
   }
 
   updateLogisticPartner(id: number, code: string, name: string): Observable<ApiResponse<any>> {
-    return this.http.put<ApiResponse<any>>(`${environment.apiUrl}/master/logisticPartners/${id}`, { id, code, name });
+    return this.http.put<ApiResponse<any>>(`${environment.apiUrl}/master/logistic-partners/${id}`, { id, code, name });
   }
 
   deleteLogisticPartner(id: number): Observable<ApiResponse<any>> {
-    return this.http.delete<ApiResponse<any>>(`${environment.apiUrl}/master/logisticPartners/${id}`);
+    return this.http.delete<ApiResponse<any>>(`${environment.apiUrl}/master/logistic-partners/${id}`);
   }
 
   // Routes

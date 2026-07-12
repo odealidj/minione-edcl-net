@@ -87,12 +87,16 @@ public class AdminTrucksController(IMediator mediator) : ControllerBase
 
     [HttpGet("assignments")]
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<Application.DTOs.TruckDriverAssignmentDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAssignments(CancellationToken cancellationToken)
+    public async Task<IActionResult> GetAssignments(
+        [FromQuery] string? search = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        CancellationToken cancellationToken = default)
     {
-        var result = await mediator.Send(new Application.Queries.GetTruckAssignments.GetTruckAssignmentsQuery(), cancellationToken);
+        var result = await mediator.Send(new Application.Queries.GetTruckAssignments.GetTruckAssignmentsQuery(search, page, pageSize), cancellationToken);
         var traceId = HttpContext.TraceIdentifier;
         return result.IsSuccess
-            ? Ok(ApiResponse<IReadOnlyList<Application.DTOs.TruckDriverAssignmentDto>>.Success(result.Value, traceId))
+            ? Ok(ApiResponse<IReadOnlyList<Application.DTOs.TruckDriverAssignmentDto>>.Paginated(result.Value.Items, PaginationMeta.From(result.Value.PageNumber, result.Value.PageSize, result.Value.TotalCount), traceId))
             : BadRequest(ApiResponse<object>.Fail(result.Error.Message, traceId, 400));
     }
 

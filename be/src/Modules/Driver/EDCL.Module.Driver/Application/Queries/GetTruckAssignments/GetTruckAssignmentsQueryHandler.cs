@@ -8,36 +8,45 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using System;
 
 namespace EDCL.Module.Driver.Application.Queries.GetTruckAssignments;
 
 internal sealed class GetTruckAssignmentsQueryHandler(DriverDbContext dbContext, IDriverPort driverPort)
-    : IRequestHandler<GetTruckAssignmentsQuery, Result<IReadOnlyList<TruckDriverAssignmentDto>>>
+    : IRequestHandler<GetTruckAssignmentsQuery, Result<GetTruckAssignmentsResponse>>
 {
-    public async Task<Result<IReadOnlyList<TruckDriverAssignmentDto>>> Handle(GetTruckAssignmentsQuery request, CancellationToken cancellationToken)
+    public async Task<Result<GetTruckAssignmentsResponse>> Handle(GetTruckAssignmentsQuery request, CancellationToken cancellationToken)
     {
-        // 1. Fetch active assignments with Truck and LogisticPartner details
-        var activeAssignments = await dbContext.TruckDriverAssignments
+        // 1. Build base query for active assignments
+        var query = dbContext.TruckDriverAssignments
             .Include(a => a.Truck)
             .ThenInclude(t => t!.LogisticPartner)
             .Where(a => a.IsActive && !a.Truck!.IsDeleted)
-            .AsNoTracking()
-            .ToListAsync(cancellationToken);
+            .AsNoTracking();
 
-        if (activeAssignments.Count == 0)
+        // 2. Get total count first for pagination
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        if (totalCount == 0)
         {
-            return Result<IReadOnlyList<TruckDriverAssignmentDto>>.Success(new List<TruckDriverAssignmentDto>());
+            return Result<GetTruckAssignmentsResponse>.Success(
+                new GetTruckAssignmentsResponse(new List<TruckDriverAssignmentDto>(), 0, request.PageNumber, request.PageSize, 0));
         }
 
-        // 2. Extract unique driver IDs
-        var driverIds = activeAssignments.Select(a => a.DriverId).Distinct().ToList();
+        // 3. Apply pagination (sort by AssignedAt desc, then paginate)
+        var activeAssignments = await query
+            .OrderByDescending(a => a.AssignedAt)
+            .Skip((request.PageNumber - 1) * request.PageSize)
+            .Take(request.PageSize)
+            .ToListAsync(cancellationToken);
 
-        // 3. Fetch driver details in bulk via port
+        // 4. Extract unique driver IDs from the current page and fetch in bulk
+        var driverIds = activeAssignments.Select(a => a.DriverId).Distinct().ToList();
         var drivers = await driverPort.GetDriversByIdsAsync(driverIds, cancellationToken);
         var driverMap = drivers.ToDictionary(d => d.Id, d => d);
 
-        // 4. Map to DTOs
-        var dtos = activeAssignments.Select(a => 
+        // 5. Apply search filter if provided (filter on the fetched page by driver name / plate)
+        IEnumerable<TruckDriverAssignmentDto> dtos = activeAssignments.Select(a =>
         {
             var driver = driverMap.GetValueOrDefault(a.DriverId);
             return new TruckDriverAssignmentDto(
@@ -50,8 +59,23 @@ internal sealed class GetTruckAssignmentsQueryHandler(DriverDbContext dbContext,
                 DriverNik: driver?.Nik ?? "-",
                 AssignedAt: a.AssignedAt
             );
-        }).OrderByDescending(d => d.AssignedAt).ToList();
+        });
 
-        return Result<IReadOnlyList<TruckDriverAssignmentDto>>.Success(dtos);
+        // Apply search on mapped DTOs (driver name / plate number)
+        if (!string.IsNullOrWhiteSpace(request.Search))
+        {
+            var term = request.Search.ToLower();
+            dtos = dtos.Where(d =>
+                d.PlateNumber.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                d.DriverName.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                d.DriverNik.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                (d.LogisticPartnerName != null && d.LogisticPartnerName.Contains(term, StringComparison.OrdinalIgnoreCase)));
+        }
+
+        var totalPages = request.PageSize > 0 ? (int)Math.Ceiling((double)totalCount / request.PageSize) : 0;
+        var result = dtos.ToList();
+
+        return Result<GetTruckAssignmentsResponse>.Success(
+            new GetTruckAssignmentsResponse(result, totalCount, request.PageNumber, request.PageSize, totalPages));
     }
 }

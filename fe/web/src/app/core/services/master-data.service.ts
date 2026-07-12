@@ -15,7 +15,7 @@ export class MasterDataService {
   getLogisticPartners(search?: string, page: number = 1, pageSize: number = 100): Observable<ApiResponse<LogisticPartner[]>> {
     let params = new HttpParams().set('page', page).set('pageSize', pageSize);
     if (search) params = params.set('search', search);
-    return this.http.get<ApiResponse<LogisticPartner[]>>(`${environment.apiUrl}/master/logisticPartners`, { params });
+    return this.http.get<ApiResponse<LogisticPartner[]>>(`${environment.apiUrl}/master/logistic-partners`, { params });
   }
 
   // Drivers
@@ -91,7 +91,9 @@ export class MasterDataService {
     return this.http.get<ApiResponse<any[]>>(`${environment.apiUrl}/master/trucks/assignments/available-drivers?logisticPartnerId=${logisticPartnerId}`);
   }
 
-  getTruckAssignments(): Observable<ApiResponse<any[]>> {
-    return this.http.get<ApiResponse<any[]>>(`${environment.apiUrl}/master/trucks/assignments`);
+  getTruckAssignments(search?: string, page: number = 1, pageSize: number = 10): Observable<ApiResponse<any[]>> {
+    let params = new HttpParams().set('page', page).set('pageSize', pageSize);
+    if (search) params = params.set('search', search);
+    return this.http.get<ApiResponse<any[]>>(`${environment.apiUrl}/master/trucks/assignments`, { params });
   }
 }
