@@ -56,15 +56,15 @@ internal sealed class TruckConfiguration : IEntityTypeConfiguration<Truck>
         builder.Property(t => t.VehicleType).HasMaxLength(100);
         builder.Property(t => t.IsActive).HasDefaultValue(true);
 
-        builder.Property(t => t.TransporterId).IsRequired();
+        builder.Property(t => t.LogisticPartnerId).IsRequired();
 
         ConfigureAuditColumns(builder);
 
         builder.HasIndex(t => t.PlateNumber).IsUnique().HasDatabaseName("UQ_trucks_plate_number");
 
-        builder.HasOne(t => t.Transporter)
-            .WithMany() // Transporter doesn't have a navigation collection for Trucks right now
-            .HasForeignKey(t => t.TransporterId)
+        builder.HasOne(t => t.LogisticPartner)
+            .WithMany() // LogisticPartner doesn't have a navigation collection for Trucks right now
+            .HasForeignKey(t => t.LogisticPartnerId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 
@@ -85,14 +85,17 @@ internal sealed class TruckConfiguration : IEntityTypeConfiguration<Truck>
     }
 }
 
-internal sealed class TransporterConfiguration : IEntityTypeConfiguration<Transporter>
+internal sealed class LogisticPartnerConfiguration : IEntityTypeConfiguration<LogisticPartner>
 {
-    public void Configure(EntityTypeBuilder<Transporter> builder)
+    public void Configure(EntityTypeBuilder<LogisticPartner> builder)
     {
-        builder.ToTable("transporters");
+        builder.ToTable("logistic_partners");
         builder.HasKey(t => t.Id);
         builder.Property(t => t.Id).UseIdentityColumn();
+        builder.Property(t => t.Code).HasMaxLength(10).IsRequired();
         builder.Property(t => t.Name).HasMaxLength(150).IsRequired();
+
+        builder.HasIndex(t => t.Code).IsUnique().HasDatabaseName("UQ_logistic_partners_code");
 
         ConfigureAuditColumns(builder);
     }
@@ -139,6 +142,39 @@ internal sealed class TruckDriverAssignmentConfiguration : IEntityTypeConfigurat
             .OnDelete(DeleteBehavior.Cascade);
             
         // No navigation property from Driver since Driver is in Auth module.
+    }
+
+    private static void ConfigureAuditColumns<T>(EntityTypeBuilder<T> builder)
+        where T : AuditableEntity
+    {
+        builder.Property(e => e.CreatedAt).HasColumnName("created_at")
+            .HasColumnType("datetime2(7)").HasDefaultValueSql("GETUTCDATE()").IsRequired();
+        builder.Property(e => e.CreatedBy).HasColumnName("created_by").HasMaxLength(100).IsRequired();
+        builder.Property(e => e.UpdatedAt).HasColumnName("updated_at").HasColumnType("datetime2(7)");
+        builder.Property(e => e.UpdatedBy).HasColumnName("updated_by").HasMaxLength(100);
+        builder.Property(e => e.IsDeleted).HasColumnName("is_deleted").HasDefaultValue(false);
+        builder.Property(e => e.DeletedAt).HasColumnName("deleted_at").HasColumnType("datetime2(7)");
+        builder.Property(e => e.DeletedBy).HasColumnName("deleted_by").HasMaxLength(100);
+        builder.Property(e => e.RowVersion).HasColumnName("row_version").IsRowVersion();
+        builder.Property(e => e.TraceId).HasColumnName("trace_id").HasMaxLength(64);
+        builder.HasQueryFilter(e => !e.IsDeleted);
+    }
+}
+
+internal sealed class RouteConfiguration : IEntityTypeConfiguration<EDCL.Module.Driver.Domain.Entities.Route>
+{
+    public void Configure(EntityTypeBuilder<EDCL.Module.Driver.Domain.Entities.Route> builder)
+    {
+        builder.ToTable("routes");
+        builder.HasKey(r => r.Id);
+        builder.Property(r => r.Id).UseIdentityColumn();
+
+        builder.Property(r => r.RouteCode).HasMaxLength(50).IsRequired();
+        builder.Property(r => r.CycleCode).HasMaxLength(10).IsRequired();
+
+        ConfigureAuditColumns(builder);
+
+        builder.HasIndex(r => new { r.RouteCode, r.CycleCode }).IsUnique().HasDatabaseName("UQ_routes_route_cycle");
     }
 
     private static void ConfigureAuditColumns<T>(EntityTypeBuilder<T> builder)

@@ -9,7 +9,7 @@ namespace EDCL.Module.Auth.Domain.Entities;
 public sealed class Driver : AuditableEntity
 {
     public long Id { get; private set; }
-    public long? TransporterId { get; private set; }
+    public long? LogisticPartnerId { get; private set; }
     public string Name { get; private set; } = default!;
     public string Nik { get; private set; } = default!;           // Immutable — national ID
     public string PhoneNumber { get; private set; } = default!;
@@ -28,7 +28,7 @@ public sealed class Driver : AuditableEntity
 
     public static Driver Create(
         string name, string nik, string phoneNumber,
-        string pinHash, long? transporterId = null)
+        string pinHash, long? logisticPartnerId = null)
         => new()
         {
             Name = name,
@@ -36,7 +36,7 @@ public sealed class Driver : AuditableEntity
             PhoneNumber = phoneNumber,
             PinHash = pinHash,
             MustChangePin = true,
-            TransporterId = transporterId,
+            LogisticPartnerId = logisticPartnerId,
             IsActive = true
         };
 

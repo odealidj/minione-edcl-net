@@ -83,7 +83,7 @@ public sealed class LoginCommandHandler(
             Name: driver.Name,
             Nik: driver.Nik,
             PhotoUrl: driver.PhotoUrl,
-            TransporterName: null,
+            LogisticPartnerName: null,
             AccessToken: accessToken,
             RefreshToken: rawRefreshToken,         // Raw token sent to client
             AccessTokenExpiresAt: accessExpiry,

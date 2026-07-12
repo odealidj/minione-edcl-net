@@ -12,7 +12,7 @@ internal sealed class CreateTruckCommandHandler(DriverDbContext dbContext)
 {
     public async Task<Result<long>> Handle(CreateTruckCommand request, CancellationToken cancellationToken)
     {
-        var entity = EDCL.Module.Driver.Domain.Entities.Truck.Create(request.PlateNumber, request.TransporterId, request.VehicleType);
+        var entity = EDCL.Module.Driver.Domain.Entities.Truck.Create(request.PlateNumber, request.LogisticPartnerId, request.VehicleType);
         dbContext.Trucks.Add(entity);
         await dbContext.SaveChangesAsync(cancellationToken);
         return Result<long>.Success(entity.Id);

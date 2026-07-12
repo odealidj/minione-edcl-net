@@ -10,11 +10,18 @@ export interface User {
   createdOnUtc?: string;
 }
 
-export interface Transporter {
+export interface LogisticPartner {
   id: number;
+  code: string;
   name: string;
   createdBy: string;
   createdOnUtc: string;
+}
+
+export interface Route {
+  id: number;
+  routeCode: string;
+  cycleCode: string;
 }
 
 // Master Data Models
@@ -23,8 +30,8 @@ export interface Driver {
   name: string;
   nik: string;
   phoneNumber: string;
-  transporterId?: number | null;
-  transporterName?: string | null;
+  logisticPartnerId?: number | null;
+  logisticPartnerName?: string | null;
   createdBy: string;
   createdOnUtc: string;
 }
@@ -45,8 +52,8 @@ export interface Truck {
   id: number;
   plateNumber: string;
   vehicleType: string;
-  transporterId?: number | null;
-  transporterName?: string | null;
+  logisticPartnerId?: number | null;
+  logisticPartnerName?: string | null;
   isActive?: boolean;
   createdBy: string;
   createdOnUtc: string;

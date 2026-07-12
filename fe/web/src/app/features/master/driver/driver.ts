@@ -2,7 +2,7 @@ import { Component, OnInit, inject, ViewChild, ElementRef, signal, computed } fr
 import { CommonModule } from '@angular/common';
 import { forkJoin } from 'rxjs';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Driver, Transporter } from '../../../core/models/master.model';
+import { Driver, LogisticPartner } from '../../../core/models/master.model';
 import { PaginationMeta } from '../../../core/models/api.model';
 import { MasterDataService } from '../../../core/services/master-data.service';
 import { AdminService } from '../../../core/services/admin.service';
@@ -23,7 +23,7 @@ export class DriverComponent implements OnInit {
   items = signal<Driver[]>([]);
   meta = signal<PaginationMeta | null>(null);
   isLoading = signal(true);
-  transporters = signal<Transporter[]>([]);
+  logisticPartners = signal<LogisticPartner[]>([]);
   searchQuery = '';
   currentPage = 1;
   pageSize = 10;
@@ -46,23 +46,23 @@ export class DriverComponent implements OnInit {
       name: ['', Validators.required],
       nik: ['', Validators.required],
       phoneNumber: [''],
-      transporterId: [null]
+      logisticPartnerId: [null]
     });
   }
 
   ngOnInit(): void {
     this.loadData();
-    this.loadTransporters();
+    this.loadLogisticPartners();
   }
 
-  loadTransporters(): void {
-    this.adminService.getTransporters('', 1, 1000).subscribe({
+  loadLogisticPartners(): void {
+    this.adminService.getLogisticPartners('', 1, 1000).subscribe({
       next: (res) => {
         if (res.status === 'success') {
-          this.transporters.set(res.data);
+          this.logisticPartners.set(res.data);
         }
       },
-      error: (err) => console.error('Failed to load transporters', err)
+      error: (err) => console.error('Failed to load logisticPartners', err)
     });
   }
 
@@ -153,7 +153,7 @@ export class DriverComponent implements OnInit {
     if (item) {
       this.isEditMode = true;
       this.editingId = item.id;
-      this.form.patchValue({ name: item.name, nik: item.nik, phoneNumber: item.phoneNumber, transporterId: item.transporterId });
+      this.form.patchValue({ name: item.name, nik: item.nik, phoneNumber: item.phoneNumber, logisticPartnerId: item.logisticPartnerId });
     } else {
       this.isEditMode = false;
       this.editingId = null;
@@ -172,15 +172,15 @@ export class DriverComponent implements OnInit {
     const val = this.form.value;
 
     // Convert string to number if not null
-    const transporterId = val.transporterId ? Number(val.transporterId) : null;
+    const logisticPartnerId = val.logisticPartnerId ? Number(val.logisticPartnerId) : null;
 
     if (this.isEditMode && this.editingId) {
-      this.service.updateDriver(this.editingId, val.name, val.nik, val.phoneNumber, transporterId).subscribe({
+      this.service.updateDriver(this.editingId, val.name, val.nik, val.phoneNumber, logisticPartnerId).subscribe({
         next: () => { this.isSaving = false; this.closeModal(); this.loadData(); },
         error: (err) => { console.error(err); this.isSaving = false; }
       });
     } else {
-      this.service.createDriver(val.name, val.nik, val.phoneNumber, transporterId).subscribe({
+      this.service.createDriver(val.name, val.nik, val.phoneNumber, logisticPartnerId).subscribe({
         next: () => { this.isSaving = false; this.closeModal(); this.currentPage = 1; this.loadData(); },
         error: (err) => { console.error(err); this.isSaving = false; }
       });

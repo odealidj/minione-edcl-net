@@ -9,7 +9,7 @@ import { Monitoring } from './features/operations/monitoring/monitoring';
 import { authGuard } from './core/guards/auth.guard';
 import { adminGuard } from './core/guards/admin.guard';
 
-import { TransporterComponent } from './features/master/transporter/transporter';
+import { LogisticPartnerComponent } from './features/master/logistic-partner/logistic-partner';
 import { TruckComponent } from './features/master/truck/truck';
 import { ManifestComponent } from './features/master/manifest/manifest';
 import { TruckAssignment } from './features/master/truck-assignment/truck-assignment';
@@ -30,7 +30,8 @@ export const routes: Routes = [
 
       { path: 'manifests', component: ManifestComponent },
 
-      { path: 'master/transporter', component: TransporterComponent, canActivate: [adminGuard] },
+      { path: 'master/logisticPartner', component: LogisticPartnerComponent, canActivate: [adminGuard] },
+      { path: 'master/route', loadComponent: () => import('./features/master/route/route').then(c => c.RouteComponent), canActivate: [adminGuard] },
       { path: 'master/truck', component: TruckComponent },
       { path: 'master/truck-assignments', component: TruckAssignment },
 

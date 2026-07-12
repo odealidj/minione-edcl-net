@@ -13,7 +13,7 @@ public interface IDriverPort
 {
     Task<DriverInfo?> GetActiveDriverByIdAsync(long driverId, CancellationToken ct = default);
     Task<IReadOnlyList<DriverInfo>> GetDriversByIdsAsync(IEnumerable<long> driverIds, CancellationToken ct = default);
-    Task<IReadOnlyList<DriverInfo>> GetActiveDriversByTransporterIdAsync(long transporterId, CancellationToken ct = default);
+    Task<IReadOnlyList<DriverInfo>> GetActiveDriversByLogisticPartnerIdAsync(long logisticPartnerId, CancellationToken ct = default);
 }
 
 /// <summary>
@@ -43,8 +43,8 @@ public sealed record DriverInfo(
     string Name,
     string PhoneNumber,
     string? PhotoUrl,
-    long? TransporterId,
-    string? TransporterName,
+    long? LogisticPartnerId,
+    string? LogisticPartnerName,
     bool IsActive);
 
 public sealed record SupplierInfo(

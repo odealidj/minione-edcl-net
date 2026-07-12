@@ -1,11 +1,11 @@
 # Dokumen Proses Bisnis: Registrasi Web (Admin & Staff)
 
-Dokumen ini menjelaskan alur pendaftaran akun pengguna Web, yaitu **Admin Transporter** dan **Staff Pabrik**, untuk dapat mengakses sistem *dashboard* EDCL.
+Dokumen ini menjelaskan alur pendaftaran akun pengguna Web, yaitu **Admin Logistic Partner** dan **Staff Pabrik**, untuk dapat mengakses sistem *dashboard* EDCL.
 
 ---
 
 ## 1. Konsep Dasar & Keamanan
-- **Role-Based Access:** Pendaftaran pengguna web membutuhkan penentuan peran (Role), misalnya `ADMIN` (Admin Logistik/Transporter) atau `STAFF` (Staff Operasional Pabrik).
+- **Role-Based Access:** Pendaftaran pengguna web membutuhkan penentuan peran (Role), misalnya `ADMIN` (Admin Logistik/Logistic Partner) atau `STAFF` (Staff Operasional Pabrik).
 - **Setup Awal (Bootstrap):** Secara *default*, sistem mengizinkan pendaftaran bebas (terbuka) di awal pemasangan agar *Super Admin* pertama bisa terbuat. Setelah itu, *endpoint* registrasi ini **harus dikunci** agar hanya Admin yang bisa mendaftarkan staf lainnya (menggunakan proteksi `[Authorize(Roles = "ADMIN")]`).
 - **Kerahasiaan Hash:** Sama seperti Driver, kata sandi (Password) pengguna web disimpan secara aman menggunakan enkripsi BCrypt Hash.
 

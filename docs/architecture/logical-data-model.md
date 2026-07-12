@@ -14,7 +14,7 @@ Setiap modul memiliki **SQL Schema** tersendiri untuk memisahkan batas domain se
 | Module | Schema DB | Tanggung Jawab |
 |---|---|---|
 | `Auth` | `[auth]` | Identitas Driver (Mobile App) & AppUser (Web), token autentikasi |
-| `Driver` | `[driver]` | Master Data: Transporter, Truck, Supplier, Truck-Driver Assignments |
+| `Driver` | `[driver]` | Master Data: Logistic Partner, Truck, Supplier, Truck-Driver Assignments |
 | `Cargo` | *(dapper/raw SQL)* | Ingestion Manifest dari IDCS (CDC via Debezium) |
 | `Job` | `[job]` | Pickup Order — rencana & realisasi pengiriman di lapangan |
 | `Notification` | `[notification]` | Kotak masuk notifikasi Driver |
@@ -72,7 +72,7 @@ erDiagram
     DRIVER ||--o{ DRIVER_REFRESH_TOKEN : "memiliki"
     DRIVER {
         bigint id PK
-        bigint transporter_id "logical ref cross-domain"
+        bigint logistic_partner_id "logical ref cross-domain"
         string name
         string nik UK
         string phone_number UK
@@ -112,9 +112,10 @@ erDiagram
     %% [driver] SCHEMA — Driver Module (Master Data)
     %% ======================================================
 
-    TRANSPORTER ||--o{ TRUCK : "memiliki"
-    TRANSPORTER {
+    LOGISTIC_PARTNER ||--o{ TRUCK : "memiliki"
+    LOGISTIC_PARTNER {
         bigint id PK
+        string code UK
         string name
         datetime created_at
         string created_by
@@ -128,8 +129,19 @@ erDiagram
         bigint id PK
         string plate_number UK
         string vehicle_type
-        bigint transporter_id FK
+        bigint logistic_partner_id FK
         boolean is_active
+        datetime created_at
+        string created_by
+        datetime deleted_at
+        boolean is_deleted
+        bytes row_version
+    }
+
+    ROUTE {
+        bigint id PK
+        string route_code
+        string cycle_code
         datetime created_at
         string created_by
         datetime deleted_at
@@ -313,18 +325,28 @@ erDiagram
 > [!IMPORTANT]
 > Perubahan ini terjadi dalam sesi pengembangan terkini dan berdampak pada struktur domain secara fundamental.
 
-### 3.1 Pemindahan `Transporter` dari Auth Module ke Driver Module
+### 3.1 Pemindahan `Logistic Partner` dari Auth Module ke Driver Module
 
 | Aspek | Sebelum | Sesudah |
 |---|---|---|
-| **Schema DB** | `[auth].[transporters]` | `[driver].[transporters]` |
+| **Schema DB** | `[auth].[logistic-partners]` | `[driver].[logistic-partners]` |
 | **Kepemilikan** | Auth Module | Driver Module |
-| **CRUD Controller** | Auth Module | Driver Module (`AdminTransportersController`) |
-| **Migration** | `Auth` DB Migration | `Driver` DB Migration (`AddTransporterAndAssignmentToDriver`) |
+| **CRUD Controller** | Auth Module | Driver Module (`AdminLogisticPartnersController`) |
+| **Migration** | `Auth` DB Migration | `Driver` DB Migration (`AddLogisticPartnerAndAssignmentToDriver`) |
 
-Alasan: Transporter adalah data master armada, sehingga secara logis lebih tepat berada di Driver Module bersama entitas terkait (Truck).
+Alasan: Logistic Partner adalah data master armada, sehingga secara logis lebih tepat berada di Driver Module bersama entitas terkait (Truck).
 
-### 3.2 Entitas Baru: `TruckDriverAssignment`
+### 3.2 Integrasi Data Rute (Route) dari Legacy IDCS
+
+| Aspek | Sebelum | Sesudah |
+|---|---|---|
+| **Sistem Asal** | IDCS (Legacy) `TB_M_ROUTE` | EDCL (Baru) `routes` |
+| **Schema DB** | `[dbo].[TB_M_ROUTE]` | `[driver].[routes]` |
+| **Kepemilikan** | - | Driver Module |
+
+Alasan: EDCL menyerap data rute IDCS (`ROUTE`, `RATE`) menjadi `RouteCode` dan `CycleCode` sebagai master data mandiri untuk mendukung pembuatan manifest dan pickup order yang mandiri. Tabel `TB_M_ROUTE_PRICE` untuk sementara diabaikan sesuai kebutuhan bisnis terbaru.
+
+### 3.3 Entitas Baru: `TruckDriverAssignment`
 
 Sebelumnya tidak ada tabel asosiatif antara Truck dan Driver. Kini hadir entitas baru `truck_driver_assignments` di schema `[driver]`:
 
@@ -340,8 +362,8 @@ Untuk menghindari *hard coupling* antar modul, digunakan *port interface* di `ED
 ```
 IDriverPort
   → Diimplementasikan oleh: Auth Module
-  → Dikonsumsi oleh: Driver Module (resolve nama transporter), Job, Notification
-  → Metode: GetActiveDriverByIdAsync, GetDriversByIdsAsync, GetActiveDriversByTransporterIdAsync
+  → Dikonsumsi oleh: Driver Module (resolve nama logistic-partner), Job, Notification
+  → Metode: GetActiveDriverByIdAsync, GetDriversByIdsAsync, GetActiveDriversByLogisticPartnerIdAsync
 
 ISupplierPort
   → Diimplementasikan oleh: Driver Module
@@ -363,15 +385,16 @@ Menyimpan **identitas dan autentikasi** untuk dua jenis pengguna:
 
 - **`AppUser`**: Pengguna portal *Web Backoffice*. Login dengan Email + Password. Memiliki `Role` (ADMIN / USER).
 - **`Role`**: Hak akses. Seed data: `ADMIN`, `USER`, `DRIVER`.
-- **`Driver`**: Supir yang mengoperasikan *Mobile App*. Login dengan No. HP + PIN Hash. Kolom `transporter_id` adalah referensi *logical* ke tabel transporter di Driver Module (tanpa FK fisik).
+- **`Driver`**: Supir yang mengoperasikan *Mobile App*. Login dengan No. HP + PIN Hash. Kolom `logistic_partner_id` adalah referensi *logical* ke tabel logistic-partner di Driver Module (tanpa FK fisik).
 - **`DriverPhoneHistory`**: *Audit trail* perubahan nomor HP Driver.
 - **`RefreshToken`** & **`AppUserRefreshToken`**: Token rotasi JWT dengan device fingerprinting untuk masing-masing jenis pengguna.
 
 ### B. Driver Module (`[driver]` schema)
 Berisi **seluruh Master Data** operasional:
 
-- **`Transporter`**: Perusahaan vendor penyedia armada logistik. Dikelola di modul ini setelah refactoring dari Auth Module.
-- **`Truck`**: Data armada fisik. Setiap Truck wajib memiliki `TransporterId`. Dapat diaktifkan/dinonaktifkan secara independen.
+- **`Logistic Partner`**: Perusahaan vendor penyedia armada logistik. Memiliki properti `Code` (unik) dan `Name`. Dikelola di modul ini setelah refactoring dari Auth Module.
+- **`Route`** *(baru)*: Data rute pengiriman (Route Code dan Cycle Code) hasil transisi dari sistem legacy (IDCS). Memiliki unique constraint pada kombinasi RouteCode dan CycleCode.
+- **`Truck`**: Data armada fisik. Setiap Truck wajib memiliki `Logistic PartnerId`. Dapat diaktifkan/dinonaktifkan secara independen.
 - **`TruckDriverAssignment`** *(baru)*: Tabel asosiatif antara Truck dan Driver. Menyimpan riwayat penugasan dengan `is_active` sebagai penanda aktif. Metode domain: `AssignDriver()` otomatis me-*unassign* driver lama sebelum membuat assignment baru.
 - **`Supplier`**: Lokasi fisik pabrik/vendor yang menjadi titik pengambilan barang. Menyimpan koordinat GPS dan radius geofence untuk validasi di lapangan.
 

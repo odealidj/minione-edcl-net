@@ -12,7 +12,7 @@ namespace EDCL.Infrastructure.Persistence.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropForeignKey(
-                name: "FK_drivers_transporters_TransporterId",
+                name: "FK_drivers_transporters_LogisticPartnerId",
                 schema: "auth",
                 table: "drivers");
 
@@ -21,7 +21,7 @@ namespace EDCL.Infrastructure.Persistence.Migrations
                 schema: "auth");
 
             migrationBuilder.DropIndex(
-                name: "IX_drivers_TransporterId",
+                name: "IX_drivers_LogisticPartnerId",
                 schema: "auth",
                 table: "drivers");
         }
@@ -53,16 +53,16 @@ namespace EDCL.Infrastructure.Persistence.Migrations
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_drivers_TransporterId",
+                name: "IX_drivers_LogisticPartnerId",
                 schema: "auth",
                 table: "drivers",
-                column: "TransporterId");
+                column: "LogisticPartnerId");
 
             migrationBuilder.AddForeignKey(
-                name: "FK_drivers_transporters_TransporterId",
+                name: "FK_drivers_transporters_LogisticPartnerId",
                 schema: "auth",
                 table: "drivers",
-                column: "TransporterId",
+                column: "LogisticPartnerId",
                 principalSchema: "auth",
                 principalTable: "transporters",
                 principalColumn: "Id",

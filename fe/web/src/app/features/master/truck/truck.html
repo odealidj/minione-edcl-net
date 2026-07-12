@@ -16,7 +16,7 @@
               <input type="checkbox" class="checkbox checkbox-sm checkbox-primary rounded" (change)="toggleAll($event)" [checked]="isAllSelected()">
             </label>
           </th>
-          <th>Plate</th><th>Vehicle Type</th><th>Transporter</th>
+          <th>Plate</th><th>Vehicle Type</th><th>Logistic Partner</th>
           <th class="w-24 text-center">Actions</th>
         </tr>
       </thead>
@@ -33,7 +33,7 @@
                   <input type="checkbox" class="checkbox checkbox-sm checkbox-primary rounded" (change)="toggleSelection(item.id)" [checked]="isSelected(item.id)">
                 </label>
               </td>
-              <td>{{ item.plateNumber }}</td><td>{{ item.vehicleType }}</td><td>{{ item.transporterName || '-' }}</td>
+              <td>{{ item.plateNumber }}</td><td>{{ item.vehicleType }}</td><td>{{ item.logisticPartnerName || '-' }}</td>
               <td class="text-center">
                 <div class="join">
                   <button class="btn btn-sm btn-ghost join-item text-info" (click)="openModal(item)">Edit</button>
@@ -70,10 +70,10 @@
           <input type="text" formControlName="vehicleType" class="input input-bordered w-full" placeholder="Enter Vehicle Type" />
         </div>
         <div class="form-control mb-4">
-          <label class="label"><span class="label-text">Transporter</span></label>
-          <select formControlName="transporterId" class="select select-bordered w-full">
-            <option [ngValue]="null">Select Transporter</option>
-            @for (t of transporters(); track t.id) {
+          <label class="label"><span class="label-text">Logistic Partner</span></label>
+          <select formControlName="logisticPartnerId" class="select select-bordered w-full">
+            <option [ngValue]="null">Select Logistic Partner</option>
+            @for (t of logisticPartners(); track t.id) {
               <option [ngValue]="t.id">{{ t.name }}</option>
             }
           </select>

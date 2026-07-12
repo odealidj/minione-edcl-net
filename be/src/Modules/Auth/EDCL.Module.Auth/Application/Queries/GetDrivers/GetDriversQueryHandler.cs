@@ -33,7 +33,7 @@ internal sealed class GetDriversQueryHandler(AuthDbContext dbContext)
             .Take(request.PageSize)
             .ToListAsync(cancellationToken);
 
-        var dtos = items.Select(x => new DriverDto(x.Id, x.Name, x.Nik, x.PhoneNumber, x.IsActive, x.TransporterId)).ToList();
+        var dtos = items.Select(x => new DriverDto(x.Id, x.Name, x.Nik, x.PhoneNumber, x.IsActive, x.LogisticPartnerId)).ToList();
         var totalPages = request.PageSize > 0 ? (int)Math.Ceiling((double)totalCount / request.PageSize) : 0;
 
         return Result<GetDriversResponse>.Success(new GetDriversResponse(dtos, totalCount, request.PageNumber, request.PageSize, totalPages));

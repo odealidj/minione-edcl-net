@@ -7,7 +7,7 @@
   </app-page-header>
 
   <app-card>
-    <app-search-bar placeholder="Search plate, driver, transporter..." (search)="onSearch($event)"></app-search-bar>
+    <app-search-bar placeholder="Search plate, driver, logisticPartner..." (search)="onSearch($event)"></app-search-bar>
     <table class="table w-full">
       <thead>
         <tr class="bg-base-200/50 text-base-content/50 uppercase text-xs">
@@ -17,7 +17,7 @@
             </label>
           </th>
           <th>Truck</th>
-          <th>Transporter</th>
+          <th>Logistic Partner</th>
           <th>Driver</th>
           <th>Assigned At</th>
           <th class="w-24 text-center">Actions</th>
@@ -55,7 +55,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
                     <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
                   </svg>
-                  <span class="text-sm font-medium">{{ item.transporterName || 'None' }}</span>
+                  <span class="text-sm font-medium">{{ item.logisticPartnerName || 'None' }}</span>
                 </div>
               </td>
               <td>
@@ -106,15 +106,15 @@
       <div class="space-y-4">
         
         <div class="form-control mb-4">
-          <label class="label"><span class="label-text">Select Transporter</span></label>
-          <select formControlName="transporterId" class="select select-bordered w-full">
-            <option [ngValue]="null">Select Transporter</option>
-            @for (t of transporters(); track t.id) {
+          <label class="label"><span class="label-text">Select Logistic Partner</span></label>
+          <select formControlName="logisticPartnerId" class="select select-bordered w-full">
+            <option [ngValue]="null">Select Logistic Partner</option>
+            @for (t of logisticPartners(); track t.id) {
               <option [ngValue]="t.id">{{ t.name }}</option>
             }
           </select>
           <label class="label">
-            <span class="label-text-alt text-base-content/60">Choose a transporter first to load trucks and drivers.</span>
+            <span class="label-text-alt text-base-content/60">Choose a logisticPartner first to load trucks and drivers.</span>
           </label>
         </div>
 

@@ -5,5 +5,5 @@ using EDCL.Module.Driver.Application.DTOs;
 
 namespace EDCL.Module.Driver.Application.Queries.GetAvailableDrivers;
 
-public sealed record GetAvailableDriversQuery(long TransporterId) 
+public sealed record GetAvailableDriversQuery(long LogisticPartnerId) 
     : IRequest<Result<IReadOnlyList<AvailableDriverDto>>>;

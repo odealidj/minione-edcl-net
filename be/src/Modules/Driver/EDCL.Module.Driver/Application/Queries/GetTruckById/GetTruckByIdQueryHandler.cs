@@ -15,12 +15,12 @@ internal sealed class GetTruckByIdQueryHandler(DriverDbContext dbContext)
     public async Task<Result<TruckDto>> Handle(GetTruckByIdQuery request, CancellationToken cancellationToken)
     {
         var x = await dbContext.Trucks
-            .Include(t => t.Transporter)
+            .Include(t => t.LogisticPartner)
             .AsNoTracking()
             .FirstOrDefaultAsync(y => y.Id == request.Id && !y.IsDeleted, cancellationToken);
             
         if (x is null) return Result<TruckDto>.Failure(Error.NotFound("Truck.NotFound", "Truck not found."));
 
-        return Result<TruckDto>.Success(new TruckDto(x.Id, x.PlateNumber, x.VehicleType, x.TransporterId, x.Transporter?.Name, x.IsActive));
+        return Result<TruckDto>.Success(new TruckDto(x.Id, x.PlateNumber, x.VehicleType, x.LogisticPartnerId, x.LogisticPartner?.Name, x.IsActive));
     }
 }

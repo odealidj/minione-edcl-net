@@ -48,7 +48,7 @@ public class CargoIntegrationTests : BaseIntegrationTest
         {
             var cargoDb = sp.GetRequiredService<CargoDbContext>();
 
-            var manifest = new Manifest(manifestNo, "SUP-01", "Supplier 1", 1, DateTime.UtcNow, "CYC-1", "ORD-1", "DOCK-1", "LANE-1");
+            var manifest = new Manifest(manifestNo, "SUP-01", "Supplier 1", "1", 1, DateTime.UtcNow, "CYC-1", "ORD-1", "DOCK-1", "LANE-1");
             cargoDb.Manifests.Add(manifest);
             await cargoDb.SaveChangesAsync();
 

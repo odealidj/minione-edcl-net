@@ -1,6 +1,6 @@
 # Dokumen Proses Bisnis: Login & Autentikasi (Web & Mobile)
 
-Dokumen ini menjelaskan alur proses bisnis saat pengguna (Admin Transporter, Staff Pabrik, maupun Driver) melakukan *login* (masuk) ke dalam sistem EDCL, baik melalui platform Web maupun Aplikasi Mobile.
+Dokumen ini menjelaskan alur proses bisnis saat pengguna (Admin Logistic Partner, Staff Pabrik, maupun Driver) melakukan *login* (masuk) ke dalam sistem EDCL, baik melalui platform Web maupun Aplikasi Mobile.
 
 ---
 

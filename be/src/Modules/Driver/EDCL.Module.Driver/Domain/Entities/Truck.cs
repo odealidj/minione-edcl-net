@@ -11,28 +11,28 @@ public sealed class Truck : AuditableEntity
     public long Id { get; private set; }
     public string PlateNumber { get; private set; } = default!;
     public string? VehicleType { get; private set; }
-    public long TransporterId { get; private set; }
+    public long LogisticPartnerId { get; private set; }
     public bool IsActive { get; private set; } = true;
 
     // Navigation
-    public Transporter? Transporter { get; private set; }
+    public LogisticPartner? LogisticPartner { get; private set; }
     public ICollection<TruckDriverAssignment> Assignments { get; private set; } = [];
 
     private Truck() { } // EF Core
 
-    public static Truck Create(string plateNumber, long transporterId, string? vehicleType = null)
+    public static Truck Create(string plateNumber, long logisticPartnerId, string? vehicleType = null)
         => new()
         {
             PlateNumber = plateNumber,
-            TransporterId = transporterId,
+            LogisticPartnerId = logisticPartnerId,
             VehicleType = vehicleType,
             IsActive = true
         };
 
-    public void Update(string plateNumber, long transporterId, string? vehicleType)
+    public void Update(string plateNumber, long logisticPartnerId, string? vehicleType)
     {
         PlateNumber = plateNumber;
-        TransporterId = transporterId;
+        LogisticPartnerId = logisticPartnerId;
         VehicleType = vehicleType;
     }
 

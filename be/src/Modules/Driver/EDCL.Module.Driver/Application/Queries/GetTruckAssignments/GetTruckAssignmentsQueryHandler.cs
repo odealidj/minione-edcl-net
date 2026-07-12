@@ -16,10 +16,10 @@ internal sealed class GetTruckAssignmentsQueryHandler(DriverDbContext dbContext,
 {
     public async Task<Result<IReadOnlyList<TruckDriverAssignmentDto>>> Handle(GetTruckAssignmentsQuery request, CancellationToken cancellationToken)
     {
-        // 1. Fetch active assignments with Truck and Transporter details
+        // 1. Fetch active assignments with Truck and LogisticPartner details
         var activeAssignments = await dbContext.TruckDriverAssignments
             .Include(a => a.Truck)
-            .ThenInclude(t => t!.Transporter)
+            .ThenInclude(t => t!.LogisticPartner)
             .Where(a => a.IsActive && !a.Truck!.IsDeleted)
             .AsNoTracking()
             .ToListAsync(cancellationToken);
@@ -43,8 +43,8 @@ internal sealed class GetTruckAssignmentsQueryHandler(DriverDbContext dbContext,
             return new TruckDriverAssignmentDto(
                 TruckId: a.TruckId,
                 PlateNumber: a.Truck!.PlateNumber,
-                TransporterId: a.Truck.TransporterId,
-                TransporterName: a.Truck.Transporter?.Name,
+                LogisticPartnerId: a.Truck.LogisticPartnerId,
+                LogisticPartnerName: a.Truck.LogisticPartner?.Name,
                 DriverId: a.DriverId,
                 DriverName: driver?.Name ?? "Unknown",
                 DriverNik: driver?.Nik ?? "-",

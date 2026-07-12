@@ -21,7 +21,7 @@ public sealed class GetDashboardQueryHandler(
         var profileDto = new DriverProfileDto(
             Name: driver.Name,
             PhotoUrl: driver.PhotoUrl,
-            TransporterName: driver.TransporterName);
+            LogisticPartnerName: driver.LogisticPartnerName);
 
         // 2. Get current job & next job
         var currentJob = await pickupOrderRepository.GetCurrentJobAsync(request.DriverId, cancellationToken);

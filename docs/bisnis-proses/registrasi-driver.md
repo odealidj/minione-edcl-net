@@ -1,11 +1,11 @@
 # Dokumen Proses Bisnis: Registrasi & Autentikasi Driver
 
-Dokumen ini menjelaskan alur pendaftaran awal akun Driver oleh Admin Logistik (Transporter) hingga Driver tersebut dapat masuk (*login*) menggunakan aplikasi seluler (Mobile App) EDCL.
+Dokumen ini menjelaskan alur pendaftaran awal akun Driver oleh Admin Logistik (Logistic Partner) hingga Driver tersebut dapat masuk (*login*) menggunakan aplikasi seluler (Mobile App) EDCL.
 
 ---
 
 ## 1. Konsep Dasar & Keamanan
-- **No Self-Registration:** Untuk alasan keamanan dan validasi identitas, Driver tidak bisa mendaftar sendiri melalui aplikasi. Hanya Admin Transporter yang memiliki otorisasi untuk mendaftarkan Driver mereka.
+- **No Self-Registration:** Untuk alasan keamanan dan validasi identitas, Driver tidak bisa mendaftar sendiri melalui aplikasi. Hanya Admin Logistic Partner yang memiliki otorisasi untuk mendaftarkan Driver mereka.
 - **PIN Default:** Karena Driver sedang berada di lapangan, mereka belum membuat kata sandi/PIN. Admin tidak meminta PIN, melainkan sistem secara otomatis memberikan PIN *default* (contoh: `123456`) agar Driver bisa masuk pertama kali.
 - **Kerahasiaan Hash:** Meskipun PIN-nya standar, di *database*, PIN tersebut tetap disimpan menggunakan enkripsi ireversibel (BCrypt Hash).
 
@@ -13,12 +13,12 @@ Dokumen ini menjelaskan alur pendaftaran awal akun Driver oleh Admin Logistik (T
 
 ## 2. Alur Operasional (Swimlane)
 
-Alur ini membagi peran antara **Admin Transporter (Web)**, **Sistem Backend (EDCL)**, dan **Driver (Aplikasi Mobile)**.
+Alur ini membagi peran antara **Admin Logistic Partner (Web)**, **Sistem Backend (EDCL)**, dan **Driver (Aplikasi Mobile)**.
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Admin as Admin Transporter (Web)
+    actor Admin as Admin Logistic Partner (Web)
     participant EDCL as Backend EDCL (API)
     actor Driver as Driver (Mobile App)
 
@@ -50,7 +50,7 @@ sequenceDiagram
 ## 3. Penjelasan Skenario Spesifik (Use Case)
 
 ### Skenario A: Driver Lupa PIN Setelah Ganti PIN
-1. Driver menghubungi Admin Transporter.
+1. Driver menghubungi Admin Logistic Partner.
 2. Admin membuka Dashboard Web EDCL dan menekan tombol **"Reset PIN"** untuk Driver tersebut.
 3. Backend akan menghapus PIN lama dan mengembalikannya ke PIN default (123456).
 4. Driver bisa login lagi menggunakan PIN default, lalu diwajibkan (dipaksa) oleh aplikasi untuk segera mengubahnya.

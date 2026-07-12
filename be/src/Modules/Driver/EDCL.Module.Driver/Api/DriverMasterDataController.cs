@@ -98,9 +98,9 @@ public class AdminTrucksController(IMediator mediator) : ControllerBase
 
     [HttpGet("assignments/available-trucks")]
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<Application.DTOs.TruckDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAvailableTrucks([FromQuery] long transporterId, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetAvailableTrucks([FromQuery] long logisticPartnerId, CancellationToken cancellationToken)
     {
-        var result = await mediator.Send(new Application.Queries.GetAvailableTrucks.GetAvailableTrucksQuery(transporterId), cancellationToken);
+        var result = await mediator.Send(new Application.Queries.GetAvailableTrucks.GetAvailableTrucksQuery(logisticPartnerId), cancellationToken);
         var traceId = HttpContext.TraceIdentifier;
         return result.IsSuccess
             ? Ok(ApiResponse<IReadOnlyList<Application.DTOs.TruckDto>>.Success(result.Value, traceId))
@@ -109,9 +109,9 @@ public class AdminTrucksController(IMediator mediator) : ControllerBase
 
     [HttpGet("assignments/available-drivers")]
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<Application.DTOs.AvailableDriverDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAvailableDrivers([FromQuery] long transporterId, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetAvailableDrivers([FromQuery] long logisticPartnerId, CancellationToken cancellationToken)
     {
-        var result = await mediator.Send(new Application.Queries.GetAvailableDrivers.GetAvailableDriversQuery(transporterId), cancellationToken);
+        var result = await mediator.Send(new Application.Queries.GetAvailableDrivers.GetAvailableDriversQuery(logisticPartnerId), cancellationToken);
         var traceId = HttpContext.TraceIdentifier;
         return result.IsSuccess
             ? Ok(ApiResponse<IReadOnlyList<Application.DTOs.AvailableDriverDto>>.Success(result.Value, traceId))

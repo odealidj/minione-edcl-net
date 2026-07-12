@@ -6,13 +6,13 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace EDCL.Infrastructure.Persistence.Migrations
 {
     /// <inheritdoc />
-    public partial class AddTransporterAndAssignmentToDriver : Migration
+    public partial class AddLogisticPartnerAndAssignmentToDriver : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<long>(
-                name: "TransporterId",
+                name: "LogisticPartnerId",
                 schema: "driver",
                 table: "trucks",
                 type: "bigint",
@@ -20,7 +20,7 @@ namespace EDCL.Infrastructure.Persistence.Migrations
                 defaultValue: 0L);
 
             migrationBuilder.CreateTable(
-                name: "transporters",
+                name: "logisticPartners",
                 schema: "driver",
                 columns: table => new
                 {
@@ -39,7 +39,7 @@ namespace EDCL.Infrastructure.Persistence.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_transporters", x => x.Id);
+                    table.PrimaryKey("PK_logisticPartners", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -77,10 +77,10 @@ namespace EDCL.Infrastructure.Persistence.Migrations
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_trucks_TransporterId",
+                name: "IX_trucks_LogisticPartnerId",
                 schema: "driver",
                 table: "trucks",
-                column: "TransporterId");
+                column: "LogisticPartnerId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_assignments_driver_active",
@@ -97,12 +97,12 @@ namespace EDCL.Infrastructure.Persistence.Migrations
             migrationBuilder.Sql("DELETE FROM [driver].[trucks]");
 
             migrationBuilder.AddForeignKey(
-                name: "FK_trucks_transporters_TransporterId",
+                name: "FK_trucks_logisticPartners_LogisticPartnerId",
                 schema: "driver",
                 table: "trucks",
-                column: "TransporterId",
+                column: "LogisticPartnerId",
                 principalSchema: "driver",
-                principalTable: "transporters",
+                principalTable: "logisticPartners",
                 principalColumn: "Id",
                 onDelete: ReferentialAction.Restrict);
         }
@@ -111,12 +111,12 @@ namespace EDCL.Infrastructure.Persistence.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropForeignKey(
-                name: "FK_trucks_transporters_TransporterId",
+                name: "FK_trucks_logisticPartners_LogisticPartnerId",
                 schema: "driver",
                 table: "trucks");
 
             migrationBuilder.DropTable(
-                name: "transporters",
+                name: "logisticPartners",
                 schema: "driver");
 
             migrationBuilder.DropTable(
@@ -124,12 +124,12 @@ namespace EDCL.Infrastructure.Persistence.Migrations
                 schema: "driver");
 
             migrationBuilder.DropIndex(
-                name: "IX_trucks_TransporterId",
+                name: "IX_trucks_LogisticPartnerId",
                 schema: "driver",
                 table: "trucks");
 
             migrationBuilder.DropColumn(
-                name: "TransporterId",
+                name: "LogisticPartnerId",
                 schema: "driver",
                 table: "trucks");
         }

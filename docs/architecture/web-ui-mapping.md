@@ -6,7 +6,7 @@ Dokumen ini memetakan tampilan antarmuka (UI) aplikasi Web Dashboard (Admin/Staf
 
 ## 1. Web Login (Admin & Staff)
 
-Tampilan awal aplikasi Web untuk Admin Transporter atau Staff Pabrik masuk ke dalam sistem.
+Tampilan awal aplikasi Web untuk Admin Logistic Partner atau Staff Pabrik masuk ke dalam sistem.
 
 **Tampilan:** Halaman Login Web (`/login`)
 
@@ -60,7 +60,7 @@ curl -X POST http://localhost:5000/api/v1/auth/users/login \
 
 ## 2. Manajemen Pengguna Web (Registrasi Web)
 
-Tampilan untuk mendaftarkan akun baru bagi Admin Transporter atau Staff Pabrik. Saat ini bisa diakses *Public* untuk keperluan *setup* awal, namun ke depan akan diproteksi khusus Admin.
+Tampilan untuk mendaftarkan akun baru bagi Admin Logistic Partner atau Staff Pabrik. Saat ini bisa diakses *Public* untuk keperluan *setup* awal, namun ke depan akan diproteksi khusus Admin.
 
 **Tampilan:** Halaman Tambah Pengguna Web
 
@@ -123,7 +123,7 @@ Tampilan untuk mendaftarkan Driver baru oleh Admin. Driver yang didaftarkan di s
   "name": "Budi Santoso",
   "nik": "DRV-1029",
   "phoneNumber": "081999888777",
-  "transporterId": 1
+  "logistic-partnerId": 1
 }
 ```
 
@@ -132,7 +132,7 @@ Tampilan untuk mendaftarkan Driver baru oleh Admin. Driver yang didaftarkan di s
 curl -X POST http://localhost:5000/api/v1/auth/drivers \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5c..." \
   -H "Content-Type: application/json" \
-  -d '{"name": "Budi Santoso", "nik": "DRV-1029", "phoneNumber": "081999888777", "transporterId": 1}'
+  -d '{"name": "Budi Santoso", "nik": "DRV-1029", "phoneNumber": "081999888777", "logistic-partnerId": 1}'
 ```
 
 **Contoh Response (Success - 201 Created):**
@@ -145,7 +145,7 @@ curl -X POST http://localhost:5000/api/v1/auth/drivers \
     "name": "Budi Santoso",
     "nik": "DRV-1029",
     "phoneNumber": "081999888777",
-    "transporterId": 1
+    "logistic-partnerId": 1
   }
 }
 ```

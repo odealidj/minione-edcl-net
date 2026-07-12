@@ -19,7 +19,7 @@ public sealed record LoginResponse(
     string Name,
     string Nik,
     string? PhotoUrl,
-    string? TransporterName,
+    string? LogisticPartnerName,
     string AccessToken,
     string RefreshToken,
     DateTime AccessTokenExpiresAt,

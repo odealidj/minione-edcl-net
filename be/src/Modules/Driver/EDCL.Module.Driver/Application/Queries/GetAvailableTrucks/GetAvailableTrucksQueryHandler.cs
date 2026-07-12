@@ -22,8 +22,8 @@ internal sealed class GetAvailableTrucksQueryHandler(DriverDbContext dbContext)
             .ToListAsync(cancellationToken);
 
         var availableTrucks = await dbContext.Trucks
-            .Include(t => t.Transporter)
-            .Where(t => t.TransporterId == request.TransporterId && !t.IsDeleted && !activeAssignedTruckIds.Contains(t.Id))
+            .Include(t => t.LogisticPartner)
+            .Where(t => t.LogisticPartnerId == request.LogisticPartnerId && !t.IsDeleted && !activeAssignedTruckIds.Contains(t.Id))
             .AsNoTracking()
             .OrderBy(t => t.PlateNumber)
             .ToListAsync(cancellationToken);
@@ -32,8 +32,8 @@ internal sealed class GetAvailableTrucksQueryHandler(DriverDbContext dbContext)
             Id: t.Id,
             PlateNumber: t.PlateNumber,
             VehicleType: t.VehicleType,
-            TransporterId: t.TransporterId,
-            TransporterName: t.Transporter?.Name,
+            LogisticPartnerId: t.LogisticPartnerId,
+            LogisticPartnerName: t.LogisticPartner?.Name,
             IsActive: t.IsActive
         )).ToList();
 

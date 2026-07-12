@@ -20,6 +20,6 @@ internal sealed class GetDriverByIdQueryHandler(AuthDbContext dbContext)
             
         if (x is null) return Result<DriverDto>.Failure(Error.NotFound("Driver.NotFound", "Driver not found."));
 
-        return Result<DriverDto>.Success(new DriverDto(x.Id, x.Name, x.Nik, x.PhoneNumber, x.IsActive, x.TransporterId));
+        return Result<DriverDto>.Success(new DriverDto(x.Id, x.Name, x.Nik, x.PhoneNumber, x.IsActive, x.LogisticPartnerId));
     }
 }

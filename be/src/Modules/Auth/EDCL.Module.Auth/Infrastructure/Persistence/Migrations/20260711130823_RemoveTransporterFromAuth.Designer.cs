@@ -288,7 +288,7 @@ namespace EDCL.Infrastructure.Persistence.Migrations
                         .HasColumnType("nvarchar(64)")
                         .HasColumnName("trace_id");
 
-                    b.Property<long?>("TransporterId")
+                    b.Property<long?>("LogisticPartnerId")
                         .HasColumnType("bigint");
 
                     b.Property<DateTime?>("UpdatedAt")

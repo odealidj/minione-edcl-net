@@ -24,8 +24,8 @@ internal sealed class AssignDriverToTruckCommandHandler(DriverDbContext dbContex
         var driverInfo = await driverPort.GetActiveDriverByIdAsync(request.DriverId, cancellationToken);
         if (driverInfo is null) return Result.Failure(new Error("Driver.NotFoundOrInactive", "Driver not found or is inactive"));
 
-        if (truck.TransporterId != driverInfo.TransporterId)
-            return Result.Failure(new Error("Truck.TransporterMismatch", "Driver does not belong to the same Transporter as the Truck"));
+        if (truck.LogisticPartnerId != driverInfo.LogisticPartnerId)
+            return Result.Failure(new Error("Truck.LogisticPartnerMismatch", "Driver does not belong to the same LogisticPartner as the Truck"));
 
         var isDriverAlreadyAssigned = await dbContext.TruckDriverAssignments
             .AnyAsync(a => a.DriverId == request.DriverId && a.IsActive, cancellationToken);

@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { forkJoin } from 'rxjs';
 import { MasterDataService } from '../../../core/services/master-data.service';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Truck, Transporter, Driver } from '../../../core/models/master.model';
+import { Truck, LogisticPartner, Driver } from '../../../core/models/master.model';
 
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { SearchBarComponent } from '../../../shared/components/search-bar/search-bar.component';
@@ -17,7 +17,7 @@ import { CardComponent } from '../../../shared/components/card/card.component';
 })
 export class TruckAssignment implements OnInit {
   items = signal<any[]>([]);
-  transporters = signal<Transporter[]>([]);
+  logisticPartners = signal<LogisticPartner[]>([]);
   trucks = signal<Truck[]>([]);
   drivers = signal<Driver[]>([]);
   isLoading = signal(true);
@@ -36,12 +36,12 @@ export class TruckAssignment implements OnInit {
 
   constructor() {
     this.assignForm = this.fb.group({
-      transporterId: [null, Validators.required],
+      logisticPartnerId: [null, Validators.required],
       truckId: [{ value: null, disabled: true }, Validators.required],
       driverId: [{ value: null, disabled: true }, Validators.required]
     });
 
-    this.assignForm.get('transporterId')?.valueChanges.subscribe(tId => {
+    this.assignForm.get('logisticPartnerId')?.valueChanges.subscribe(tId => {
       this.assignForm.patchValue({ truckId: null, driverId: null }, { emitEvent: false });
       if (tId) {
         this.assignForm.get('truckId')?.enable();
@@ -58,23 +58,23 @@ export class TruckAssignment implements OnInit {
   }
 
   ngOnInit() {
-    this.loadTransporters();
+    this.loadLogisticPartners();
     this.loadData();
   }
 
-  loadTransporters(): void {
-    this.service.getTransporters().subscribe({
+  loadLogisticPartners(): void {
+    this.service.getLogisticPartners().subscribe({
       next: (res) => {
         if (res.status === 'success') {
-          this.transporters.set(res.data);
+          this.logisticPartners.set(res.data);
         }
       },
-      error: (err) => console.error('Failed to load transporters', err)
+      error: (err) => console.error('Failed to load logisticPartners', err)
     });
   }
 
-  loadTrucks(transporterId: number): void {
-    this.service.getAvailableTrucks(transporterId).subscribe({
+  loadTrucks(logisticPartnerId: number): void {
+    this.service.getAvailableTrucks(logisticPartnerId).subscribe({
       next: (res) => {
         if (res.status === 'success') {
           this.trucks.set(res.data);
@@ -83,8 +83,8 @@ export class TruckAssignment implements OnInit {
     });
   }
 
-  loadDrivers(transporterId: number): void {
-    this.service.getAvailableDrivers(transporterId).subscribe({
+  loadDrivers(logisticPartnerId: number): void {
+    this.service.getAvailableDrivers(logisticPartnerId).subscribe({
       next: (res) => {
         if (res.status === 'success') {
           this.drivers.set(res.data);
@@ -118,7 +118,7 @@ export class TruckAssignment implements OnInit {
     return data.filter(a => 
       (a.plateNumber && a.plateNumber.toLowerCase().includes(lowerQ)) ||
       (a.driverName && a.driverName.toLowerCase().includes(lowerQ)) ||
-      (a.transporterName && a.transporterName.toLowerCase().includes(lowerQ))
+      (a.logisticPartnerName && a.logisticPartnerName.toLowerCase().includes(lowerQ))
     );
   }
 

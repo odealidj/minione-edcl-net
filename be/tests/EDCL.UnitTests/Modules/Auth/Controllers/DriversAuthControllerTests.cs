@@ -36,7 +36,7 @@ public class DriversAuthControllerTests
     {
         // Arrange
         var command = new LoginCommand("08123456789", "123456", "TestDevice");
-        var loginResponse = new LoginResponse(1, "John Doe", "1234567890123456", "avatar.jpg", "Transporter A", "access_token", "refresh_token", DateTime.UtcNow.AddMinutes(15), DateTime.UtcNow.AddDays(30));
+        var loginResponse = new LoginResponse(1, "John Doe", "1234567890123456", "avatar.jpg", "LogisticPartner A", "access_token", "refresh_token", DateTime.UtcNow.AddMinutes(15), DateTime.UtcNow.AddDays(30));
         
         _mediatorMock.Setup(m => m.Send(command, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<LoginResponse>.Success(loginResponse));
@@ -77,7 +77,7 @@ public class DriversAuthControllerTests
     {
         // Arrange
         var command = new ChangeDriverPinCommand("08123456789", "123456", "654321", "TestDevice");
-        var loginResponse = new LoginResponse(1, "John Doe", "1234567890123456", "avatar.jpg", "Transporter A", "access_token", "refresh_token", DateTime.UtcNow.AddMinutes(15), DateTime.UtcNow.AddDays(30));
+        var loginResponse = new LoginResponse(1, "John Doe", "1234567890123456", "avatar.jpg", "LogisticPartner A", "access_token", "refresh_token", DateTime.UtcNow.AddMinutes(15), DateTime.UtcNow.AddDays(30));
         
         _mediatorMock.Setup(m => m.Send(command, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<LoginResponse>.Success(loginResponse));

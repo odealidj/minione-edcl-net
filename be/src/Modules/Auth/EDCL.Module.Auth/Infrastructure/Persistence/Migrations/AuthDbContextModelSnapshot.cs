@@ -243,6 +243,9 @@ namespace EDCL.Infrastructure.Persistence.Migrations
                         .HasDefaultValue(false)
                         .HasColumnName("is_deleted");
 
+                    b.Property<long?>("LogisticPartnerId")
+                        .HasColumnType("bigint");
+
                     b.Property<bool>("MustChangePin")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
@@ -284,9 +287,6 @@ namespace EDCL.Infrastructure.Persistence.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)")
                         .HasColumnName("trace_id");
-
-                    b.Property<long?>("TransporterId")
-                        .HasColumnType("bigint");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2(7)")

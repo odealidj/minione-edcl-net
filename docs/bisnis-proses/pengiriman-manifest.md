@@ -8,7 +8,7 @@ Dokumen ini menjelaskan alur proses bisnis end-to-end dari pembuatan Manifest di
 - **IDCS (Inventory & Delivery Control System):** Sistem legacy pusat tempat pesanan (manifest, part, kanban) diproduksi dan diterbitkan. Bertindak sebagai *Source of Truth* awal.
 - **EDCL (Electronic Delivery Control Log):** Sistem logistik modern berbasis web dan mobile untuk pelacakan, penugasan, dan pengontrolan pengiriman secara elektronik.
 - **Manifest:** Dokumen surat jalan yang berisi daftar muatan barang (part, kanban, skid) yang harus diambil dari *Supplier* dan diantar ke pabrik.
-- **Transporter:** Perusahaan vendor logistik pihak ketiga (contoh: Hikari Logistics) yang menyediakan armada truk dan supir.
+- **Logistic Partner:** Perusahaan vendor logistik pihak ketiga (contoh: Hikari Logistics) yang menyediakan armada truk dan supir.
 - **CDC (Change Data Capture):** Mekanisme *real-time* di belakang layar yang memantau perubahan data di IDCS dan mengirimkannya ke EDCL tanpa mengganggu kinerja IDCS.
 
 ---
@@ -21,7 +21,7 @@ Alur logistik secara konseptual sangat sederhana: Sistem IDCS menerbitkan perint
 ```mermaid
 flowchart LR
     A[1. IDCS: Terbitkan\nManifest] --> B[2. Sinkronisasi\nOtomatis ke EDCL]
-    B --> C[3. EDCL: Transporter\nMenugaskan Driver]
+    B --> C[3. EDCL: Logistic Partner\nMenugaskan Driver]
     C --> D[4. Driver:\nAmbil & Antar Barang]
     D --> E[5. EDCL: Laporan\nSelesai ke IDCS]
     
@@ -35,7 +35,7 @@ flowchart LR
 ---
 
 ## 3. Level 2: User Journey & Alur Operasional (Swimlane)
-*Diperuntukkan bagi Tim Operasional, Vendor (Transporter), dan UI/UX.*
+*Diperuntukkan bagi Tim Operasional, Vendor (Logistic Partner), dan UI/UX.*
 
 Bagian ini memetakan interaksi manusia dengan layar aplikasi (UI) serta perpindahan tanggung jawab (*hand-off*) antar departemen.
 
@@ -43,7 +43,7 @@ Bagian ini memetakan interaksi manusia dengan layar aplikasi (UI) serta perpinda
 sequenceDiagram
     autonumber
     actor Admin as Admin IDCS
-    actor Vendor as Transporter (Web)
+    actor Vendor as Logistic Partner (Web)
     actor Driver as Driver (Mobile App)
     participant EDCL as Sistem EDCL
 

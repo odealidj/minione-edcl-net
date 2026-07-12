@@ -13,7 +13,7 @@ public sealed record DashboardResponse(
 public sealed record DriverProfileDto(
     string Name,
     string? PhotoUrl,
-    string? TransporterName);
+    string? LogisticPartnerName);
 
 public sealed record JobCardDto(
     long PickupOrderId,

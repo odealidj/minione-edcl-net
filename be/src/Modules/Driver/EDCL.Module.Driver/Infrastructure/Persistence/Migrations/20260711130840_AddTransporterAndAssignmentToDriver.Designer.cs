@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EDCL.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(DriverDbContext))]
-    [Migration("20260711130840_AddTransporterAndAssignmentToDriver")]
-    partial class AddTransporterAndAssignmentToDriver
+    [Migration("20260711130840_AddLogisticPartnerAndAssignmentToDriver")]
+    partial class AddLogisticPartnerAndAssignmentToDriver
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -122,7 +122,7 @@ namespace EDCL.Infrastructure.Persistence.Migrations
                     b.ToTable("suppliers", "driver");
                 });
 
-            modelBuilder.Entity("EDCL.Module.Driver.Domain.Entities.Transporter", b =>
+            modelBuilder.Entity("EDCL.Module.Driver.Domain.Entities.LogisticPartner", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
@@ -185,7 +185,7 @@ namespace EDCL.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("transporters", "driver");
+                    b.ToTable("logisticPartners", "driver");
                 });
 
             modelBuilder.Entity("EDCL.Module.Driver.Domain.Entities.Truck", b =>
@@ -245,7 +245,7 @@ namespace EDCL.Infrastructure.Persistence.Migrations
                         .HasColumnType("nvarchar(64)")
                         .HasColumnName("trace_id");
 
-                    b.Property<long>("TransporterId")
+                    b.Property<long>("LogisticPartnerId")
                         .HasColumnType("bigint");
 
                     b.Property<DateTime?>("UpdatedAt")
@@ -267,7 +267,7 @@ namespace EDCL.Infrastructure.Persistence.Migrations
                         .IsUnique()
                         .HasDatabaseName("UQ_trucks_plate_number");
 
-                    b.HasIndex("TransporterId");
+                    b.HasIndex("LogisticPartnerId");
 
                     b.ToTable("trucks", "driver");
                 });
@@ -358,13 +358,13 @@ namespace EDCL.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("EDCL.Module.Driver.Domain.Entities.Truck", b =>
                 {
-                    b.HasOne("EDCL.Module.Driver.Domain.Entities.Transporter", "Transporter")
+                    b.HasOne("EDCL.Module.Driver.Domain.Entities.LogisticPartner", "LogisticPartner")
                         .WithMany()
-                        .HasForeignKey("TransporterId")
+                        .HasForeignKey("LogisticPartnerId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("Transporter");
+                    b.Navigation("LogisticPartner");
                 });
 
             modelBuilder.Entity("EDCL.Module.Driver.Domain.Entities.TruckDriverAssignment", b =>

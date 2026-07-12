@@ -288,7 +288,7 @@ namespace EDCL.Infrastructure.Database.Migrations.Auth
                         .HasColumnType("nvarchar(64)")
                         .HasColumnName("trace_id");
 
-                    b.Property<long?>("TransporterId")
+                    b.Property<long?>("LogisticPartnerId")
                         .HasColumnType("bigint");
 
                     b.Property<DateTime?>("UpdatedAt")
@@ -311,7 +311,7 @@ namespace EDCL.Infrastructure.Database.Migrations.Auth
                         .HasDatabaseName("UIX_drivers_active_phone")
                         .HasFilter("[IsActive] = 1");
 
-                    b.HasIndex("TransporterId");
+                    b.HasIndex("LogisticPartnerId");
 
                     b.HasIndex("IsActive", "PhoneNumber")
                         .HasDatabaseName("IX_drivers_active_phone_perf");
@@ -665,7 +665,7 @@ namespace EDCL.Infrastructure.Database.Migrations.Auth
                 {
                     b.HasOne("EDCL.Module.Auth.Domain.Entities.Transporter", "Transporter")
                         .WithMany("Drivers")
-                        .HasForeignKey("TransporterId")
+                        .HasForeignKey("LogisticPartnerId")
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Transporter");

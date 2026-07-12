@@ -44,7 +44,7 @@ namespace EDCL.Infrastructure.Persistence.Migrations
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    TransporterId = table.Column<long>(type: "bigint", nullable: true),
+                    LogisticPartnerId = table.Column<long>(type: "bigint", nullable: true),
                     Name = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
                     Nik = table.Column<string>(type: "nvarchar(16)", maxLength: 16, nullable: false),
                     PhoneNumber = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
@@ -66,8 +66,8 @@ namespace EDCL.Infrastructure.Persistence.Migrations
                 {
                     table.PrimaryKey("PK_drivers", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_drivers_transporters_TransporterId",
-                        column: x => x.TransporterId,
+                        name: "FK_drivers_transporters_LogisticPartnerId",
+                        column: x => x.LogisticPartnerId,
                         principalSchema: "auth",
                         principalTable: "transporters",
                         principalColumn: "Id",
@@ -156,10 +156,10 @@ namespace EDCL.Infrastructure.Persistence.Migrations
                 columns: new[] { "IsActive", "PhoneNumber" });
 
             migrationBuilder.CreateIndex(
-                name: "IX_drivers_TransporterId",
+                name: "IX_drivers_LogisticPartnerId",
                 schema: "auth",
                 table: "drivers",
-                column: "TransporterId");
+                column: "LogisticPartnerId");
 
             migrationBuilder.CreateIndex(
                 name: "UIX_drivers_active_phone",

@@ -51,7 +51,7 @@ curl -X POST http://localhost:5000/api/v1/auth/drivers/login \
     "name": "LISTIONO",
     "nik": "DRV-001",
     "photoUrl": "https://...",
-    "transporterName": "PT. BINTANG",
+    "logistic-partnerName": "PT. BINTANG",
     "accessToken": "eyJhbGci...",
     "refreshToken": "d2FkYm...",
     "accessTokenExpiresAt": "2024-04-21T10:15:00Z",
@@ -147,7 +147,7 @@ curl -X GET http://localhost:5000/api/v1/jobs/dashboard \
     "profile": {
       "name": "LISTIONO",
       "photoUrl": "https://...",
-      "transporterName": "PT. BINTANG"
+      "logistic-partnerName": "PT. BINTANG"
     },
     "currentJob": {
       "pickupOrderId": 1,

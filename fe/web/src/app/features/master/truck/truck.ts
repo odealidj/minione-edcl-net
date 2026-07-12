@@ -2,7 +2,7 @@ import { Component, OnInit, inject, ViewChild, ElementRef, signal, computed } fr
 import { CommonModule } from '@angular/common';
 import { forkJoin } from 'rxjs';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Truck, Transporter, Driver } from '../../../core/models/master.model';
+import { Truck, LogisticPartner, Driver } from '../../../core/models/master.model';
 import { PaginationMeta } from '../../../core/models/api.model';
 import { MasterDataService } from '../../../core/services/master-data.service';
 
@@ -20,7 +20,7 @@ import { CardComponent } from '../../../shared/components/card/card.component';
 })
 export class TruckComponent implements OnInit {
   items = signal<Truck[]>([]);
-  transporters = signal<Transporter[]>([]);
+  logisticPartners = signal<LogisticPartner[]>([]);
   meta = signal<PaginationMeta | null>(null);
   isLoading = signal(true);
   searchQuery = '';
@@ -43,23 +43,23 @@ export class TruckComponent implements OnInit {
     this.form = this.fb.group({
       plateNumber: ['', Validators.required],
       vehicleType: ['', Validators.required],
-      transporterId: [null, Validators.required]
+      logisticPartnerId: [null, Validators.required]
     });
   }
 
   ngOnInit(): void {
-    this.loadTransporters();
+    this.loadLogisticPartners();
     this.loadData();
   }
 
-  loadTransporters(): void {
-    this.service.getTransporters().subscribe({
+  loadLogisticPartners(): void {
+    this.service.getLogisticPartners().subscribe({
       next: (res) => {
         if (res.status === 'success') {
-          this.transporters.set(res.data);
+          this.logisticPartners.set(res.data);
         }
       },
-      error: (err) => console.error('Failed to load transporters', err)
+      error: (err) => console.error('Failed to load logisticPartners', err)
     });
   }
 
@@ -150,7 +150,7 @@ export class TruckComponent implements OnInit {
     if (item) {
       this.isEditMode = true;
       this.editingId = item.id;
-      this.form.patchValue({ plateNumber: item.plateNumber, vehicleType: item.vehicleType, transporterId: item.transporterId });
+      this.form.patchValue({ plateNumber: item.plateNumber, vehicleType: item.vehicleType, logisticPartnerId: item.logisticPartnerId });
     } else {
       this.isEditMode = false;
       this.editingId = null;
@@ -169,12 +169,12 @@ export class TruckComponent implements OnInit {
     const val = this.form.value;
 
     if (this.isEditMode && this.editingId) {
-      this.service.updateTruck(this.editingId, val.plateNumber, val.vehicleType, val.transporterId).subscribe({
+      this.service.updateTruck(this.editingId, val.plateNumber, val.vehicleType, val.logisticPartnerId).subscribe({
         next: () => { this.isSaving = false; this.closeModal(); this.loadData(); },
         error: (err) => { console.error(err); this.isSaving = false; }
       });
     } else {
-      this.service.createTruck(val.plateNumber, val.vehicleType, val.transporterId).subscribe({
+      this.service.createTruck(val.plateNumber, val.vehicleType, val.logisticPartnerId).subscribe({
         next: () => { this.isSaving = false; this.closeModal(); this.loadData(); },
         error: (err) => { console.error(err); this.isSaving = false; }
       });

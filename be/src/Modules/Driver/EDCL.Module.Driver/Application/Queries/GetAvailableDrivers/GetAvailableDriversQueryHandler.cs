@@ -16,9 +16,9 @@ internal sealed class GetAvailableDriversQueryHandler(DriverDbContext dbContext,
 {
     public async Task<Result<IReadOnlyList<AvailableDriverDto>>> Handle(GetAvailableDriversQuery request, CancellationToken cancellationToken)
     {
-        var allDriversForTransporter = await driverPort.GetActiveDriversByTransporterIdAsync(request.TransporterId, cancellationToken);
+        var allDriversForLogisticPartner = await driverPort.GetActiveDriversByLogisticPartnerIdAsync(request.LogisticPartnerId, cancellationToken);
         
-        if (allDriversForTransporter.Count == 0)
+        if (allDriversForLogisticPartner.Count == 0)
         {
             return Result<IReadOnlyList<AvailableDriverDto>>.Success(new List<AvailableDriverDto>());
         }
@@ -29,7 +29,7 @@ internal sealed class GetAvailableDriversQueryHandler(DriverDbContext dbContext,
             .Distinct()
             .ToListAsync(cancellationToken);
 
-        var availableDrivers = allDriversForTransporter
+        var availableDrivers = allDriversForLogisticPartner
             .Where(d => !activeAssignedDriverIds.Contains(d.Id))
             .OrderBy(d => d.Name)
             .Select(d => new AvailableDriverDto(

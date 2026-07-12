@@ -54,7 +54,7 @@ public class AuthControllerTests
     {
         // Arrange
         var request = new LoginRequest("08123456789", "123456");
-        var loginResponse = new LoginResponse(1, "John", "1234567890123456", "img.jpg", "Transporter A", "access", "refresh", DateTime.UtcNow, DateTime.UtcNow);
+        var loginResponse = new LoginResponse(1, "John", "1234567890123456", "img.jpg", "LogisticPartner A", "access", "refresh", DateTime.UtcNow, DateTime.UtcNow);
         
         _mediatorMock.Setup(m => m.Send(It.IsAny<LoginCommand>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<LoginResponse>.Success(loginResponse));

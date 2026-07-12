@@ -73,8 +73,8 @@ public sealed class DriverPortAdapter(AuthDbContext db) : IDriverPort
             Name: driver.Name,
             PhoneNumber: driver.PhoneNumber,
             PhotoUrl: driver.PhotoUrl,
-            TransporterId: driver.TransporterId,
-            TransporterName: null, // Transporter has been moved to Driver module
+            LogisticPartnerId: driver.LogisticPartnerId,
+            LogisticPartnerName: null, // LogisticPartner has been moved to Driver module
             IsActive: driver.IsActive);
     }
 
@@ -91,27 +91,26 @@ public sealed class DriverPortAdapter(AuthDbContext db) : IDriverPort
             Name: driver.Name,
             PhoneNumber: driver.PhoneNumber,
             PhotoUrl: driver.PhotoUrl,
-            TransporterId: driver.TransporterId,
-            TransporterName: null,
+            LogisticPartnerId: driver.LogisticPartnerId,
+            LogisticPartnerName: null,
             IsActive: driver.IsActive)).ToList();
     }
 
-    public async Task<IReadOnlyList<DriverInfo>> GetActiveDriversByTransporterIdAsync(long transporterId, CancellationToken ct)
+    public async Task<IReadOnlyList<DriverInfo>> GetActiveDriversByLogisticPartnerIdAsync(long logisticPartnerId, CancellationToken ct = default)
     {
-        var drivers = await db.Drivers
+        return await db.Drivers
             .AsNoTracking()
-            .Where(d => d.TransporterId == transporterId && d.IsActive && !d.IsDeleted)
+            .Where(d => d.LogisticPartnerId == logisticPartnerId && d.IsActive)
+            .Select(d => new DriverInfo(
+                d.Id, 
+                d.Nik, 
+                d.Name, 
+                d.PhoneNumber, 
+                d.PhotoUrl, 
+                d.LogisticPartnerId, 
+                null, 
+                d.IsActive))
             .ToListAsync(ct);
-
-        return drivers.Select(driver => new DriverInfo(
-            Id: driver.Id,
-            Nik: driver.Nik,
-            Name: driver.Name,
-            PhoneNumber: driver.PhoneNumber,
-            PhotoUrl: driver.PhotoUrl,
-            TransporterId: driver.TransporterId,
-            TransporterName: null,
-            IsActive: driver.IsActive)).ToList();
     }
 }
 

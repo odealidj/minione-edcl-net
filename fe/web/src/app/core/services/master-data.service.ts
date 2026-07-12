@@ -3,7 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ApiResponse } from '../models/api.model';
-import { Driver, Supplier, Truck, Transporter } from '../models/master.model';
+import { Driver, Supplier, Truck, LogisticPartner } from '../models/master.model';
 
 @Injectable({
   providedIn: 'root'
@@ -11,11 +11,11 @@ import { Driver, Supplier, Truck, Transporter } from '../models/master.model';
 export class MasterDataService {
   private http = inject(HttpClient);
 
-  // Transporters
-  getTransporters(search?: string, page: number = 1, pageSize: number = 100): Observable<ApiResponse<Transporter[]>> {
+  // LogisticPartners
+  getLogisticPartners(search?: string, page: number = 1, pageSize: number = 100): Observable<ApiResponse<LogisticPartner[]>> {
     let params = new HttpParams().set('page', page).set('pageSize', pageSize);
     if (search) params = params.set('search', search);
-    return this.http.get<ApiResponse<Transporter[]>>(`${environment.apiUrl}/master/transporters`, { params });
+    return this.http.get<ApiResponse<LogisticPartner[]>>(`${environment.apiUrl}/master/logisticPartners`, { params });
   }
 
   // Drivers
@@ -25,12 +25,12 @@ export class MasterDataService {
     return this.http.get<ApiResponse<Driver[]>>(`${environment.apiUrl}/master/drivers`, { params });
   }
 
-  createDriver(name: string, nik: string, phoneNumber: string, transporterId?: number | null): Observable<ApiResponse<string>> {
-    return this.http.post<ApiResponse<string>>(`${environment.apiUrl}/master/drivers`, { name, nik, phoneNumber, transporterId });
+  createDriver(name: string, nik: string, phoneNumber: string, logisticPartnerId?: number | null): Observable<ApiResponse<string>> {
+    return this.http.post<ApiResponse<string>>(`${environment.apiUrl}/master/drivers`, { name, nik, phoneNumber, logisticPartnerId });
   }
 
-  updateDriver(id: number, name: string, nik: string, phoneNumber: string, transporterId?: number | null): Observable<ApiResponse<any>> {
-    return this.http.put<ApiResponse<any>>(`${environment.apiUrl}/master/drivers/${id}`, { id, name, nik, phoneNumber, transporterId });
+  updateDriver(id: number, name: string, nik: string, phoneNumber: string, logisticPartnerId?: number | null): Observable<ApiResponse<any>> {
+    return this.http.put<ApiResponse<any>>(`${environment.apiUrl}/master/drivers/${id}`, { id, name, nik, phoneNumber, logisticPartnerId });
   }
 
   deleteDriver(id: number): Observable<ApiResponse<any>> {
@@ -63,12 +63,12 @@ export class MasterDataService {
     return this.http.get<ApiResponse<Truck[]>>(`${environment.apiUrl}/master/trucks`, { params });
   }
 
-  createTruck(plateNumber: string, vehicleType: string, transporterId: number): Observable<ApiResponse<string>> {
-    return this.http.post<ApiResponse<string>>(`${environment.apiUrl}/master/trucks`, { plateNumber, vehicleType, transporterId });
+  createTruck(plateNumber: string, vehicleType: string, logisticPartnerId: number): Observable<ApiResponse<string>> {
+    return this.http.post<ApiResponse<string>>(`${environment.apiUrl}/master/trucks`, { plateNumber, vehicleType, logisticPartnerId });
   }
 
-  updateTruck(id: number, plateNumber: string, vehicleType: string | null, transporterId: number): Observable<ApiResponse<any>> {
-    return this.http.put<ApiResponse<any>>(`${environment.apiUrl}/master/trucks/${id}`, { id, plateNumber, vehicleType, transporterId });
+  updateTruck(id: number, plateNumber: string, vehicleType: string | null, logisticPartnerId: number): Observable<ApiResponse<any>> {
+    return this.http.put<ApiResponse<any>>(`${environment.apiUrl}/master/trucks/${id}`, { id, plateNumber, vehicleType, logisticPartnerId });
   }
 
   deleteTruck(id: number): Observable<ApiResponse<any>> {
@@ -83,12 +83,12 @@ export class MasterDataService {
     return this.http.post<ApiResponse<any>>(`${environment.apiUrl}/master/trucks/${truckId}/unassign`, { driverId });
   }
 
-  getAvailableTrucks(transporterId: number): Observable<ApiResponse<any[]>> {
-    return this.http.get<ApiResponse<any[]>>(`${environment.apiUrl}/master/trucks/assignments/available-trucks?transporterId=${transporterId}`);
+  getAvailableTrucks(logisticPartnerId: number): Observable<ApiResponse<any[]>> {
+    return this.http.get<ApiResponse<any[]>>(`${environment.apiUrl}/master/trucks/assignments/available-trucks?logisticPartnerId=${logisticPartnerId}`);
   }
 
-  getAvailableDrivers(transporterId: number): Observable<ApiResponse<any[]>> {
-    return this.http.get<ApiResponse<any[]>>(`${environment.apiUrl}/master/trucks/assignments/available-drivers?transporterId=${transporterId}`);
+  getAvailableDrivers(logisticPartnerId: number): Observable<ApiResponse<any[]>> {
+    return this.http.get<ApiResponse<any[]>>(`${environment.apiUrl}/master/trucks/assignments/available-drivers?logisticPartnerId=${logisticPartnerId}`);
   }
 
   getTruckAssignments(): Observable<ApiResponse<any[]>> {
