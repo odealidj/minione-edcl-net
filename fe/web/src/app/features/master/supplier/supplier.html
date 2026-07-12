@@ -34,7 +34,9 @@
                   <input type="checkbox" class="checkbox checkbox-sm checkbox-primary rounded" (change)="toggleSelection(item.id)" [checked]="isSelected(item.id)">
                 </label>
               </td>
-              <td>{{ item.supplierCode }}</td><td>{{ item.name }}</td><td>{{ item.address }}</td>
+              <td>{{ item.supplierCode }}</td>
+              <td>{{ item.name }}</td>
+              <td class="max-w-xs whitespace-normal break-words">{{ item.address }}</td>
               <td>{{ item.latitude || '-' }}</td><td>{{ item.longitude || '-' }}</td><td>{{ item.geofenceRadiusMeters || '-' }}</td>
               <td class="text-center">
                 <div class="join">
