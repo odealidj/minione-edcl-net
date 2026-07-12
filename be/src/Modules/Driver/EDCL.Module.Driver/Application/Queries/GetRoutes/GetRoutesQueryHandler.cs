@@ -27,7 +27,8 @@ internal sealed class GetRoutesQueryHandler(DriverDbContext dbContext)
 
         var totalCount = await query.CountAsync(cancellationToken);
         var items = await query
-            .OrderByDescending(x => x.CreatedAt)
+            .OrderBy(x => x.RouteCode)
+            .ThenBy(x => x.CycleCode)
             .Skip((request.PageNumber - 1) * request.PageSize)
             .Take(request.PageSize)
             .ToListAsync(cancellationToken);
