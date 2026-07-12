@@ -193,3 +193,52 @@ internal sealed class RouteConfiguration : IEntityTypeConfiguration<EDCL.Module.
         builder.HasQueryFilter(e => !e.IsDeleted);
     }
 }
+
+internal sealed class RoutePriceConfiguration : IEntityTypeConfiguration<RoutePrice>
+{
+    public void Configure(EntityTypeBuilder<RoutePrice> builder)
+    {
+        builder.ToTable("route_prices");
+        builder.HasKey(rp => rp.Id);
+        builder.Property(rp => rp.Id).UseIdentityColumn();
+
+        builder.Property(rp => rp.RouteId).IsRequired();
+        builder.Property(rp => rp.LogisticPartnerId).IsRequired();
+        builder.Property(rp => rp.Price).HasColumnType("numeric(15,2)").IsRequired();
+        builder.Property(rp => rp.ValidFrom).HasColumnType("date").IsRequired();
+        builder.Property(rp => rp.ValidTo).HasColumnType("date").IsRequired();
+        builder.Property(rp => rp.PriceType).HasMaxLength(1).IsRequired();
+
+        ConfigureAuditColumns(builder);
+
+        builder.HasIndex(rp => new { rp.RouteId, rp.LogisticPartnerId, rp.ValidFrom, rp.ValidTo, rp.PriceType })
+            .IsUnique()
+            .HasDatabaseName("UQ_route_prices_route_lp_dates_type");
+
+        builder.HasOne(rp => rp.Route)
+            .WithMany()
+            .HasForeignKey(rp => rp.RouteId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(rp => rp.LogisticPartner)
+            .WithMany()
+            .HasForeignKey(rp => rp.LogisticPartnerId)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+
+    private static void ConfigureAuditColumns<T>(EntityTypeBuilder<T> builder)
+        where T : AuditableEntity
+    {
+        builder.Property(e => e.CreatedAt).HasColumnName("created_at")
+            .HasColumnType("datetime2(7)").HasDefaultValueSql("GETUTCDATE()").IsRequired();
+        builder.Property(e => e.CreatedBy).HasColumnName("created_by").HasMaxLength(100).IsRequired();
+        builder.Property(e => e.UpdatedAt).HasColumnName("updated_at").HasColumnType("datetime2(7)");
+        builder.Property(e => e.UpdatedBy).HasColumnName("updated_by").HasMaxLength(100);
+        builder.Property(e => e.IsDeleted).HasColumnName("is_deleted").HasDefaultValue(false);
+        builder.Property(e => e.DeletedAt).HasColumnName("deleted_at").HasColumnType("datetime2(7)");
+        builder.Property(e => e.DeletedBy).HasColumnName("deleted_by").HasMaxLength(100);
+        builder.Property(e => e.RowVersion).HasColumnName("row_version").IsRowVersion();
+        builder.Property(e => e.TraceId).HasColumnName("trace_id").HasMaxLength(64);
+        builder.HasQueryFilter(e => !e.IsDeleted);
+    }
+}

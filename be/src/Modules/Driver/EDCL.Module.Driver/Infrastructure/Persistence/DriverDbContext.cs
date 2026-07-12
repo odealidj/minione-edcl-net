@@ -20,6 +20,7 @@ public sealed class DriverDbContext(
     public DbSet<Truck> Trucks => Set<Truck>();
     public DbSet<LogisticPartner> LogisticPartners => Set<LogisticPartner>();
     public DbSet<EDCL.Module.Driver.Domain.Entities.Route> Routes => Set<EDCL.Module.Driver.Domain.Entities.Route>();
+    public DbSet<RoutePrice> RoutePrices => Set<RoutePrice>();
     public DbSet<TruckDriverAssignment> TruckDriverAssignments => Set<TruckDriverAssignment>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)

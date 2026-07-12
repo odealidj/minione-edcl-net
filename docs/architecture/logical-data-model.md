@@ -149,6 +149,23 @@ erDiagram
         bytes row_version
     }
 
+    ROUTE ||--o{ ROUTE_PRICE : "memiliki harga"
+    LOGISTIC_PARTNER ||--o{ ROUTE_PRICE : "berlaku untuk"
+    ROUTE_PRICE {
+        bigint id PK
+        bigint route_id FK
+        bigint logistic_partner_id FK
+        numeric price
+        date valid_from
+        date valid_to
+        string price_type
+        datetime created_at
+        string created_by
+        datetime deleted_at
+        boolean is_deleted
+        bytes row_version
+    }
+
     TRUCK_DRIVER_ASSIGNMENT {
         bigint id PK
         bigint truck_id FK
@@ -394,6 +411,7 @@ Berisi **seluruh Master Data** operasional:
 
 - **`Logistic Partner`**: Perusahaan vendor penyedia armada logistik. Memiliki properti `Code` (unik) dan `Name`. Dikelola di modul ini setelah refactoring dari Auth Module.
 - **`Route`** *(baru)*: Data rute pengiriman (Route Code dan Cycle Code) hasil transisi dari sistem legacy (IDCS). Memiliki unique constraint pada kombinasi RouteCode dan CycleCode.
+- **`RoutePrice`** *(baru)*: Skema harga untuk suatu kombinasi *Route* dan *Logistic Partner* dalam periode tertentu (`valid_from` - `valid_to`).
 - **`Truck`**: Data armada fisik. Setiap Truck wajib memiliki `Logistic PartnerId`. Dapat diaktifkan/dinonaktifkan secara independen.
 - **`TruckDriverAssignment`** *(baru)*: Tabel asosiatif antara Truck dan Driver. Menyimpan riwayat penugasan dengan `is_active` sebagai penanda aktif. Metode domain: `AssignDriver()` otomatis me-*unassign* driver lama sebelum membuat assignment baru.
 - **`Supplier`**: Lokasi fisik pabrik/vendor yang menjadi titik pengambilan barang. Menyimpan koordinat GPS dan radius geofence untuk validasi di lapangan.
