@@ -18,6 +18,51 @@ help:
 	@echo "  make be-run-all    - Run API, Gateway, and Workers locally (.NET run)"
 	@echo "  make be-stop-all   - Stop all local backend services"
 	@echo "  make be-test       - Run backend unit and integration tests"
+	@echo ""
+	@echo "Seeder Commands:"
+	@echo "  make seed-logistic-partner       - Insert logistic partner data"
+	@echo "  make seed-reset-logistic-partner - Reset/delete all logistic partner data"
+	@echo "  make seed-route                  - Insert route data"
+	@echo "  make seed-reset-route            - Reset/delete all route data"
+	@echo "  make seed-driver                 - Insert driver data"
+	@echo "  make seed-reset-driver           - Reset/delete all driver data"
+
+# --- Seeder Commands ---
+seed-logistic-partner:
+	dotnet run --project idcs-seeder -- logistic-partner
+
+seed-reset-logistic-partner:
+	dotnet run --project idcs-seeder -- reset-logistic-partner
+
+seed-route:
+	dotnet run --project idcs-seeder -- route
+
+seed-reset-route:
+	dotnet run --project idcs-seeder -- reset-route
+
+seed-driver:
+	dotnet run --project idcs-seeder -- driver
+
+seed-reset-driver:
+	dotnet run --project idcs-seeder -- reset-driver
+
+seed-truck:
+	dotnet run --project idcs-seeder -- truck
+
+seed-reset-truck:
+	dotnet run --project idcs-seeder -- reset-truck
+
+seed-supplier:
+	dotnet run --project idcs-seeder -- supplier
+
+seed-reset-supplier:
+	dotnet run --project idcs-seeder -- reset-supplier
+
+seed-all:
+	dotnet run --project idcs-seeder -- all
+
+seed-reset-all:
+	dotnet run --project idcs-seeder -- reset-all
 
 # --- Frontend Commands ---
 fe-install:

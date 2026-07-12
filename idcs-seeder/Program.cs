@@ -14,7 +14,7 @@ class Program
         Console.WriteLine("=== EDCL IDCS Data Seeder ===");
         if (args.Length == 0)
         {
-            Console.WriteLine("Usage: dotnet run -- [init|manifest|part|kanban|skid|bulk|reset|out-of-order|race-condition|edcl-master]");
+            Console.WriteLine("Usage: dotnet run -- [init|manifest|part|kanban|skid|bulk|reset|out-of-order|race-condition|edcl-master|logistic-partner|reset-logistic-partner|route|reset-route|driver|reset-driver]");
             return;
         }
 
@@ -27,9 +27,6 @@ class Program
             {
                 case "init":
                     Console.WriteLine("Database and tables initialized. CDC Enabled.");
-                    break;
-                case "supplier":
-                    await SeedSupplierAsync();
                     break;
                 case "manifest":
                     await SeedManifestAsync();
@@ -54,6 +51,50 @@ class Program
                     break;
                 case "edcl-master":
                     await SeedEdclMasterAsync();
+                    break;
+                case "all":
+                    await SeedLogisticPartnerAsync();
+                    await SeedSupplierAsync();
+                    await SeedRouteAsync();
+                    await SeedDriverAsync();
+                    await SeedTruckAsync();
+                    break;
+                case "reset-all":
+                    await ResetTruckAsync();
+                    await ResetDriverAsync();
+                    await ResetRouteAsync();
+                    await ResetSupplierAsync();
+                    await ResetLogisticPartnerAsync();
+                    break;
+                case "supplier":
+                    await SeedSupplierAsync();
+                    break;
+                case "reset-supplier":
+                    await ResetSupplierAsync();
+                    break;
+                case "logistic-partner":
+                    await SeedLogisticPartnerAsync();
+                    break;
+                case "reset-logistic-partner":
+                    await ResetLogisticPartnerAsync();
+                    break;
+                case "route":
+                    await SeedRouteAsync();
+                    break;
+                case "reset-route":
+                    await ResetRouteAsync();
+                    break;
+                case "driver":
+                    await SeedDriverAsync();
+                    break;
+                case "reset-driver":
+                    await ResetDriverAsync();
+                    break;
+                case "truck":
+                    await SeedTruckAsync();
+                    break;
+                case "reset-truck":
+                    await ResetTruckAsync();
                     break;
                 case "reset":
                     await ResetDataAsync();
@@ -208,24 +249,68 @@ class Program
 
     private static async Task SeedSupplierAsync()
     {
-        using var conn = new SqlConnection(ConnectionString);
-        var supplierCode = $"SUP-{new Random().Next(100, 999)}";
-        
-        var id = await conn.QuerySingleAsync<long>(@"
-            INSERT INTO suppliers (SupplierCode, SupplierName, Address)
-            OUTPUT INSERTED.Id
-            VALUES (@SupplierCode, 'Test Supplier ' + @SupplierCode, 'Jl. Industri No. 1, Cikarang')",
-            new { SupplierCode = supplierCode });
+        Console.WriteLine("Seeding Suppliers into EDCL & IDCS...");
+        using var connIdcs = new SqlConnection(ConnectionString);
+        using var connEdcl = new SqlConnection(EdclConnectionString);
+        await connIdcs.OpenAsync();
+        await connEdcl.OpenAsync();
 
-        using var edclConn = new SqlConnection(EdclConnectionString);
-        await edclConn.ExecuteAsync(@"
-            IF NOT EXISTS(SELECT 1 FROM driver.suppliers WHERE SupplierCode = @SupplierCode)
-            BEGIN
-                INSERT INTO driver.suppliers (SupplierCode, Name, Address, Latitude, Longitude, GeofenceRadiusMeters, IsActive, created_at, created_by, is_deleted)
-                VALUES (@SupplierCode, 'Test Supplier ' + @SupplierCode, 'Jl. Industri No. 1, Cikarang', -6.3, 107.1, 100, 1, GETUTCDATE(), 'System', 0)
-            END", new { SupplierCode = supplierCode });
+        int count = 0;
+        foreach (var supplier in SupplierMasterData.Data)
+        {
+            // Insert into IDCS
+            var idcsExists = await connIdcs.ExecuteScalarAsync<bool>(
+                "SELECT CAST(CASE WHEN COUNT(1) > 0 THEN 1 ELSE 0 END AS BIT) FROM suppliers WHERE SupplierCode = @Code",
+                new { Code = supplier.Code });
+            
+            if (!idcsExists)
+            {
+                await connIdcs.ExecuteAsync(@"
+                    INSERT INTO suppliers (SupplierCode, SupplierName, Address)
+                    VALUES (@Code, @Name, 'Jl. Industri No. 1, Cikarang')",
+                    new { Code = supplier.Code, Name = supplier.Name });
+            }
 
-        Console.WriteLine($"Inserted Supplier: {supplierCode} with ID {id}");
+            // Insert into EDCL
+            var edclExists = await connEdcl.ExecuteScalarAsync<bool>(
+                "SELECT CAST(CASE WHEN COUNT(1) > 0 THEN 1 ELSE 0 END AS BIT) FROM edcl.driver.suppliers WHERE SupplierCode = @Code",
+                new { Code = supplier.Code });
+
+            if (!edclExists)
+            {
+                await connEdcl.ExecuteAsync(@"
+                    INSERT INTO edcl.driver.suppliers (SupplierCode, Name, Address, Latitude, Longitude, GeofenceRadiusMeters, IsActive, created_at, created_by, is_deleted)
+                    VALUES (@Code, @Name, 'Jl. Industri No. 1, Cikarang', -6.3, 107.1, 100, 1, GETUTCDATE(), 'System', 0)",
+                    new { Code = supplier.Code, Name = supplier.Name });
+            }
+            count++;
+        }
+
+        Console.WriteLine($"✅ Seeded {count} Suppliers.");
+    }
+
+    private static async Task ResetSupplierAsync()
+    {
+        Console.WriteLine("⚠️  Starting reset for Suppliers in EDCL & IDCS...");
+        using var connIdcs = new SqlConnection(ConnectionString);
+        using var connEdcl = new SqlConnection(EdclConnectionString);
+        await connIdcs.OpenAsync();
+        await connEdcl.OpenAsync();
+
+        try
+        {
+            await connIdcs.ExecuteAsync("DELETE FROM suppliers");
+            await connIdcs.ExecuteAsync("DBCC CHECKIDENT ('suppliers', RESEED, 0)");
+            
+            await connEdcl.ExecuteAsync("DELETE FROM edcl.driver.suppliers");
+            await connEdcl.ExecuteAsync("DBCC CHECKIDENT ('edcl.driver.suppliers', RESEED, 0)");
+            
+            Console.WriteLine("✅ Reset complete. Supplier data cleared.");
+        }
+        catch (SqlException ex)
+        {
+            Console.WriteLine($"❌ Reset failed. Error: {ex.Message}");
+        }
     }
 
     // ─── Static realistic data tables (based on data-real analysis) ─────────
@@ -578,5 +663,226 @@ class Program
         else Console.WriteLine($"Driver already exists. ID: {driverId}");
 
         Console.WriteLine("EDCL Master Data seeding completed successfully.");
+    }
+    private static async Task SeedLogisticPartnerAsync()
+    {
+        using var conn = new SqlConnection(EdclConnectionString);
+        await conn.OpenAsync();
+
+        Console.WriteLine("Seeding Logistic Partners...");
+        int count = 0;
+
+        foreach (var lp in LogisticPartnerData.Data)
+        {
+            var exists = await conn.ExecuteScalarAsync<bool>(
+                "SELECT CAST(CASE WHEN COUNT(1) > 0 THEN 1 ELSE 0 END AS BIT) FROM edcl.driver.logistic_partners WHERE Code = @Code",
+                new { Code = lp.Code });
+
+            if (!exists)
+            {
+                await conn.ExecuteAsync(@"
+                    INSERT INTO edcl.driver.logistic_partners (Code, Name, created_at, created_by, is_deleted)
+                    VALUES (@Code, @Name, GETUTCDATE(), 'System', 0)",
+                    new { Code = lp.Code, Name = lp.Name });
+                count++;
+            }
+        }
+
+        Console.WriteLine($"Logistic Partner seeding completed successfully. {count} new records inserted.");
+    }
+
+    private static async Task ResetLogisticPartnerAsync()
+    {
+        Console.WriteLine("⚠️  Starting reset for Logistic Partners in EDCL...");
+        using var conn = new SqlConnection(EdclConnectionString);
+        await conn.OpenAsync();
+
+        try
+        {
+            var rows = await conn.ExecuteAsync("DELETE FROM edcl.driver.logistic_partners");
+            await conn.ExecuteAsync("DBCC CHECKIDENT ('edcl.driver.logistic_partners', RESEED, 0)");
+            Console.WriteLine($"✅ Reset complete. {rows} Logistic Partners deleted.");
+        }
+        catch (SqlException ex)
+        {
+            Console.WriteLine($"❌ Reset failed. Could not delete Logistic Partners. (Maybe they are referenced by Trucks/Drivers?) Error: {ex.Message}");
+        }
+    }
+
+    private static async Task SeedRouteAsync()
+    {
+        Console.WriteLine("Seeding Routes into EDCL...");
+        using var conn = new SqlConnection(EdclConnectionString);
+        await conn.OpenAsync();
+
+        int count = 0;
+        foreach (var (routeCode, cycleCode) in RouteData.Data)
+        {
+            var exists = await conn.ExecuteScalarAsync<bool>(
+                "SELECT CAST(CASE WHEN COUNT(1) > 0 THEN 1 ELSE 0 END AS BIT) FROM edcl.driver.routes WHERE RouteCode = @RouteCode AND CycleCode = @CycleCode",
+                new { RouteCode = routeCode, CycleCode = cycleCode });
+
+            if (exists) continue;
+
+            await conn.ExecuteAsync(@"
+                INSERT INTO edcl.driver.routes (RouteCode, CycleCode, created_at, created_by, is_deleted)
+                VALUES (@RouteCode, @CycleCode, GETUTCDATE(), 'System', 0)",
+                new { RouteCode = routeCode, CycleCode = cycleCode });
+
+            count++;
+        }
+        Console.WriteLine($"✅ Seeded {count} new Routes to EDCL.");
+    }
+
+    private static async Task ResetRouteAsync()
+    {
+        Console.WriteLine("⚠️  Starting reset for Routes in EDCL...");
+        using var conn = new SqlConnection(EdclConnectionString);
+        await conn.OpenAsync();
+
+        try
+        {
+            await conn.ExecuteAsync("DELETE FROM edcl.driver.routes");
+            await conn.ExecuteAsync("DBCC CHECKIDENT ('edcl.driver.routes', RESEED, 0)");
+            Console.WriteLine("✅ Reset complete. Route data cleared.");
+        }
+        catch (SqlException ex)
+        {
+            Console.WriteLine($"❌ Reset failed. Error: {ex.Message}");
+        }
+    }
+
+    private static async Task SeedDriverAsync()
+    {
+        Console.WriteLine("Seeding Drivers into EDCL...");
+        using var conn = new SqlConnection(EdclConnectionString);
+        await conn.OpenAsync();
+
+        var existingPhones = new HashSet<string>(
+            await conn.QueryAsync<string>("SELECT PhoneNumber FROM edcl.auth.drivers WHERE IsActive = 1")
+        );
+
+        int count = 0;
+        foreach (var driver in DriverData.Data)
+        {
+            if (existingPhones.Contains(driver.Phone))
+                continue;
+
+            var exists = await conn.ExecuteScalarAsync<bool>(
+                "SELECT CAST(CASE WHEN COUNT(1) > 0 THEN 1 ELSE 0 END AS BIT) FROM edcl.auth.drivers WHERE Nik = @Nik",
+                new { Nik = driver.Nik });
+
+            if (exists) continue;
+
+            // Lookup LogisticPartner
+            var lpId = await conn.ExecuteScalarAsync<long?>(
+                "SELECT Id FROM edcl.driver.logistic_partners WHERE Code = @Code",
+                new { Code = driver.LogisticPartnerCode });
+
+            await conn.ExecuteAsync(@"
+                INSERT INTO edcl.auth.drivers (Name, Nik, PhoneNumber, PinHash, must_change_pin, LogisticPartnerId, IsActive, created_at, created_by, is_deleted)
+                VALUES (@Name, @Nik, @Phone, 'MOCKED_HASH', 1, @LpId, 1, GETUTCDATE(), 'System', 0)",
+                new { Name = driver.Name, Nik = driver.Nik, Phone = driver.Phone, LpId = lpId });
+            
+            existingPhones.Add(driver.Phone);
+            count++;
+        }
+        Console.WriteLine($"✅ Seeded {count} new Drivers to EDCL.");
+    }
+
+    private static async Task ResetDriverAsync()
+    {
+        Console.WriteLine("⚠️  Starting reset for Drivers in EDCL...");
+        using var conn = new SqlConnection(EdclConnectionString);
+        await conn.OpenAsync();
+
+        try
+        {
+            await conn.ExecuteAsync("DELETE FROM edcl.auth.drivers");
+            await conn.ExecuteAsync("DBCC CHECKIDENT ('edcl.auth.drivers', RESEED, 0)");
+            Console.WriteLine("✅ Reset complete. Driver data cleared.");
+        }
+        catch (SqlException ex)
+        {
+            Console.WriteLine($"❌ Reset failed. Error: {ex.Message}");
+        }
+    }
+
+    private static async Task SeedTruckAsync()
+    {
+        Console.WriteLine("Seeding Trucks & Assignments into EDCL...");
+        using var conn = new SqlConnection(EdclConnectionString);
+        await conn.OpenAsync();
+
+        int truckCount = 0;
+        int assignCount = 0;
+        
+        var existingTrucks = new HashSet<string>(
+            await conn.QueryAsync<string>("SELECT PlateNumber FROM edcl.driver.trucks WHERE IsActive = 1")
+        );
+
+        foreach (var truck in TruckData.Data)
+        {
+            var driverInfo = await conn.QueryFirstOrDefaultAsync<dynamic>(
+                "SELECT Id as DriverId, LogisticPartnerId FROM edcl.auth.drivers WHERE Nik = @Nik AND IsActive = 1",
+                new { Nik = truck.Nik });
+            
+            if (driverInfo == null) continue;
+
+            long truckId;
+            if (existingTrucks.Contains(truck.PlateNumber))
+            {
+                var existingId = await conn.ExecuteScalarAsync<long?>(
+                    "SELECT Id FROM edcl.driver.trucks WHERE PlateNumber = @PlateNumber",
+                    new { PlateNumber = truck.PlateNumber });
+                if (existingId == null) continue;
+                truckId = existingId.Value;
+            }
+            else
+            {
+                truckId = await conn.ExecuteScalarAsync<long>(@"
+                    INSERT INTO edcl.driver.trucks (PlateNumber, LogisticPartnerId, IsActive, created_at, created_by, is_deleted)
+                    OUTPUT INSERTED.Id
+                    VALUES (@PlateNumber, @LpId, 1, GETUTCDATE(), 'System', 0)",
+                    new { PlateNumber = truck.PlateNumber, LpId = driverInfo.LogisticPartnerId });
+                
+                existingTrucks.Add(truck.PlateNumber);
+                truckCount++;
+            }
+
+            var assignmentExists = await conn.ExecuteScalarAsync<bool>(
+                "SELECT CAST(CASE WHEN COUNT(1) > 0 THEN 1 ELSE 0 END AS BIT) FROM edcl.driver.truck_driver_assignments WHERE TruckId = @TruckId AND DriverId = @DriverId",
+                new { TruckId = truckId, DriverId = driverInfo.DriverId });
+
+            if (!assignmentExists)
+            {
+                await conn.ExecuteAsync(@"
+                    INSERT INTO edcl.driver.truck_driver_assignments (TruckId, DriverId, IsActive, AssignedAt, created_at, created_by, is_deleted)
+                    VALUES (@TruckId, @DriverId, 1, GETUTCDATE(), GETUTCDATE(), 'System', 0)",
+                    new { TruckId = truckId, DriverId = driverInfo.DriverId });
+                assignCount++;
+            }
+        }
+        Console.WriteLine($"✅ Seeded {truckCount} new Trucks and {assignCount} Assignments to EDCL.");
+    }
+
+    private static async Task ResetTruckAsync()
+    {
+        Console.WriteLine("⚠️  Starting reset for Trucks & Assignments in EDCL...");
+        using var conn = new SqlConnection(EdclConnectionString);
+        await conn.OpenAsync();
+
+        try
+        {
+            await conn.ExecuteAsync("DELETE FROM edcl.driver.truck_driver_assignments");
+            await conn.ExecuteAsync("DBCC CHECKIDENT ('edcl.driver.truck_driver_assignments', RESEED, 0)");
+            await conn.ExecuteAsync("DELETE FROM edcl.driver.trucks");
+            await conn.ExecuteAsync("DBCC CHECKIDENT ('edcl.driver.trucks', RESEED, 0)");
+            Console.WriteLine("✅ Reset complete. Truck data cleared.");
+        }
+        catch (SqlException ex)
+        {
+            Console.WriteLine($"❌ Reset failed. Error: {ex.Message}");
+        }
     }
 }
