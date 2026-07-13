@@ -43,10 +43,10 @@
   <ItemGroup Label="Redis / Cache">
     <PackageVersion Include="StackExchange.Redis" Version="2.8.41" />
     <PackageVersion Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.0" />
-    <PackageVersion Include="MessagePack" Version="3.1.5" />
+    <PackageVersion Include="MessagePack" Version="3.1.8" />
   </ItemGroup>
   <ItemGroup Label="Serialization / Content Negotiation">
-    <PackageVersion Include="MessagePack.AspNetCoreMvcFormatter" Version="3.1.5" />
+    <PackageVersion Include="MessagePack.AspNetCoreMvcFormatter" Version="3.1.8" />
   </ItemGroup>
   <ItemGroup Label="API Gateway">
     <PackageVersion Include="Yarp.ReverseProxy" Version="2.3.0" />
@@ -73,6 +73,7 @@
   <ItemGroup Label="Swagger / API Docs">
     <PackageVersion Include="Scalar.AspNetCore" Version="2.6.0" />
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.OpenApi" Version="2.10.0" />
   </ItemGroup>
   <ItemGroup Label="Rate Limiting">
     <PackageVersion Include="AspNetCoreRateLimit" Version="5.0.0" />
