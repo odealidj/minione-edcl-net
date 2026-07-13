@@ -26,6 +26,13 @@ help:
 	@echo "  make seed-reset-route            - Reset/delete all route data"
 	@echo "  make seed-driver                 - Insert driver data"
 	@echo "  make seed-reset-driver           - Reset/delete all driver data"
+	@echo "  make seed-init                   - Initialize IDCS DB & CDC"
+	@echo "  make seed-manifest               - Insert 1 manifest to IDCS"
+	@echo "  make seed-part                   - Insert 1 part to IDCS"
+	@echo "  make seed-bulk                   - Insert 200 manifests to IDCS"
+	@echo "  make seed-out-of-order           - Simulate out-of-order scenario"
+	@echo "  make seed-race-condition         - Simulate race condition scenario"
+	@echo "  make seed-edcl-master            - Seed EDCL core master data"
 
 # --- Seeder Commands ---
 seed-logistic-partner:
@@ -63,6 +70,37 @@ seed-all:
 
 seed-reset-all:
 	dotnet run --project idcs-seeder -- reset-all
+
+seed-init:
+	dotnet run --project idcs-seeder -- init
+
+seed-manifest:
+	dotnet run --project idcs-seeder -- manifest
+
+seed-part:
+	dotnet run --project idcs-seeder -- part
+
+seed-kanban:
+	dotnet run --project idcs-seeder -- kanban
+
+seed-skid:
+	dotnet run --project idcs-seeder -- skid
+
+seed-bulk:
+	dotnet run --project idcs-seeder -- bulk
+
+seed-out-of-order:
+	dotnet run --project idcs-seeder -- out-of-order
+
+seed-race-condition:
+	dotnet run --project idcs-seeder -- race-condition
+
+seed-edcl-master:
+	dotnet run --project idcs-seeder -- edcl-master
+
+seed-reset-idcs:
+	dotnet run --project idcs-seeder -- reset
+
 
 # --- Frontend Commands ---
 fe-install:

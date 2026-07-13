@@ -313,34 +313,17 @@ class Program
         }
     }
 
-    // ─── Static realistic data tables (based on data-real analysis) ─────────
-    private static readonly (string Code, string Name, string Plant, string Dock, string PLane)[] SupplierData = new[]
-    {
-        ("5147", "TG INOAC INDONESIA",          "2", "54", "RD23"),
-        ("5159", "ADVICS INDONESIA",             "4", "C3", "ME53"),
-        ("0003", "SUGITY CREATIVES",             "6", "53", "ME53"),
-        ("5566", "DENSO MANUFACTURING INDONESIA","1", "53", "RD23"),
-        ("T060", "TOYOTA BOSHOKU INDONESIA",     "1", "56", "ME56"),
-        ("5626", "AISIN AW INDONESIA",           "1", "C3", "ME53"),
-    };
 
-    private static readonly string[] PartNames = new[]
-    {
-        "RUN  FR DOOR GLASS  RH",  "RUN  FR DOOR GLASS  LH",
-        "RUN  RR DOOR GLASS  RH",  "RUN  RR DOOR GLASS  LH",
-        "CYLINDER ASSY  BRAKE MASTER", "PANEL  CONSOLE RR END",
-        "BOX ASSY  CONSOLE  RR",   "PANEL SUB-ASSY  CONSOLE  UPR",
-        "COVER  CONSOLE BOX HOLE", "INSERT  CONSOLE BOX  RR",
-    };
     // ─────────────────────────────────────────────────────────────────────────
 
     private static async Task SeedManifestAsync()
     {
         var rnd = new Random();
         using var conn = new SqlConnection(ConnectionString);
-        var supplier = SupplierData[rnd.Next(SupplierData.Length)];
-        // ManifestNo format: 524 + 7 random digits, mirroring '5240093742'
-        var manifestNo = $"524{rnd.Next(0, 9999999):D7}";
+        var mData = ManifestData.Data[rnd.Next(ManifestData.Data.Count)];
+        var supplier = (Code: mData.SupplierCode, Name: mData.SupplierName, Plant: mData.SupplierPlant);
+        var manifestNo = mData.ManifestNo;
+        var seq = mData.Sequence;
         var pickDate   = DateTime.Now;
 
         await conn.ExecuteAsync(@"
@@ -361,7 +344,7 @@ class Program
             OUTPUT INSERTED.Id
             VALUES (@ManifestNo, @SupplierCode, @SupplierName, @SupplierPlant, @Sequence, '1', @PickDate, 'C1', 'Pending')",
             new { ManifestNo = manifestNo, SupplierCode = supplier.Code, SupplierName = supplier.Name,
-                  SupplierPlant = supplier.Plant, Sequence = rnd.Next(1, 25), PickDate = pickDate });
+                  SupplierPlant = supplier.Plant, Sequence = seq, PickDate = pickDate });
 
         Console.WriteLine($"Inserted Manifest: {manifestNo} (Supplier: {supplier.Code}/{supplier.Name}, Plant: {supplier.Plant}) with ID {id}");
     }
@@ -375,7 +358,7 @@ class Program
         using (var conn = new SqlConnection(ConnectionString))
         using (var edclConn = new SqlConnection(EdclConnectionString))
         {
-            foreach (var s in SupplierData)
+            foreach (var s in SupplierMasterData.Data)
             {
                 await conn.ExecuteAsync(@"
                     IF NOT EXISTS(SELECT 1 FROM suppliers WHERE SupplierCode = @Code)
@@ -394,10 +377,10 @@ class Program
         for (int m = 1; m <= 200; m++)
         {
             using var conn = new SqlConnection(ConnectionString);
-            var supplier   = SupplierData[rnd.Next(SupplierData.Length)];
-            // ManifestNo: 524 + 7 digit, mirroring real data like '5240093742'
-            var manifestNo = $"524{rnd.Next(0, 9999999):D7}";
-            var seq        = rnd.Next(1, 25);
+            var mData = ManifestData.Data[m - 1];
+            var supplier = (Code: mData.SupplierCode, Name: mData.SupplierName, Plant: mData.SupplierPlant);
+            var manifestNo = mData.ManifestNo;
+            var seq = mData.Sequence;
 
             var manifestId = await conn.QuerySingleAsync<long>(@"
                 INSERT INTO manifests (ManifestNo, SupplierCode, SupplierName, SupplierPlant, Sequence, OrderType, PickDate, Cycle, Status)
@@ -407,7 +390,7 @@ class Program
                       SupplierPlant = supplier.Plant, Sequence = seq, PickDate = DateTime.Now });
 
             // 1 Skid per Manifest — format: SKD + 4 alphanumeric
-            var skidNo = $"SKD{rnd.Next(1000, 9999)}";
+            var skidNo = SkidData.Data[rnd.Next(SkidData.Data.Count)];
             await conn.ExecuteAsync(@"
                 INSERT INTO manifest_skids (ManifestId, SkidNo) VALUES (@ManifestId, @SkidNo)",
                 new { ManifestId = manifestId, SkidNo = skidNo });
@@ -417,11 +400,10 @@ class Program
             for (int p = 1; p <= partCount; p++)
             {
                 // e.g. '681410D25000'
-                var partNo   = $"{rnd.Next(100000, 999999)}{(char)('A' + rnd.Next(26))}{rnd.Next(10000, 99999)}";
-                var partName = PartNames[rnd.Next(PartNames.Length)];
-                // KanbanNo: 1 letter + 3 digits, e.g. 'F585'
-                var kanbanNo = $"{(char)('A' + rnd.Next(26))}{rnd.Next(100, 999)}";
-
+                var pData = PartData.Data[rnd.Next(PartData.Data.Count)];
+        var partNo = pData.PartNo;
+        var partName = pData.PartName;
+                
                 await conn.ExecuteAsync(@"
                     INSERT INTO manifest_parts (ManifestId, PartNo, PartName, Qty, Uom)
                     VALUES (@ManifestId, @PartNo, @PartName, @Qty, 'PCS')",
@@ -431,7 +413,7 @@ class Program
                 int kanbanCount = rnd.Next(1, 4);
                 for (int k = 1; k <= kanbanCount; k++)
                 {
-                    var kanbanCd = $"K{rnd.Next(1, 99999):D5}";
+                    var kanbanCd = KanbanData.Data[rnd.Next(KanbanData.Data.Count)];
                     await conn.ExecuteAsync(@"
                         INSERT INTO manifest_kanbans (ManifestId, PartNo, KanbanCd)
                         VALUES (@ManifestId, @PartNo, @KanbanCd)",
@@ -459,8 +441,9 @@ class Program
         }
 
         // Realistic PartNo: 6digits + 1letter + 5digits, e.g. '681410D25000'
-        var partNo   = $"{rnd.Next(100000, 999999)}{(char)('A' + rnd.Next(26))}{rnd.Next(10000, 99999)}";
-        var partName = PartNames[rnd.Next(PartNames.Length)];
+        var pData = PartData.Data[rnd.Next(PartData.Data.Count)];
+        var partNo = pData.PartNo;
+        var partName = pData.PartName;
         var id = await conn.QuerySingleAsync<long>(@"
             INSERT INTO manifest_parts (ManifestId, PartNo, PartName, Qty, Uom)
             OUTPUT INSERTED.Id
@@ -486,10 +469,10 @@ class Program
         var partNo = await conn.QueryFirstOrDefaultAsync<string?>(
             "SELECT TOP 1 PartNo FROM manifest_parts WHERE ManifestId = @ManifestId ORDER BY Id DESC",
             new { ManifestId = manifestId });
-        partNo ??= $"{rnd.Next(100000, 999999)}{(char)('A' + rnd.Next(26))}{rnd.Next(10000, 99999)}";
+        partNo ??= PartData.Data[rnd.Next(PartData.Data.Count)].PartNo;
 
         // KanbanCd: 'K' + 5 digits, e.g. 'K00023'
-        var kanbanCd = $"K{rnd.Next(1, 99999):D5}";
+        var kanbanCd = KanbanData.Data[rnd.Next(KanbanData.Data.Count)];
         var id = await conn.QuerySingleAsync<long>(@"
             INSERT INTO manifest_kanbans (ManifestId, PartNo, KanbanCd)
             OUTPUT INSERTED.Id
@@ -543,8 +526,8 @@ class Program
         using var conn = new SqlConnection(ConnectionString);
 
         var futureManifestId = 50000L + rnd.Next(1, 9999);
-        var partNo           = $"{rnd.Next(100000, 999999)}{(char)('A' + rnd.Next(26))}{rnd.Next(10000, 99999)}";
-        var manifestNo       = $"524{futureManifestId:D7}";
+        var partNo = PartData.Data[rnd.Next(PartData.Data.Count)].PartNo;
+        var manifestNo = ManifestData.Data[rnd.Next(ManifestData.Data.Count)].ManifestNo;
         var pickDate         = DateTime.Now;
 
         await conn.OpenAsync();
