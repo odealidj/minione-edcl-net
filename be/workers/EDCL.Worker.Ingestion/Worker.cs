@@ -49,7 +49,7 @@ public class Worker : BackgroundService
             {
                 if (retryObj is int r) attempt = r;
                 else if (retryObj is byte[] rb && rb.Length == 4) attempt = BitConverter.ToInt32(rb);
-                else if (int.TryParse(retryObj.ToString(), out int r2)) attempt = r2;
+                else if (int.TryParse(retryObj!.ToString(), out int r2)) attempt = r2;
             }
             
             try
@@ -105,7 +105,7 @@ public class Worker : BackgroundService
                     var delayMs = (int)Math.Pow(2, attempt) * 1000;
                     var retryQueueName = $"edcl_ingestion_retry_{delayMs}";
 
-                    var queueArgs = new Dictionary<string, object>
+                    var queueArgs = new Dictionary<string, object?>
                     {
                         { "x-dead-letter-exchange", "" },
                         { "x-dead-letter-routing-key", "edcl_ingestion" },
@@ -115,8 +115,8 @@ public class Worker : BackgroundService
                     await channel.QueueDeclareAsync(retryQueueName, true, false, false, queueArgs, cancellationToken: stoppingToken);
 
                     var headers = ea.BasicProperties.Headers != null 
-                        ? new Dictionary<string, object?>(ea.BasicProperties.Headers) 
-                        : new Dictionary<string, object>();
+                        ? new Dictionary<string, object?>(ea.BasicProperties.Headers!) 
+                        : new Dictionary<string, object?>();
                         
                     headers["x-retry-count"] = attempt + 1;
                     

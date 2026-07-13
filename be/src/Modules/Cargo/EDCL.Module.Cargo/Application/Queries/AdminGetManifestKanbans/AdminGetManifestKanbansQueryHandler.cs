@@ -29,7 +29,7 @@ internal sealed class AdminGetManifestKanbansQueryHandler(CargoDbContext dbConte
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
             var searchTerm = request.Search.ToLower();
-            query = query.Where(x => x.Kanban.Manifest.ManifestNo.ToLower().Contains(searchTerm) || x.Kanban.PartNo.ToLower().Contains(searchTerm) || x.Kanban.KanbanCd.ToLower().Contains(searchTerm));
+            query = query.Where(x => x.Kanban!.Manifest!.ManifestNo.ToLower().Contains(searchTerm) || x.Kanban!.PartNo.ToLower().Contains(searchTerm) || x.Kanban!.KanbanCd.ToLower().Contains(searchTerm));
         }
 
         query = query.AsNoTracking();

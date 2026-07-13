@@ -32,7 +32,7 @@ public class ScanKanbanCommandHandlerTests
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Be("Stop.NotFound");
+        result.Error!.Code.Should().Be("Stop.NotFound");
     }
 
     [Fact]
@@ -51,6 +51,6 @@ public class ScanKanbanCommandHandlerTests
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Be("Stop.Unauthorized");
+        result.Error!.Code.Should().Be("Stop.Unauthorized");
     }
 }

@@ -37,7 +37,7 @@ public sealed class AssignJobCommandHandler(
         var assignedEvent = new JobAssignedIntegrationEvent
         {
             PickupOrderId = pickupOrder.Id,
-            DriverId = pickupOrder.DriverId.Value,
+            DriverId = pickupOrder.DriverId!.Value,
             RouteCode = pickupOrder.RouteCode,
             Cycle = pickupOrder.CycleCode,
             PickupDate = pickupOrder.PickupDate

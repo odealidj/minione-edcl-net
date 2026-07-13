@@ -36,6 +36,6 @@ public class CompleteStopCommandHandlerTests
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Be("Stop.NotFound");
+        result.Error!.Code.Should().Be("Stop.NotFound");
     }
 }
