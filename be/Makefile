@@ -33,7 +33,7 @@ stop-EDCL.Api:
 	@echo "Stopping EDCL.Api..."
 	@if [ -f edcl_api.pid ]; then kill `cat edcl_api.pid` 2>/dev/null || true; rm edcl_api.pid; fi
 	@fuser -k 5140/tcp 2>/dev/null || true
-	@pkill -f "EDCL.Api.dll" 2>/dev/null || true
+	@pkill -f "[E]DCL.Api.dll" 2>/dev/null || true
 	@echo "EDCL.Api stopped."
 
 # Run EDCL.Gateway secara lokal (background)
@@ -47,7 +47,7 @@ stop-EDCL.Gateway:
 	@echo "Stopping EDCL.Gateway..."
 	@if [ -f edcl_gateway.pid ]; then kill `cat edcl_gateway.pid` 2>/dev/null || true; rm edcl_gateway.pid; fi
 	@fuser -k 5293/tcp 2>/dev/null || true
-	@pkill -f "EDCL.Gateway.dll" 2>/dev/null || true
+	@pkill -f "[E]DCL.Gateway.dll" 2>/dev/null || true
 	@echo "EDCL.Gateway stopped."
 
 # Run semua Worker secara lokal (background)
@@ -62,11 +62,13 @@ run-workers:
 
 # Stop semua Worker yang berjalan di lokal
 stop-workers:
-	@echo "Stopping Workers..."
+	@echo "Stopping all Workers..."
 	@if [ -f edcl_worker_ingestion.pid ]; then kill `cat edcl_worker_ingestion.pid` 2>/dev/null || true; rm edcl_worker_ingestion.pid; fi
+	@pkill -f "[E]DCL.Worker.Ingestion.dll" 2>/dev/null || true
 	@if [ -f edcl_worker_outbox.pid ]; then kill `cat edcl_worker_outbox.pid` 2>/dev/null || true; rm edcl_worker_outbox.pid; fi
+	@pkill -f "[E]DCL.Worker.Outbox.dll" 2>/dev/null || true
 	@if [ -f edcl_worker_reporter.pid ]; then kill `cat edcl_worker_reporter.pid` 2>/dev/null || true; rm edcl_worker_reporter.pid; fi
-	@pkill -f "EDCL.Worker." 2>/dev/null || true
+	@pkill -f "[E]DCL.Worker.Reporter.dll" 2>/dev/null || true
 	@echo "All Workers stopped."
 
 # Build seluruh solution terlebih dahulu agar tidak terjadi race condition file sharing (.pdb / .dll)
