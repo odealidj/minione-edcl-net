@@ -26,10 +26,10 @@
       <tbody>
         @if (isLoading()) {
           <tr><td colspan="6" class="text-center py-8"><span class="loading loading-spinner loading-lg text-primary"></span></td></tr>
-        } @else if (filteredAssignments.length === 0) {
+        } @else if (items().length === 0) {
           <tr><td colspan="6" class="text-center py-8 text-base-content/50">No truck assignments found.</td></tr>
         } @else {
-          @for (item of filteredAssignments; track item.truckId + '-' + item.driverId) {
+          @for (item of items(); track item.truckId + '-' + item.driverId) {
             <tr class="hover:bg-base-200/50 transition-colors">
               <td class="text-center align-middle">
                 <label class="cursor-pointer flex items-center justify-center">

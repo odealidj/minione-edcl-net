@@ -25,7 +25,7 @@ logs:
 # Run EDCL.Api secara lokal (background)
 run-EDCL.Api:
 	@echo "Starting EDCL.Api..."
-	@cd src/Host/EDCL.Api && dotnet run --no-build > ../../../edcl_api.log 2>&1 & echo $$! > ../../../edcl_api.pid
+	@cd src/Host/EDCL.Api && nohup dotnet run --no-build > ../../../edcl_api.log 2>&1 & echo $$! > ../../../edcl_api.pid
 	@echo "EDCL.Api is running in background. Logs: edcl_api.log"
 
 # Stop EDCL.Api yang berjalan di lokal
@@ -39,7 +39,7 @@ stop-EDCL.Api:
 # Run EDCL.Gateway secara lokal (background)
 run-EDCL.Gateway:
 	@echo "Starting EDCL.Gateway..."
-	@cd src/Gateway/EDCL.Gateway && dotnet run --no-build > ../../../edcl_gateway.log 2>&1 & echo $$! > ../../../edcl_gateway.pid
+	@cd src/Gateway/EDCL.Gateway && nohup dotnet run --no-build > ../../../edcl_gateway.log 2>&1 & echo $$! > ../../../edcl_gateway.pid
 	@echo "EDCL.Gateway is running in background. Logs: edcl_gateway.log"
 
 # Stop EDCL.Gateway yang berjalan di lokal
@@ -53,11 +53,11 @@ stop-EDCL.Gateway:
 # Run semua Worker secara lokal (background)
 run-workers:
 	@echo "Starting EDCL.Worker.Ingestion..."
-	@cd workers/EDCL.Worker.Ingestion && dotnet run --no-build > ../../edcl_worker_ingestion.log 2>&1 & echo $$! > ../../edcl_worker_ingestion.pid
+	@cd workers/EDCL.Worker.Ingestion && nohup dotnet run --no-build > ../../edcl_worker_ingestion.log 2>&1 & echo $$! > ../../edcl_worker_ingestion.pid
 	@echo "Starting EDCL.Worker.Outbox..."
-	@cd workers/EDCL.Worker.Outbox && dotnet run --no-build > ../../edcl_worker_outbox.log 2>&1 & echo $$! > ../../edcl_worker_outbox.pid
+	@cd workers/EDCL.Worker.Outbox && nohup dotnet run --no-build > ../../edcl_worker_outbox.log 2>&1 & echo $$! > ../../edcl_worker_outbox.pid
 	@echo "Starting EDCL.Worker.Reporter..."
-	@cd workers/EDCL.Worker.Reporter && dotnet run --no-build > ../../edcl_worker_reporter.log 2>&1 & echo $$! > ../../edcl_worker_reporter.pid
+	@cd workers/EDCL.Worker.Reporter && nohup dotnet run --no-build > ../../edcl_worker_reporter.log 2>&1 & echo $$! > ../../edcl_worker_reporter.pid
 	@echo "All Workers are running in background. Logs: edcl_worker_*.log"
 
 # Stop semua Worker yang berjalan di lokal
@@ -72,7 +72,7 @@ stop-workers:
 # Build seluruh solution terlebih dahulu agar tidak terjadi race condition file sharing (.pdb / .dll)
 build-all:
 	@echo "Building entire backend solution..."
-	@dotnet build EDCL.sln
+	@dotnet build EDCL.slnx
 	@echo "Build complete."
 
 # Run API, Gateway, dan Workers secara lokal (background)
