@@ -14,7 +14,7 @@ class Program
         Console.WriteLine("=== EDCL IDCS Data Seeder ===");
         if (args.Length == 0)
         {
-            Console.WriteLine("Usage: dotnet run -- [init|manifest|part|kanban|skid|bulk|reset|out-of-order|race-condition|one-master|logistic-partner|reset-logistic-partner|route|reset-route|driver|reset-driver]");
+            Console.WriteLine("Usage: dotnet run -- [init|manifest|part|kanban|skid|bulk|reset|out-of-order|race-condition|one-master|logistic-partner|reset-logistic-partner|route|reset-route|driver|reset-driver|reset-pickup]");
             return;
         }
 
@@ -51,6 +51,9 @@ class Program
                     break;
                 case "race-condition":
                     await SeedRaceConditionAsync();
+                    break;
+                case "reset-pickup":
+                    await ResetPickupAsync();
                     break;
                 case "bulk":
                     await SeedBulkAsync();
@@ -601,6 +604,49 @@ class Program
         Console.WriteLine("[EDCL] Done.");
 
         Console.WriteLine("✅ Reset complete. Both IDCS & EDCL manifest data cleared.");
+    }
+
+    private static async Task ResetPickupAsync()
+    {
+        Console.WriteLine("⚠️  Starting reset for Pickup Orders and Manifest Status...");
+        using var connEdcl = new SqlConnection(EdclConnectionString);
+        using var connIdcs = new SqlConnection(ConnectionString);
+        await connEdcl.OpenAsync();
+        await connIdcs.OpenAsync();
+
+        // 1. Delete all pickup order transaction tables in EDCL
+        try
+        {
+            await connEdcl.ExecuteAsync("DELETE FROM job.pickup_order_kanbans");
+            await connEdcl.ExecuteAsync("DBCC CHECKIDENT ('job.pickup_order_kanbans', RESEED, 0)");
+            
+            await connEdcl.ExecuteAsync("DELETE FROM job.pickup_order_manifests");
+            await connEdcl.ExecuteAsync("DBCC CHECKIDENT ('job.pickup_order_manifests', RESEED, 0)");
+            
+            await connEdcl.ExecuteAsync("DELETE FROM job.pickup_order_details");
+            await connEdcl.ExecuteAsync("DBCC CHECKIDENT ('job.pickup_order_details', RESEED, 0)");
+            
+            var rows = await connEdcl.ExecuteAsync("DELETE FROM job.pickup_orders");
+            await connEdcl.ExecuteAsync("DBCC CHECKIDENT ('job.pickup_orders', RESEED, 0)");
+            Console.WriteLine($"✅ Cleared all {rows} Pickup Orders and their children in EDCL.");
+        }
+        catch (SqlException ex)
+        {
+            Console.WriteLine($"❌ Failed to delete Pickup Orders in EDCL: {ex.Message}");
+        }
+
+        // 2. Reset Manifests assignment in EDCL Ingestion schema
+        try
+        {
+            var rowsEdcl = await connEdcl.ExecuteAsync("UPDATE ingestion.manifests SET IsAssignedToRoute = 0");
+            Console.WriteLine($"✅ Reset {rowsEdcl} Manifests to unassigned in EDCL (ingestion.manifests).");
+        }
+        catch (SqlException ex)
+        {
+            Console.WriteLine($"❌ Failed to reset Manifests: {ex.Message}");
+        }
+
+        Console.WriteLine("[Pickup Reset] Done.");
     }
 
     private static async Task SeedOneMasterAsync()
