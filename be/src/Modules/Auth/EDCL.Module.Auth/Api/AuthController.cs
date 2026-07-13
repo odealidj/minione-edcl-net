@@ -25,7 +25,7 @@ public sealed class AuthController(ISender mediator) : ControllerBase
         var traceId = HttpContext.GetTraceId();
 
         return result.Match<IActionResult>(
-            onSuccess: _ => Ok(ApiResponse<object>.Success(null, traceId, message: "OTP sent.")),
+            onSuccess: _ => Ok(ApiResponse<object?>.Success(null, traceId, message: "OTP sent.")),
             onFailure: error => BadRequest(ApiResponse<object>.Fail(error.Message, traceId, 400)));
     }
 
@@ -123,7 +123,7 @@ public sealed class AuthController(ISender mediator) : ControllerBase
         var traceId = HttpContext.GetTraceId();
 
         return result.Match<IActionResult>(
-            onSuccess: _ => Ok(ApiResponse<object>.Success(null, traceId, message: "Token revoked.")),
+            onSuccess: _ => Ok(ApiResponse<object?>.Success(null, traceId, message: "Token revoked.")),
             onFailure: error => Unauthorized(
                 ApiResponse<object>.Fail(error.Message, traceId, 401)));
     }

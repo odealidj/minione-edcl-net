@@ -51,7 +51,7 @@ public class AdminLogisticPartnersController(IMediator mediator) : ControllerBas
         var result = await mediator.Send(command, cancellationToken);
         var traceId = HttpContext.TraceIdentifier;
         return result.IsSuccess 
-            ? Ok(ApiResponse<object>.Success(null, traceId))
+            ? Ok(ApiResponse<object?>.Success(null, traceId))
             : BadRequest(ApiResponse<object>.Fail(result.Error.Message, traceId, 400));
     }
 
@@ -61,7 +61,7 @@ public class AdminLogisticPartnersController(IMediator mediator) : ControllerBas
         var result = await mediator.Send(new Application.Commands.DeleteLogisticPartner.DeleteLogisticPartnerCommand(id), cancellationToken);
         var traceId = HttpContext.TraceIdentifier;
         return result.IsSuccess 
-            ? Ok(ApiResponse<object>.Success(null, traceId))
+            ? Ok(ApiResponse<object?>.Success(null, traceId))
             : BadRequest(ApiResponse<object>.Fail(result.Error.Message, traceId, 400));
     }
 }

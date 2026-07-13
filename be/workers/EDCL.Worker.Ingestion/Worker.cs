@@ -115,7 +115,7 @@ public class Worker : BackgroundService
                     await channel.QueueDeclareAsync(retryQueueName, true, false, false, queueArgs, cancellationToken: stoppingToken);
 
                     var headers = ea.BasicProperties.Headers != null 
-                        ? new Dictionary<string, object>(ea.BasicProperties.Headers) 
+                        ? new Dictionary<string, object?>(ea.BasicProperties.Headers) 
                         : new Dictionary<string, object>();
                         
                     headers["x-retry-count"] = attempt + 1;

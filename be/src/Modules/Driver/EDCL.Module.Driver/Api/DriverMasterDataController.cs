@@ -51,7 +51,7 @@ public class AdminTrucksController(IMediator mediator) : ControllerBase
         var result = await mediator.Send(command, cancellationToken);
         var traceId = HttpContext.TraceIdentifier;
         return result.IsSuccess 
-            ? Ok(ApiResponse<object>.Success(null, traceId))
+            ? Ok(ApiResponse<object?>.Success(null, traceId))
             : BadRequest(ApiResponse<object>.Fail(result.Error.Message, traceId, 400));
     }
 
@@ -61,7 +61,7 @@ public class AdminTrucksController(IMediator mediator) : ControllerBase
         var result = await mediator.Send(new Application.Commands.DeleteTruck.DeleteTruckCommand(id), cancellationToken);
         var traceId = HttpContext.TraceIdentifier;
         return result.IsSuccess 
-            ? Ok(ApiResponse<object>.Success(null, traceId))
+            ? Ok(ApiResponse<object?>.Success(null, traceId))
             : BadRequest(ApiResponse<object>.Fail(result.Error.Message, traceId, 400));
     }
 
@@ -71,7 +71,7 @@ public class AdminTrucksController(IMediator mediator) : ControllerBase
         var result = await mediator.Send(new Application.Commands.AssignDriverToTruck.AssignDriverToTruckCommand(id, request.DriverId), cancellationToken);
         var traceId = HttpContext.TraceIdentifier;
         return result.IsSuccess
-            ? Ok(ApiResponse<object>.Success(null, traceId))
+            ? Ok(ApiResponse<object?>.Success(null, traceId))
             : BadRequest(ApiResponse<object>.Fail(result.Error.Message, traceId, 400));
     }
 
@@ -81,7 +81,7 @@ public class AdminTrucksController(IMediator mediator) : ControllerBase
         var result = await mediator.Send(new Application.Commands.UnassignDriverFromTruck.UnassignDriverFromTruckCommand(id, request.DriverId), cancellationToken);
         var traceId = HttpContext.TraceIdentifier;
         return result.IsSuccess
-            ? Ok(ApiResponse<object>.Success(null, traceId))
+            ? Ok(ApiResponse<object?>.Success(null, traceId))
             : BadRequest(ApiResponse<object>.Fail(result.Error.Message, traceId, 400));
     }
 
@@ -170,7 +170,7 @@ public class AdminSuppliersController(IMediator mediator) : ControllerBase
         var result = await mediator.Send(command, cancellationToken);
         var traceId = HttpContext.TraceIdentifier;
         return result.IsSuccess 
-            ? Ok(ApiResponse<object>.Success(null, traceId))
+            ? Ok(ApiResponse<object?>.Success(null, traceId))
             : BadRequest(ApiResponse<object>.Fail(result.Error.Message, traceId, 400));
     }
 
@@ -180,7 +180,7 @@ public class AdminSuppliersController(IMediator mediator) : ControllerBase
         var result = await mediator.Send(new Application.Commands.DeleteSupplier.DeleteSupplierCommand(id), cancellationToken);
         var traceId = HttpContext.TraceIdentifier;
         return result.IsSuccess 
-            ? Ok(ApiResponse<object>.Success(null, traceId))
+            ? Ok(ApiResponse<object?>.Success(null, traceId))
             : BadRequest(ApiResponse<object>.Fail(result.Error.Message, traceId, 400));
     }
 }

@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace EDCL.Shared.Kernel.Common;
 
 /// <summary>
@@ -13,7 +15,12 @@ public sealed class Result<T>
         IsSuccess = isSuccess;
     }
 
+    [MemberNotNullWhen(true, nameof(Value))]
+    [MemberNotNullWhen(false, nameof(Error))]
     public bool IsSuccess { get; }
+
+    [MemberNotNullWhen(false, nameof(Value))]
+    [MemberNotNullWhen(true, nameof(Error))]
     public bool IsFailure => !IsSuccess;
     public T? Value { get; }
     public Error? Error { get; }
@@ -35,7 +42,10 @@ public sealed class Result
         IsSuccess = isSuccess;
     }
 
+    [MemberNotNullWhen(false, nameof(Error))]
     public bool IsSuccess { get; }
+
+    [MemberNotNullWhen(true, nameof(Error))]
     public bool IsFailure => !IsSuccess;
     public Error? Error { get; }
 

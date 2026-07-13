@@ -34,7 +34,7 @@ try
     builder.Services.Configure<Microsoft.AspNetCore.Builder.ForwardedHeadersOptions>(options =>
     {
         options.ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor | Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto | Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedHost;
-        options.KnownNetworks.Clear();
+        options.KnownIPNetworks.Clear();
         options.KnownProxies.Clear();
     });
 
@@ -148,8 +148,8 @@ try
     {
         opts.EnrichDiagnosticContext = (diag, ctx) =>
         {
-            diag.Set("TraceId", ctx.Items["TraceId"]);
-            diag.Set("UserId", ctx.User.FindFirst("sub")?.Value);
+            diag.Set("TraceId", ctx.Items["TraceId"] ?? "unknown");
+            diag.Set("UserId", ctx.User.FindFirst("sub")?.Value ?? "anonymous");
         };
     });
 

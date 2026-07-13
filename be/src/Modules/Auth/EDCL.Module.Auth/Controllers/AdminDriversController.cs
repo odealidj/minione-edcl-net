@@ -74,7 +74,7 @@ public sealed class AdminDriversController(IMediator mediator) : ControllerBase
         var result = await mediator.Send(command, cancellationToken);
         var traceId = HttpContext.TraceIdentifier;
         return result.IsSuccess 
-            ? Ok(ApiResponse<object>.Success(null, traceId))
+            ? Ok(ApiResponse<object?>.Success(null, traceId))
             : BadRequest(ApiResponse<object>.Fail(result.Error.Message, traceId, 400));
     }
 
@@ -85,7 +85,7 @@ public sealed class AdminDriversController(IMediator mediator) : ControllerBase
         var result = await mediator.Send(new Application.Commands.DeleteDriver.DeleteDriverCommand(id), cancellationToken);
         var traceId = HttpContext.TraceIdentifier;
         return result.IsSuccess 
-            ? Ok(ApiResponse<object>.Success(null, traceId))
+            ? Ok(ApiResponse<object?>.Success(null, traceId))
             : BadRequest(ApiResponse<object>.Fail(result.Error.Message, traceId, 400));
     }
 }

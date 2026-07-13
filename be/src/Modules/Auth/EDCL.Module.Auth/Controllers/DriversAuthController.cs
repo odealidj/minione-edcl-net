@@ -83,6 +83,6 @@ public sealed class DriversAuthController(IMediator mediator) : ControllerBase
         var traceId = HttpContext.GetTraceId();
 
         // Idempotent logout - always return 200 OK even if token is already revoked
-        return Ok(ApiResponse<EDCL.Module.Auth.Application.Commands.LogoutDriver.LogoutDriverResponse>.Success(result.Value, traceId));
+        return Ok(ApiResponse<EDCL.Module.Auth.Application.Commands.LogoutDriver.LogoutDriverResponse>.Success(result.Value!, traceId));
     }
 }
