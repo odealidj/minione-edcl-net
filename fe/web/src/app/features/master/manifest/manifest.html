@@ -2,7 +2,15 @@
   <app-page-header title="Manifests"></app-page-header>
 
   <app-card>
-    <app-search-bar placeholder="Search Manifest No / Supplier..." (search)="onSearch($event)"></app-search-bar>
+    <div class="flex flex-col sm:flex-row justify-between gap-4 mb-4">
+      <app-search-bar placeholder="Search Manifest No / Supplier..." (search)="onSearch($event)" class="flex-1"></app-search-bar>
+      <select class="select select-bordered w-full sm:w-48" (change)="onStatusFilterChange($event)">
+        <option value="">All Status</option>
+        <option value="Pending">Pending</option>
+        <option value="Scanned">Scanned</option>
+        <option value="Delivered">Delivered</option>
+      </select>
+    </div>
     <table class="table w-full">
       <thead>
         <tr class="bg-base-200/50 text-base-content/50 uppercase text-xs">
@@ -11,13 +19,14 @@
           <th>Supplier Name</th>
           <th class="text-center">Total Kanbans</th>
           <th class="text-center">Total Parts</th>
+          <th class="text-center">Status</th>
         </tr>
       </thead>
       <tbody>
         @if (isLoading()) {
-          <tr><td colspan="5" class="text-center py-8"><span class="loading loading-spinner loading-lg text-primary"></span></td></tr>
+          <tr><td colspan="6" class="text-center py-8"><span class="loading loading-spinner loading-lg text-primary"></span></td></tr>
         } @else if (items().length === 0) {
-          <tr><td colspan="5" class="text-center py-8 text-base-content/50">No manifests found.</td></tr>
+          <tr><td colspan="6" class="text-center py-8 text-base-content/50">No manifests found.</td></tr>
         } @else {
           @for (item of items(); track item.id) {
             <tr class="hover:bg-base-200/50 transition-colors">
@@ -38,13 +47,23 @@
               <td class="text-center font-medium text-base-content/70">
                 {{ item.totalParts }}
               </td>
+              <td class="text-center">
+                <div class="badge badge-sm font-medium" [ngClass]="{
+                  'badge-warning': item.status === 'Pending',
+                  'badge-info': item.status === 'Scanned',
+                  'badge-success': item.status === 'Delivered',
+                  'badge-ghost': !['Pending', 'Scanned', 'Delivered'].includes(item.status)
+                }">
+                  {{ item.status }}
+                </div>
+              </td>
             </tr>
 
             <!-- Expanded Area -->
             @if (expandedManifestId() === item.id) {
               <tr class="bg-base-200/50">
                 <td></td>
-                <td colspan="4" class="p-4">
+                <td colspan="5" class="p-4">
                   <div class="bg-base-100 p-4 rounded-xl shadow-inner border border-base-300">
                     <div class="flex justify-between items-center mb-4">
                       <h3 class="font-bold">Kanbans for {{ item.manifestNo }}</h3>

@@ -25,6 +25,7 @@ export class ManifestComponent implements OnInit {
   searchQuery = '';
   currentPage = 1;
   pageSize = 10;
+  statusFilter = '';
 
   expandedManifestId = signal<number | null>(null);
   kanbans = signal<ManifestKanban[]>([]);
@@ -41,7 +42,7 @@ export class ManifestComponent implements OnInit {
 
   loadData(): void {
     this.isLoading.set(true);
-    this.service.getManifests(this.searchQuery, undefined, undefined, undefined, this.currentPage, this.pageSize).subscribe({
+    this.service.getManifests(this.searchQuery, undefined, this.statusFilter || undefined, undefined, this.currentPage, this.pageSize).subscribe({
       next: (res) => {
         if (res.status === 'success') {
           this.items.set(res.data);
@@ -58,6 +59,12 @@ export class ManifestComponent implements OnInit {
 
   onSearch(query: string): void {
     this.searchQuery = query;
+    this.currentPage = 1;
+    this.loadData();
+  }
+
+  onStatusFilterChange(event: Event): void {
+    this.statusFilter = (event.target as HTMLSelectElement).value;
     this.currentPage = 1;
     this.loadData();
   }

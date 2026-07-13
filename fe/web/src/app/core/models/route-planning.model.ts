@@ -61,7 +61,7 @@ export interface CreatePickupOrderDetailDto {
 export interface CreatePickupOrderCommand {
   driverId?: number;
   truckId?: number;
-  poNo: string;
+
   pickupDate: string;
   routeCode: string;
   cycleCode: string;
@@ -90,7 +90,7 @@ export interface UpdatePickupOrderCommand {
   id: number;
   driverId?: number;
   truckId?: number;
-  poNo: string;
+
   pickupDate: string;
   routeCode: string;
   cycleCode: string;

@@ -9,7 +9,6 @@ public sealed record AdminUpdatePickupOrderCommand(
     long Id,
     long? DriverId,
     long? TruckId,
-    string PoNo,
     DateTime PickupDate,
     string RouteCode,
     string CycleCode,

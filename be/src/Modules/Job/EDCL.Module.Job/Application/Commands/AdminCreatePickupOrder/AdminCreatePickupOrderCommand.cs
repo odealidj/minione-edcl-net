@@ -8,7 +8,6 @@ namespace EDCL.Module.Job.Application.Commands.AdminCreatePickupOrder;
 public sealed record AdminCreatePickupOrderCommand(
     long? DriverId,
     long? TruckId,
-    string PoNo,
     DateTime PickupDate,
     string RouteCode,
     string CycleCode,

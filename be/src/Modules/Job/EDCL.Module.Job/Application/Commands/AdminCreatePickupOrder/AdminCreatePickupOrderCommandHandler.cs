@@ -16,8 +16,9 @@ internal sealed class AdminCreatePickupOrderCommandHandler(JobDbContext dbContex
 {
     public async Task<Result<long>> Handle(AdminCreatePickupOrderCommand request, CancellationToken cancellationToken)
     {
-        if (await dbContext.PickupOrders.AnyAsync(x => x.PoNo == request.PoNo, cancellationToken))
-            return Result<long>.Failure(Error.Conflict("PickupOrder.Duplicate", $"PO No '{request.PoNo}' already exists."));
+        var todayPrefix = System.DateTime.UtcNow.AddHours(7).ToString("yyyyMMdd");
+        var countToday = await dbContext.PickupOrders.CountAsync(x => x.PoNo.StartsWith(todayPrefix), cancellationToken);
+        var generatedPoNo = $"{todayPrefix}{(countToday + 1):D4}";
 
         var requestedManifestNos = request.Stops.SelectMany(s => s.Manifests).Select(m => m.ManifestNo).ToList();
         
@@ -36,7 +37,7 @@ internal sealed class AdminCreatePickupOrderCommandHandler(JobDbContext dbContex
             return Result<long>.Failure(Error.Conflict("Manifest.DoubleBooking", $"The following manifests are already assigned to an active route: {conflicts}"));
         }
 
-        var pickupOrder = PickupOrder.Create(request.DriverId, request.TruckId, request.PoNo, request.PickupDate, request.RouteCode, request.CycleCode, request.EstimatedDepartureTime);
+        var pickupOrder = PickupOrder.Create(request.DriverId, request.TruckId, generatedPoNo, request.PickupDate, request.RouteCode, request.CycleCode, request.EstimatedDepartureTime);
 
         foreach (var stopDto in request.Stops)
         {

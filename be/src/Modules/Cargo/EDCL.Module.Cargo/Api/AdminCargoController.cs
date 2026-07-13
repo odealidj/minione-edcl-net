@@ -23,6 +23,17 @@ public class AdminCargoController(IMediator mediator) : ControllerBase
             : BadRequest(ApiResponse<object>.Fail(result.Error.Message, traceId, 400));
     }
 
+    [HttpGet("manifests/pending-suppliers")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<Application.Queries.GetPendingManifestSuppliers.PendingManifestSupplierDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetPendingManifestSuppliers(CancellationToken cancellationToken = default)
+    {
+        var result = await mediator.Send(new Application.Queries.GetPendingManifestSuppliers.GetPendingManifestSuppliersQuery(), cancellationToken);
+        var traceId = HttpContext.TraceIdentifier;
+        return result.IsSuccess 
+            ? Ok(ApiResponse<IReadOnlyList<Application.Queries.GetPendingManifestSuppliers.PendingManifestSupplierDto>>.Success(result.Value, traceId))
+            : BadRequest(ApiResponse<object>.Fail(result.Error.Message, traceId, 400));
+    }
+
     [HttpGet("manifest-parts")]
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<Application.DTOs.AdminManifestPartDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetManifestParts([FromQuery] string? search = null, [FromQuery] int page = 1, [FromQuery] int pageSize = 10, CancellationToken cancellationToken = default)

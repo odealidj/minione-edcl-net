@@ -17,7 +17,7 @@ namespace EDCL.Module.Job.Api;
 
 [ApiController]
 [Authorize(Roles = "ADMIN")]
-[Route("api/v1/web/jobs/pickup-orders")]
+[Route("api/v1/web/admin/pickup-orders")]
 public class AdminPickupOrdersController(IMediator mediator) : ControllerBase
 {
     [HttpGet]

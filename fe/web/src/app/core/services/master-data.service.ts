@@ -3,7 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ApiResponse } from '../models/api.model';
-import { Driver, Supplier, Truck, LogisticPartner } from '../models/master.model';
+import { Driver, Supplier, Truck, LogisticPartner, Route } from '../models/master.model';
 
 @Injectable({
   providedIn: 'root'
@@ -16,6 +16,13 @@ export class MasterDataService {
     let params = new HttpParams().set('page', page).set('pageSize', pageSize);
     if (search) params = params.set('search', search);
     return this.http.get<ApiResponse<LogisticPartner[]>>(`${environment.apiUrl}/master/logistic-partners`, { params });
+  }
+
+  // Routes
+  getRoutes(search?: string, page: number = 1, pageSize: number = 1000): Observable<ApiResponse<Route[]>> {
+    let params = new HttpParams().set('page', page).set('pageSize', pageSize);
+    if (search) params = params.set('search', search);
+    return this.http.get<ApiResponse<Route[]>>(`${environment.apiUrl}/master/routes`, { params });
   }
 
   // Drivers

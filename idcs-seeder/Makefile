@@ -1,4 +1,4 @@
-.PHONY: idcs-up idcs-down seed-init seed-manifest seed-supplier seed-part seed-kanban seed-skid seed-out-of-order seed-race-condition seed-bulk seed-reset
+.PHONY: idcs-up idcs-down seed-init seed-master seed-transaction seed-out-of-order seed-race-condition seed-bulk reset-transaction reset-master seed-one-master
 
 idcs-up:
 	docker-compose -f docker-compose-idcs.yml up -d
@@ -9,20 +9,11 @@ idcs-down:
 seed-init:
 	dotnet run init
 
-seed-supplier:
-	dotnet run supplier
+seed-master:
+	dotnet run all
 
-seed-manifest:
-	dotnet run manifest
-
-seed-part:
-	dotnet run part
-
-seed-kanban:
-	dotnet run kanban
-
-seed-skid:
-	dotnet run skid
+seed-transaction:
+	dotnet run transaction
 
 seed-out-of-order:
 	dotnet run out-of-order
@@ -33,11 +24,14 @@ seed-race-condition:
 seed-bulk:
 	dotnet run bulk
 
-seed-reset:
+reset-transaction:
 	dotnet run reset
+
+reset-master:
+	dotnet run reset-all
 
 seed-k6-clean:
 	cd ../be/tests/k6/EDCL.K6Seeder && dotnet run clean
 
-seed-edcl-master:
-	dotnet run edcl-master
+seed-one-master:
+	dotnet run one-master

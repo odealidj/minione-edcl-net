@@ -24,8 +24,6 @@ internal sealed class AdminUpdatePickupOrderCommandHandler(JobDbContext dbContex
         if (pickupOrder.Status != PickupOrderStatus.Pending)
             return Result<bool>.Failure(Error.Conflict("PickupOrder.InvalidStatus", "Cannot update pickup order that is not PENDING."));
 
-        if (await dbContext.PickupOrders.AnyAsync(x => x.PoNo == request.PoNo && x.Id != request.Id, cancellationToken))
-            return Result<bool>.Failure(Error.Conflict("PickupOrder.Duplicate", $"PO No '{request.PoNo}' already exists."));
 
         // Use reflection or just replace the whole graph if allowed, but EF Core requires careful graph updates.
         // For simplicity, we can do a full replacement of details if not Started.
@@ -34,7 +32,7 @@ internal sealed class AdminUpdatePickupOrderCommandHandler(JobDbContext dbContex
 
         // Update basic info
         var entityType = typeof(PickupOrder);
-        entityType.GetProperty("PoNo")!.SetValue(pickupOrder, request.PoNo);
+
         entityType.GetProperty("PickupDate")!.SetValue(pickupOrder, request.PickupDate);
         entityType.GetProperty("RouteCode")!.SetValue(pickupOrder, request.RouteCode);
         entityType.GetProperty("CycleCode")!.SetValue(pickupOrder, request.CycleCode);

@@ -76,3 +76,8 @@ export interface ManifestKanban {
   partName: string;
   kanbanCd: string;
 }
+
+export interface PendingManifestSupplier {
+  supplierCode: string;
+  supplierName: string;
+}

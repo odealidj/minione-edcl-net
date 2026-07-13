@@ -3,7 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ApiResponse } from '../models/api.model';
-import { Manifest, ManifestKanban } from '../models/master.model';
+import { Manifest, ManifestKanban, PendingManifestSupplier } from '../models/master.model';
 
 @Injectable({
   providedIn: 'root'
@@ -25,5 +25,9 @@ export class CargoService {
     let params = new HttpParams().set('manifestId', manifestId).set('page', page).set('pageSize', pageSize);
     if (search) params = params.set('search', search);
     return this.http.get<ApiResponse<ManifestKanban[]>>(`${this.baseUrl}/manifest-kanbans`, { params });
+  }
+
+  getPendingManifestSuppliers(): Observable<ApiResponse<PendingManifestSupplier[]>> {
+    return this.http.get<ApiResponse<PendingManifestSupplier[]>>(`${this.baseUrl}/manifests/pending-suppliers`);
   }
 }

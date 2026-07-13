@@ -14,7 +14,7 @@ class Program
         Console.WriteLine("=== EDCL IDCS Data Seeder ===");
         if (args.Length == 0)
         {
-            Console.WriteLine("Usage: dotnet run -- [init|manifest|part|kanban|skid|bulk|reset|out-of-order|race-condition|edcl-master|logistic-partner|reset-logistic-partner|route|reset-route|driver|reset-driver]");
+            Console.WriteLine("Usage: dotnet run -- [init|manifest|part|kanban|skid|bulk|reset|out-of-order|race-condition|one-master|logistic-partner|reset-logistic-partner|route|reset-route|driver|reset-driver]");
             return;
         }
 
@@ -27,6 +27,12 @@ class Program
             {
                 case "init":
                     Console.WriteLine("Database and tables initialized. CDC Enabled.");
+                    break;
+                case "transaction":
+                    await SeedManifestAsync();
+                    await SeedSkidAsync();
+                    await SeedPartAsync();
+                    await SeedKanbanAsync();
                     break;
                 case "manifest":
                     await SeedManifestAsync();
@@ -49,8 +55,8 @@ class Program
                 case "bulk":
                     await SeedBulkAsync();
                     break;
-                case "edcl-master":
-                    await SeedEdclMasterAsync();
+                case "one-master":
+                    await SeedOneMasterAsync();
                     break;
                 case "all":
                     await SeedLogisticPartnerAsync();
@@ -597,55 +603,90 @@ class Program
         Console.WriteLine("✅ Reset complete. Both IDCS & EDCL manifest data cleared.");
     }
 
-    private static async Task SeedEdclMasterAsync()
+    private static async Task SeedOneMasterAsync()
     {
-        using var conn = new SqlConnection(EdclConnectionString);
-        await conn.OpenAsync();
+        using var connIdcs = new SqlConnection(ConnectionString);
+        using var connEdcl = new SqlConnection(EdclConnectionString);
+        await connIdcs.OpenAsync();
+        await connEdcl.OpenAsync();
 
-        Console.WriteLine("Seeding Transporter...");
-        var transporterId = await conn.ExecuteScalarAsync<long?>(
-            "SELECT Id FROM edcl.driver.transporters WHERE Name = 'Hikari Logistics'");
-        if (transporterId == null)
+        Console.WriteLine("Seeding Logistic Partner...");
+        var lpId = await connEdcl.ExecuteScalarAsync<long?>(
+            "SELECT Id FROM edcl.driver.logistic_partners WHERE Code = 'HKR'");
+        if (lpId == null)
         {
-            transporterId = await conn.QuerySingleAsync<long>(@"
-                INSERT INTO edcl.driver.transporters (Name, created_at, created_by, is_deleted) 
+            lpId = await connEdcl.QuerySingleAsync<long>(@"
+                INSERT INTO edcl.driver.logistic_partners (Code, Name, created_at, created_by, is_deleted) 
                 OUTPUT INSERTED.Id 
-                VALUES ('Hikari Logistics', GETUTCDATE(), 'System', 0)");
-            Console.WriteLine($"Inserted Transporter ID: {transporterId}");
+                VALUES ('HKR', 'Hikari Logistics', GETUTCDATE(), 'System', 0)");
+            Console.WriteLine($"Inserted Logistic Partner ID: {lpId}");
         }
-        else Console.WriteLine($"Transporter already exists. ID: {transporterId}");
+
+        Console.WriteLine("Seeding Supplier...");
+        var supplierEdclExists = await connEdcl.ExecuteScalarAsync<bool>(
+            "SELECT CAST(CASE WHEN COUNT(1) > 0 THEN 1 ELSE 0 END AS BIT) FROM edcl.driver.suppliers WHERE SupplierCode = '5566'");
+        if (!supplierEdclExists) {
+            await connEdcl.ExecuteAsync(@"
+                INSERT INTO edcl.driver.suppliers (SupplierCode, Name, Address, Latitude, Longitude, GeofenceRadiusMeters, IsActive, created_at, created_by, is_deleted)
+                VALUES ('5566', 'DENSO MANUFACTURING INDONESIA', 'Cikarang', -6.3, 107.1, 100, 1, GETUTCDATE(), 'System', 0)");
+        }
+        var supplierIdcsExists = await connIdcs.ExecuteScalarAsync<bool>(
+            "SELECT CAST(CASE WHEN COUNT(1) > 0 THEN 1 ELSE 0 END AS BIT) FROM suppliers WHERE SupplierCode = '5566'");
+        if (!supplierIdcsExists) {
+            await connIdcs.ExecuteAsync(@"
+                INSERT INTO suppliers (SupplierCode, SupplierName, Address)
+                VALUES ('5566', 'DENSO MANUFACTURING INDONESIA', 'Cikarang')");
+        }
+
+        Console.WriteLine("Seeding Route...");
+        var routeExists = await connEdcl.ExecuteScalarAsync<bool>(
+            "SELECT CAST(CASE WHEN COUNT(1) > 0 THEN 1 ELSE 0 END AS BIT) FROM edcl.driver.routes WHERE RouteCode = 'R01' AND CycleCode = 'C1'");
+        if (!routeExists) {
+            await connEdcl.ExecuteAsync(@"
+                INSERT INTO edcl.driver.routes (RouteCode, CycleCode, created_at, created_by, is_deleted)
+                VALUES ('R01', 'C1', GETUTCDATE(), 'System', 0)");
+        }
 
         Console.WriteLine("Seeding Truck...");
-        var truckId = await conn.ExecuteScalarAsync<long?>(
+        var truckId = await connEdcl.ExecuteScalarAsync<long?>(
             "SELECT Id FROM edcl.driver.trucks WHERE PlateNumber = 'B 9607 PXT'");
         if (truckId == null)
         {
-            truckId = await conn.QuerySingleAsync<long>(@"
-                INSERT INTO edcl.driver.trucks (TransporterId, PlateNumber, VehicleType, created_at, created_by, is_deleted) 
+            truckId = await connEdcl.QuerySingleAsync<long>(@"
+                INSERT INTO edcl.driver.trucks (LogisticPartnerId, PlateNumber, VehicleType, IsActive, created_at, created_by, is_deleted) 
                 OUTPUT INSERTED.Id 
-                VALUES (@TransporterId, 'B 9607 PXT', 'Wingbox', GETUTCDATE(), 'System', 0)",
-                new { TransporterId = transporterId });
+                VALUES (@LpId, 'B 9607 PXT', 'Wingbox', 1, GETUTCDATE(), 'System', 0)",
+                new { LpId = lpId });
             Console.WriteLine($"Inserted Truck ID: {truckId}");
         }
-        else Console.WriteLine($"Truck already exists. ID: {truckId}");
 
         Console.WriteLine("Seeding Driver...");
-        var driverId = await conn.ExecuteScalarAsync<long?>(
+        var driverId = await connEdcl.ExecuteScalarAsync<long?>(
             "SELECT Id FROM edcl.auth.drivers WHERE Nik = '3201012345678901'");
         if (driverId == null)
         {
-            // Bcrypt hash for '123456'
             var pinHash = "$2b$12$V4UgAH0Af5i1aIkofUcN9OQ/ZF4TQRmklC1TajvEV6urRg6m7KnmO";
-            driverId = await conn.QuerySingleAsync<long>(@"
-                INSERT INTO edcl.auth.drivers (TransporterId, Name, Nik, PhoneNumber, PinHash, IsActive, created_at, created_by, is_deleted) 
+            driverId = await connEdcl.QuerySingleAsync<long>(@"
+                INSERT INTO edcl.auth.drivers (LogisticPartnerId, Name, Nik, PhoneNumber, PinHash, must_change_pin, IsActive, created_at, created_by, is_deleted) 
                 OUTPUT INSERTED.Id 
-                VALUES (@TransporterId, 'LISTIONO', '3201012345678901', '081234567890', @PinHash, 1, GETUTCDATE(), 'System', 0)",
-                new { TransporterId = transporterId, PinHash = pinHash });
+                VALUES (@LpId, 'LISTIONO', '3201012345678901', '081234567890', @PinHash, 1, 1, GETUTCDATE(), 'System', 0)",
+                new { LpId = lpId, PinHash = pinHash });
             Console.WriteLine($"Inserted Driver ID: {driverId}");
         }
-        else Console.WriteLine($"Driver already exists. ID: {driverId}");
 
-        Console.WriteLine("EDCL Master Data seeding completed successfully.");
+        Console.WriteLine("Seeding Assignment...");
+        var assignmentExists = await connEdcl.ExecuteScalarAsync<bool>(
+            "SELECT CAST(CASE WHEN COUNT(1) > 0 THEN 1 ELSE 0 END AS BIT) FROM edcl.driver.truck_driver_assignments WHERE TruckId = @TruckId AND DriverId = @DriverId",
+            new { TruckId = truckId, DriverId = driverId });
+        if (!assignmentExists) {
+            await connEdcl.ExecuteAsync(@"
+                INSERT INTO edcl.driver.truck_driver_assignments (TruckId, DriverId, IsActive, AssignedAt, created_at, created_by, is_deleted)
+                VALUES (@TruckId, @DriverId, 1, GETUTCDATE(), GETUTCDATE(), 'System', 0)",
+                new { TruckId = truckId, DriverId = driverId });
+            Console.WriteLine($"Inserted Assignment for Truck: {truckId} & Driver: {driverId}");
+        }
+
+        Console.WriteLine("EDCL Mini Master Data seeding completed successfully.");
     }
     private static async Task SeedLogisticPartnerAsync()
     {

@@ -17,10 +17,7 @@
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
       <h2 class="text-lg font-semibold mb-4 text-gray-700">General Information</h2>
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div class="form-control">
-          <label class="label"><span class="label-text">PO Number <span class="text-red-500">*</span></span></label>
-          <input type="text" formControlName="poNo" class="input input-bordered w-full" placeholder="e.g. PO-2023-10-01" />
-        </div>
+
         <div class="form-control">
           <label class="label"><span class="label-text">Pickup Date <span class="text-red-500">*</span></span></label>
           <input type="date" formControlName="pickupDate" class="input input-bordered w-full" />
@@ -29,13 +26,28 @@
           <label class="label"><span class="label-text">Est. Departure Time <span class="text-red-500">*</span></span></label>
           <input type="time" step="1" formControlName="estimatedDepartureTime" class="input input-bordered w-full" />
         </div>
-        <div class="form-control">
+        <div class="form-control relative">
           <label class="label"><span class="label-text">Route Code <span class="text-red-500">*</span></span></label>
-          <input type="text" formControlName="routeCode" class="input input-bordered w-full" />
+          <div class="relative w-full">
+            <input type="text" 
+                   class="input input-bordered w-full" 
+                   placeholder="Search and select route..." 
+                   [value]="selectedRouteName" 
+                   (focus)="routeDropdownOpen = true"
+                   (blur)="onRouteBlur()"
+                   (input)="onRouteSearch($event)" />
+            <ul *ngIf="routeDropdownOpen" class="absolute z-50 menu p-2 shadow-lg bg-base-100 rounded-box w-full max-h-48 overflow-y-auto mt-1 flex-nowrap border border-gray-200">
+              <li *ngIf="filteredRoutes.length === 0"><a class="pointer-events-none text-gray-500">No route found</a></li>
+              <li><a (mousedown)="selectRoute(null)">-- Clear Route --</a></li>
+              <li *ngFor="let r of filteredRoutes">
+                <a (mousedown)="selectRoute(r)">{{r.routeCode}} ({{r.cycleCode}})</a>
+              </li>
+            </ul>
+          </div>
         </div>
         <div class="form-control">
           <label class="label"><span class="label-text">Cycle Code <span class="text-red-500">*</span></span></label>
-          <input type="text" formControlName="cycleCode" class="input input-bordered w-full" />
+          <input type="text" formControlName="cycleCode" class="input input-bordered w-full bg-gray-100" readonly placeholder="Auto-filled from Route" />
         </div>
         <div class="form-control relative">
           <label class="label"><span class="label-text">Driver</span></label>

@@ -8,7 +8,7 @@ import { of } from 'rxjs';
 import { RoutePlanningService } from '../../../../core/services/route-planning.service';
 import { MasterDataService } from '../../../../core/services/master-data.service';
 import { CargoService } from '../../../../core/services/cargo.service';
-import { Supplier, Driver, Truck } from '../../../../core/models/master.model';
+import { Supplier, Driver, Truck, Route } from '../../../../core/models/master.model';
 
 @Component({
   selector: 'app-route-planning-form',
@@ -31,6 +31,7 @@ export class RoutePlanningFormComponent implements OnInit {
   saving: boolean = false;
 
   suppliers: Supplier[] = [];
+  allSuppliers: Supplier[] = []; // Store all to map names properly if needed
   drivers: Driver[] = [];
   trucks: Truck[] = [];
 
@@ -42,6 +43,11 @@ export class RoutePlanningFormComponent implements OnInit {
   filteredTrucks: Truck[] = [];
   selectedTruckName: string = '';
   truckDropdownOpen: boolean = false;
+
+  routes: Route[] = [];
+  filteredRoutes: Route[] = [];
+  selectedRouteName: string = '';
+  routeDropdownOpen: boolean = false;
 
   // Local UI state for each stop
   stopUIStates: {
@@ -84,12 +90,18 @@ export class RoutePlanningFormComponent implements OnInit {
   }
 
   initForm() {
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+    
+    now.setHours(now.getHours() + 1);
+    const estTime = now.toTimeString().split(' ')[0];
+
     this.form = this.fb.group({
-      poNo: ['', Validators.required],
-      pickupDate: ['', Validators.required],
+
+      pickupDate: [today, Validators.required],
       routeCode: ['', Validators.required],
       cycleCode: ['', Validators.required],
-      estimatedDepartureTime: ['08:00:00', Validators.required],
+      estimatedDepartureTime: [estTime, Validators.required],
       driverId: [null],
       truckId: [null],
       stops: this.fb.array([])
@@ -136,7 +148,7 @@ export class RoutePlanningFormComponent implements OnInit {
         }
       }),
       switchMap(newSupplierId => {
-        const supplier = this.suppliers.find(s => s.id === newSupplierId);
+        const supplier = this.allSuppliers.find(s => s.id === newSupplierId) || this.suppliers.find(s => s.id === newSupplierId);
         if (!supplier) return of({ data: [] });
         return this.cargoService.getManifests('', supplier.supplierCode, 'Pending', false, 1, 1000).pipe(
           catchError(() => of({ data: [] }))
@@ -281,13 +293,20 @@ export class RoutePlanningFormComponent implements OnInit {
 
   loadMasterData() {
     this.masterService.getSuppliers('', 1, 1000).subscribe(res => {
-      this.suppliers = res.data;
-      this.stops.controls.forEach((c, idx) => {
-        const sid = c.get('supplierId')?.value;
-        if (sid && this.stopUIStates[idx]) {
-          const s = this.suppliers.find(x => x.id === sid);
-          if (s) this.stopUIStates[idx].supplierName = `${s.supplierCode} - ${s.name}`;
-        }
+      this.allSuppliers = res.data;
+      
+      // Fetch pending suppliers to filter the dropdown
+      this.cargoService.getPendingManifestSuppliers().subscribe(pendingRes => {
+        const pendingCodes = new Set(pendingRes.data.map(p => p.supplierCode));
+        this.suppliers = this.allSuppliers.filter(s => pendingCodes.has(s.supplierCode));
+
+        this.stops.controls.forEach((c, idx) => {
+          const sid = c.get('supplierId')?.value;
+          if (sid && this.stopUIStates[idx]) {
+            const s = this.allSuppliers.find(x => x.id === sid);
+            if (s) this.stopUIStates[idx].supplierName = `${s.supplierCode} - ${s.name}`;
+          }
+        });
       });
     });
     this.masterService.getDrivers('', 1, 1000).subscribe(res => {
@@ -308,6 +327,16 @@ export class RoutePlanningFormComponent implements OnInit {
       if (currentTruckId) {
         const t = this.trucks.find(x => x.id === currentTruckId);
         if (t) this.selectedTruckName = `${t.plateNumber} (${t.vehicleType || '-'})`;
+      }
+    });
+    this.masterService.getRoutes('', 1, 1000).subscribe(res => {
+      this.routes = res.data;
+      this.filteredRoutes = [...this.routes];
+      
+      const currentRouteCode = this.form.get('routeCode')?.value;
+      if (currentRouteCode) {
+        const r = this.routes.find(x => x.routeCode === currentRouteCode);
+        if (r) this.selectedRouteName = `${r.routeCode} (${r.cycleCode})`;
       }
     });
   }
@@ -338,7 +367,7 @@ export class RoutePlanningFormComponent implements OnInit {
         // Reset name to selected supplier if they didn't select anything
         const control = this.stops.at(stopIndex).get('supplierId');
         if (control?.value) {
-          const s = this.suppliers.find(x => x.id === control.value);
+          const s = this.allSuppliers.find(x => x.id === control.value) || this.suppliers.find(x => x.id === control.value);
           if (s) {
             this.stopUIStates[stopIndex].supplierName = `${s.supplierCode} - ${s.name}`;
           }
@@ -426,13 +455,44 @@ export class RoutePlanningFormComponent implements OnInit {
     this.truckDropdownOpen = false;
   }
 
+  // Route Dropdown Methods
+  onRouteSearch(event: Event) {
+    this.routeDropdownOpen = true;
+    const term = (event.target as HTMLInputElement).value.toLowerCase();
+    if (!term) {
+      this.filteredRoutes = [...this.routes];
+    } else {
+      this.filteredRoutes = this.routes.filter(r => 
+        r.routeCode.toLowerCase().includes(term) || r.cycleCode.toLowerCase().includes(term)
+      );
+    }
+  }
+
+  onRouteBlur() {
+    setTimeout(() => {
+      this.routeDropdownOpen = false;
+      this.cdr.detectChanges();
+    }, 200);
+  }
+
+  selectRoute(route: Route | null) {
+    if (route) {
+      this.form.patchValue({ routeCode: route.routeCode, cycleCode: route.cycleCode });
+      this.selectedRouteName = `${route.routeCode} (${route.cycleCode})`;
+    } else {
+      this.form.patchValue({ routeCode: '', cycleCode: '' });
+      this.selectedRouteName = '';
+    }
+    this.routeDropdownOpen = false;
+  }
+
   loadOrder(id: number) {
     this.loading = true;
     this.routeService.getPickupOrderById(id).subscribe({
       next: (res) => {
         const order = res.data;
         this.form.patchValue({
-          poNo: order.poNo,
+
           pickupDate: order.pickupDate.split('T')[0],
           routeCode: order.routeCode,
           cycleCode: order.cycleCode,
@@ -451,6 +511,12 @@ export class RoutePlanningFormComponent implements OnInit {
         if (order.truckId && this.trucks.length > 0) {
           const t = this.trucks.find(x => x.id === order.truckId);
           if (t) this.selectedTruckName = `${t.plateNumber} (${t.vehicleType || '-'})`;
+        }
+        
+        // Try to set the selected route name if routes are already loaded
+        if (order.routeCode && this.routes.length > 0) {
+          const r = this.routes.find(x => x.routeCode === order.routeCode);
+          if (r) this.selectedRouteName = `${r.routeCode} (${r.cycleCode})`;
         }
 
         // Load stops
@@ -513,7 +579,7 @@ export class RoutePlanningFormComponent implements OnInit {
     let supplierCode = '';
     
     if (supplierId) {
-      const supplier = this.suppliers.find(s => s.id === supplierId);
+      const supplier = this.allSuppliers.find(s => s.id === supplierId) || this.suppliers.find(s => s.id === supplierId);
       if (supplier) supplierCode = supplier.supplierCode;
     }
 
