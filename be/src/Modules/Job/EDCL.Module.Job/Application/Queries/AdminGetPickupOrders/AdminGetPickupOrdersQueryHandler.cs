@@ -15,13 +15,39 @@ internal sealed class AdminGetPickupOrdersQueryHandler(JobDbContext dbContext)
     {
         var query = dbContext.PickupOrders.AsNoTracking();
 
-        if (!string.IsNullOrWhiteSpace(request.Search))
+        if (!string.IsNullOrWhiteSpace(request.PoNo))
         {
-            var s = request.Search.ToLower();
-            query = query.Where(x => 
-                x.PoNo.ToLower().Contains(s) || 
-                x.RouteCode.ToLower().Contains(s) || 
-                x.CycleCode.ToLower().Contains(s));
+            var poNo = request.PoNo.Trim().ToLower();
+            query = query.Where(x => x.PoNo.ToLower().Contains(poNo));
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.ManifestNo))
+        {
+            var manifestNo = request.ManifestNo.Trim().ToLower();
+            query = query.Where(x => x.Details.Any(d => d.Manifests.Any(m => m.ManifestNo.ToLower().Contains(manifestNo))));
+        }
+
+        if (request.PickupDate.HasValue)
+        {
+            var date = request.PickupDate.Value.Date;
+            query = query.Where(x => x.PickupDate.Date == date);
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.RouteCode))
+        {
+            var routeCode = request.RouteCode.Trim().ToLower();
+            query = query.Where(x => x.RouteCode.ToLower().Contains(routeCode) || x.CycleCode.ToLower().Contains(routeCode));
+        }
+
+        if (request.DriverId.HasValue)
+        {
+            query = query.Where(x => x.DriverId == request.DriverId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Status))
+        {
+            var statuses = request.Status.Split(',', System.StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()).ToList();
+            query = query.Where(x => statuses.Contains(x.Status));
         }
 
         var totalCount = await query.CountAsync(cancellationToken);

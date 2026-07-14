@@ -1,6 +1,8 @@
 using EDCL.Module.Job.Domain.Entities;
 using EDCL.Module.Job.Infrastructure.Persistence;
 using EDCL.Shared.Kernel.Common;
+using EDCL.Shared.Kernel.Events;
+using Hangfire;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
@@ -24,6 +26,13 @@ internal sealed class AdminUpdatePickupOrderCommandHandler(JobDbContext dbContex
         if (pickupOrder.Status != PickupOrderStatus.Pending)
             return Result<bool>.Failure(Error.Conflict("PickupOrder.InvalidStatus", "Cannot update pickup order that is not PENDING."));
 
+
+        // Calculate manifest changes for events
+        var oldManifestNos = pickupOrder.Details.SelectMany(d => d.Manifests).Select(m => m.ManifestNo).ToList();
+        var newManifestNos = request.Stops.SelectMany(s => s.Manifests).Select(m => m.ManifestNo).ToList();
+
+        var toUnassign = oldManifestNos.Except(newManifestNos).ToList();
+        var toAssign = newManifestNos.Except(oldManifestNos).ToList();
 
         // Use reflection or just replace the whole graph if allowed, but EF Core requires careful graph updates.
         // For simplicity, we can do a full replacement of details if not Started.
@@ -53,6 +62,13 @@ internal sealed class AdminUpdatePickupOrderCommandHandler(JobDbContext dbContex
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        if (toUnassign.Any())
+            BackgroundJob.Enqueue<IMediator>(m => m.Publish(new ManifestsAssignedToRouteIntegrationEvent(toUnassign, false), CancellationToken.None));
+
+        if (toAssign.Any())
+            BackgroundJob.Enqueue<IMediator>(m => m.Publish(new ManifestsAssignedToRouteIntegrationEvent(toAssign, true), CancellationToken.None));
+
         return Result<bool>.Success(true);
     }
 }

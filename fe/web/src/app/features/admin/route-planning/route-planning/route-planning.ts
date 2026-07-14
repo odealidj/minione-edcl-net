@@ -25,9 +25,6 @@ export class RoutePlanningComponent implements OnInit {
   deletingId: number | null = null;
   math = Math;
 
-  expandedRows: Set<number> = new Set();
-  orderDetailsCache: Map<number, PickupOrder> = new Map();
-  loadingDetails: Set<number> = new Set();
 
   selectedManifest: BffManifestDetail | null = null;
   loadingManifest: boolean = false;
@@ -70,7 +67,11 @@ export class RoutePlanningComponent implements OnInit {
 
   loadOrders(page: number = 1) {
     this.loading = true;
-    this.routeService.getPickupOrders(page, 10, this.search).subscribe({
+    this.routeService.getPickupOrders(
+      page,
+      10,
+      this.search
+    ).subscribe({
       next: (res) => {
         this.orders = res.data ?? [];
         this.meta = res.pagination ?? null;
@@ -105,108 +106,12 @@ export class RoutePlanningComponent implements OnInit {
         next: () => {
           this.loadOrders(this.meta?.page ?? 1);
           this.deletingId = null;
-          this.expandedRows.delete(id);
-          this.orderDetailsCache.delete(id);
         },
-        error: () => this.deletingId = null
-      });
-    }
-  }
-
-  toggleRow(orderId: number) {
-    if (this.expandedRows.has(orderId)) {
-      this.expandedRows.delete(orderId);
-      this.cdr.markForCheck();
-      return;
-    }
-
-    this.expandedRows.add(orderId);
-    this.cdr.markForCheck();
-
-    // Fetch details if not in cache
-    if (!this.orderDetailsCache.has(orderId)) {
-      this.loadingDetails.add(orderId);
-      this.cdr.markForCheck();
-      this.routeService.getPickupOrderById(orderId).subscribe({
-        next: (res) => {
-          if (res.data) {
-            this.orderDetailsCache.set(orderId, res.data);
-            // Load page 1 of manifests for each stop
-            res.data.details?.forEach((stop, idx) => {
-              this.loadStopManifests(orderId, stop.id, idx, 1);
-            });
-          }
-          this.loadingDetails.delete(orderId);
-          this.cdr.markForCheck();
-        },
-        error: (err) => {
-          console.error('Failed to load order details', err);
-          this.loadingDetails.delete(orderId);
-          this.expandedRows.delete(orderId);
+        error: () => {
+          this.deletingId = null;
           this.cdr.markForCheck();
         }
       });
     }
-  }
-
-  viewManifest(manifestNo: string) {
-    this.loadingManifest = true;
-    this.selectedManifest = null;
-    this.cdr.markForCheck();
-    
-    // Using a modal element from daisyUI
-    const modal = document.getElementById('manifest_modal') as HTMLDialogElement;
-    if (modal) modal.showModal();
-
-    this.routeService.getManifestDetail(manifestNo).subscribe({
-      next: (res) => {
-        this.selectedManifest = res.data ?? null;
-        this.loadingManifest = false;
-        this.cdr.markForCheck();
-      },
-      error: (err) => {
-        console.error('Failed to load manifest details', err);
-        this.loadingManifest = false;
-        this.cdr.markForCheck();
-      }
-    });
-  }
-
-  closeManifestModal() {
-    const modal = document.getElementById('manifest_modal') as HTMLDialogElement;
-    if (modal) modal.close();
-    this.selectedManifest = null;
-    this.cdr.markForCheck();
-  }
-
-  // Level 3 (Manifest) Pagination Methods
-  manifestDataMap: Map<string, { items: any[], meta: any, loading: boolean }> = new Map();
-
-  getManifestData(orderId: number, stopIndex: number) {
-    const key = `${orderId}_${stopIndex}`;
-    return this.manifestDataMap.get(key) || { items: [], meta: null, loading: false };
-  }
-
-  loadStopManifests(orderId: number, stopId: number, stopIndex: number, page: number) {
-    const key = `${orderId}_${stopIndex}`;
-    const currentData = this.manifestDataMap.get(key) || { items: [], meta: null, loading: false };
-    this.manifestDataMap.set(key, { ...currentData, loading: true });
-    this.cdr.markForCheck();
-
-    this.routeService.getPickupOrderStopManifests(orderId, stopId, page, this.manifestPageSize).subscribe({
-      next: (res) => {
-        this.manifestDataMap.set(key, {
-          items: res.data ?? [],
-          meta: res.pagination ?? null,
-          loading: false
-        });
-        this.cdr.markForCheck();
-      },
-      error: (err) => {
-        console.error('Failed to load stop manifests', err);
-        this.manifestDataMap.set(key, { ...currentData, loading: false });
-        this.cdr.markForCheck();
-      }
-    });
   }
 }

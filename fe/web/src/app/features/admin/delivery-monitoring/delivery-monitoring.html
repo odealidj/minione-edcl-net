@@ -1,0 +1,449 @@
+<div class="p-6">
+  <div class="flex justify-between items-center mb-6">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-800">Delivery Monitoring</h1>
+      <p class="text-sm text-gray-500">Live tracking of ongoing pickup orders and manifests</p>
+    </div>
+    <button class="btn btn-outline btn-primary" (click)="refresh()" [disabled]="loading">
+      <i class="fas fa-sync-alt mr-2" [class.animate-spin]="loading"></i> Refresh
+    </button>
+  </div>
+
+  <!-- Filter Panel -->
+  <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
+    <details class="collapse collapse-arrow bg-white w-full rounded-none group" open>
+      <summary class="collapse-title text-sm font-semibold text-gray-700 bg-gray-50/50 flex items-center min-h-0 py-3 px-4 cursor-pointer hover:bg-gray-100 transition-colors">
+        <i class="fas fa-filter mr-2 text-gray-400 group-hover:text-primary transition-colors"></i> Filter Monitoring
+      </summary>
+      <div class="collapse-content px-4 py-4 bg-white">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3 items-end">
+          
+          <div class="form-control">
+            <label class="label py-1"><span class="label-text text-xs font-semibold text-gray-500 uppercase tracking-wider">Delivery No</span></label>
+            <input type="text" placeholder="Ex: PO-123" class="input input-bordered input-sm w-full focus:ring-1 focus:ring-primary" [(ngModel)]="filterState.poNo" (keyup.enter)="applyFilter()" />
+          </div>
+
+          <div class="form-control">
+            <label class="label py-1"><span class="label-text text-xs font-semibold text-gray-500 uppercase tracking-wider">Manifest No</span></label>
+            <input type="text" placeholder="Ex: TRJ-DEL..." class="input input-bordered input-sm w-full focus:ring-1 focus:ring-primary" [(ngModel)]="filterState.manifestNo" (keyup.enter)="applyFilter()" />
+          </div>
+
+          <div class="form-control">
+            <label class="label py-1"><span class="label-text text-xs font-semibold text-gray-500 uppercase tracking-wider">Tgl Pickup</span></label>
+            <input type="date" class="input input-bordered input-sm w-full focus:ring-1 focus:ring-primary" [(ngModel)]="filterState.pickupDate" />
+          </div>
+
+          <div class="form-control">
+            <label class="label py-1"><span class="label-text text-xs font-semibold text-gray-500 uppercase tracking-wider">Route</span></label>
+            <select class="select select-bordered select-sm w-full focus:ring-1 focus:ring-primary" [(ngModel)]="filterState.routeCode">
+              <option value="">Semua Rute</option>
+              <option *ngFor="let r of routesMap | keyvalue" [value]="r.key">{{ r.value }}</option>
+            </select>
+          </div>
+
+          <div class="form-control">
+            <label class="label py-1"><span class="label-text text-xs font-semibold text-gray-500 uppercase tracking-wider">Driver</span></label>
+            <select class="select select-bordered select-sm w-full focus:ring-1 focus:ring-primary" [(ngModel)]="filterState.driverId">
+              <option value="">Semua Driver</option>
+              <option *ngFor="let d of driversMap | keyvalue" [value]="d.key">{{ d.value }}</option>
+            </select>
+          </div>
+
+          <div class="flex gap-2 w-full lg:justify-end">
+            <button class="btn btn-sm btn-ghost hover:bg-gray-100" (click)="resetFilter()">Reset</button>
+            <button class="btn btn-sm btn-primary shadow-sm" (click)="applyFilter()"><i class="fas fa-search mr-1"></i> Apply</button>
+          </div>
+
+        </div>
+      </div>
+    </details>
+  </div>
+
+  <!-- Table Panel -->
+  <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="table w-full">
+        <thead>
+          <tr class="bg-gray-50/50 text-gray-500 uppercase text-xs">
+            <th class="w-12"></th>
+            <th>Delivery No</th>
+            <th>Date</th>
+            <th>Route / Cycle</th>
+            <th>Est. Departure</th>
+            <th>Driver</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="loading">
+            <td colspan="7" class="text-center py-8">
+              <span class="loading loading-spinner loading-md text-primary"></span>
+            </td>
+          </tr>
+          <tr *ngIf="!loading && orders.length === 0">
+            <td colspan="7" class="text-center py-8 text-gray-500">No active delivery found</td>
+          </tr>
+          <ng-container *ngFor="let order of orders">
+            <!-- Level 1: Route Plan Row -->
+            <tr class="hover:bg-gray-50/50 transition-colors" [class.bg-indigo-50]="expandedRows.has(order.id)">
+              <td class="text-center w-12">
+                <button class="btn btn-ghost btn-xs btn-square" (click)="toggleRow(order.id)" title="Expand / Collapse">
+                  <span *ngIf="loadingDetails.has(order.id)" class="loading loading-spinner loading-xs text-primary"></span>
+                  <svg *ngIf="!loadingDetails.has(order.id)" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 transition-transform duration-200"
+                       [class.rotate-90]="expandedRows.has(order.id)"
+                       [class.text-primary]="expandedRows.has(order.id)"
+                       [class.text-gray-400]="!expandedRows.has(order.id)"
+                       fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </td>
+              <td class="font-medium text-gray-900">{{order.poNo}}</td>
+              <td>{{order.pickupDate | date:'dd MMM yyyy'}}</td>
+              <td>
+                <span class="badge badge-ghost badge-sm font-mono">{{order.routeCode}}</span> /
+                <span class="badge badge-ghost badge-sm font-mono">{{order.cycleCode}}</span>
+              </td>
+              <td>{{order.estimatedDepartureTime}}</td>
+              <td>
+                <span *ngIf="order.driverId">{{driversMap.get(order.driverId) || 'Driver #' + order.driverId}}</span>
+                <span *ngIf="!order.driverId" class="text-gray-400 italic">Unassigned</span>
+              </td>
+              <td>
+                <span class="badge" [ngClass]="{
+                  'badge-warning': order.status === 'PENDING',
+                  'badge-info': order.status === 'ON_PROGRESS',
+                  'badge-success': order.status === 'COMPLETED'
+                }">{{order.status}}</span>
+              </td>
+            </tr>
+
+            <!-- Level 2 & 3: Expanded Detail Row (Suppliers + Manifests) -->
+            <tr *ngIf="expandedRows.has(order.id)">
+              <td class="p-0 bg-indigo-50/40 border-b border-indigo-100" colspan="7">
+                <div class="pl-12 pr-4 py-3">
+                  <!-- Loading indicator for details -->
+                  <div *ngIf="loadingDetails.has(order.id)" class="flex items-center gap-2 py-4 text-gray-400 text-sm">
+                    <span class="loading loading-spinner loading-xs"></span> Memuat detail supplier...
+                  </div>
+
+                  <!-- Detail table -->
+                  <div *ngIf="!loadingDetails.has(order.id) && orderDetailsCache.get(order.id) as details"
+                       class="border border-indigo-100 rounded-lg overflow-hidden shadow-sm">
+                    <table class="table table-sm w-full bg-white">
+                      <thead class="bg-indigo-50 text-indigo-600 text-xs uppercase">
+                        <tr>
+                          <th class="w-12 text-center">Seq</th>
+                          <th>Supplier</th>
+                          <th>Status Stop</th>
+                          <th>Tiba Pukul</th>
+                        </tr>
+                      </thead>
+                      <tbody class="text-xs">
+                        <tr *ngIf="!details.details || details.details.length === 0">
+                          <td colspan="4" class="text-center py-6 text-gray-400 italic text-sm">
+                            Belum ada supplier terjadwal untuk rute ini.
+                          </td>
+                        </tr>
+                        <!-- Level 2: Supplier Stop using ng-container to allow multiple TRs per stop -->
+                        <ng-container *ngFor="let stop of details.details; let stopIndex = index">
+                          <tr class="border-t border-gray-100 bg-gray-50/30">
+                            <td class="text-center">
+                              <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold">
+                                {{stop.sequence}}
+                              </span>
+                            </td>
+                            <td class="font-medium text-sm text-gray-800">
+                              {{suppliersMap.get(stop.supplierId) || 'Supplier #' + stop.supplierId}}
+                            </td>
+                            <td>
+                              <span class="text-xs font-semibold px-2 py-0.5 rounded-full" [ngClass]="{
+                                'bg-yellow-100 text-yellow-700': stop.status === 'PENDING',
+                                'bg-blue-100 text-blue-700':   stop.status === 'ARRIVED',
+                                'bg-green-100 text-green-700': stop.status === 'COMPLETED'
+                              }">{{stop.status}}</span>
+                            </td>
+                            <td class="text-sm text-gray-500">
+                              {{stop.arrivedAt ? (stop.arrivedAt | date:'dd/MM HH:mm') : '—'}}
+                            </td>
+                          </tr>
+                          <!-- Level 3: Manifests Sub-table -->
+                          <tr>
+                            <td class="border-b border-gray-200"></td> <!-- Indent -->
+                            <td colspan="3" class="p-0 pb-3 border-b border-gray-200 pr-4">
+                              <ng-container *ngIf="getManifestData(order.id, stopIndex) as data">
+                                <div *ngIf="data.loading" class="text-xs text-gray-500 py-4 text-center">
+                                  <span class="loading loading-spinner loading-xs mr-2"></span> Loading manifests...
+                                </div>
+                                <div *ngIf="!data.loading && (!data.items || data.items.length === 0)" class="text-xs text-gray-400 italic pt-2">
+                                  Tidak ada manifest untuk supplier ini.
+                                </div>
+                                <table *ngIf="!data.loading && data.items && data.items.length > 0" class="table table-xs w-full bg-white border border-gray-100 rounded shadow-sm mt-2">
+                                  <thead class="bg-gray-50 text-gray-500 uppercase text-[10px]">
+                                    <tr>
+                                      <th>Manifest No</th>
+                                      <th>Tipe</th>
+                                      <th class="text-center">Kanban Scan</th>
+                                      <th>Dock</th>
+                                      <th>Status</th>
+                                      <th class="text-right">Action</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    <tr *ngFor="let m of data.items" class="hover:bg-blue-50/20">
+                                      <td class="font-mono text-blue-700 font-medium">{{m.manifestNo}}</td>
+                                      <td>
+                                        <span class="badge badge-ghost badge-sm text-[10px]">{{m.orderType}}</span>
+                                      </td>
+                                      <td class="text-center">
+                                        <span class="font-semibold" [class.text-green-600]="m.scannedKanban === m.totalKanban">{{m.scannedKanban}}</span>
+                                        <span class="text-gray-400"> / {{m.totalKanban}}</span>
+                                      </td>
+                                      <td>{{m.dockCode}}</td>
+                                      <td>
+                                        <span class="badge badge-sm text-[10px]" [ngClass]="{
+                                          'badge-success': m.status === 'VERIFIED',
+                                          'badge-warning': m.status === 'PENDING',
+                                          'badge-info': m.status === 'PARTIAL'
+                                        }">{{m.status}}</span>
+                                      </td>
+                                      <td class="text-right">
+                                        <button class="btn btn-xs btn-outline btn-primary shadow-sm" (click)="viewManifest(m.manifestNo)">
+                                          <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                          </svg>
+                                          Lihat Part
+                                        </button>
+                                      </td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                                <!-- Level 3 Pagination -->
+                                <div class="px-3 py-2 border-t border-gray-100 flex justify-between items-center bg-gray-50/80" *ngIf="!data.loading && data.meta && data.meta.total_pages > 1">
+                                  <span class="text-[10px] text-gray-500">
+                                    Showing {{(data.meta.page - 1) * data.meta.page_size + 1}} to 
+                                    {{math.min(data.meta.page * data.meta.page_size, data.meta.total_items)}} of {{data.meta.total_items}} manifests
+                                  </span>
+                                  <div class="join">
+                                    <button class="join-item btn btn-xs h-6 min-h-0" [disabled]="!data.meta.has_previous" (click)="changeManifestPage(order.id, stopIndex, data.meta.prevPage)">«</button>
+                                    <button class="join-item btn btn-xs h-6 min-h-0">Page {{ data.meta.page }} / {{ data.meta.total_pages }}</button>
+                                    <button class="join-item btn btn-xs h-6 min-h-0" [disabled]="!data.meta.has_next" (click)="changeManifestPage(order.id, stopIndex, data.meta.nextPage)">»</button>
+                                  </div>
+                                </div>
+                              </ng-container>
+                            </td>
+                          </tr>
+                        </ng-container>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </ng-container>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="p-4 border-t border-gray-100 flex justify-between items-center bg-white" *ngIf="meta && pages.length > 1">
+      <span class="text-sm text-gray-500">
+        Showing {{(meta.page - 1) * meta.page_size + 1}} to {{math.min(meta.page * meta.page_size, meta.total_items)}} of {{meta.total_items}} routes
+      </span>
+      <div class="join">
+        <button class="join-item btn btn-sm" [disabled]="meta.page === 1" (click)="meta.prevPage && changePage(meta.prevPage)">«</button>
+        <button class="join-item btn btn-sm" *ngFor="let p of pages" [class.btn-active]="p === meta.page" (click)="changePage(p)">
+          {{p}}
+        </button>
+        <button class="join-item btn btn-sm" [disabled]="meta.page === meta.total_pages" (click)="meta.nextPage && changePage(meta.nextPage)">»</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- View Manifest Details Modal -->
+<dialog id="manifest_modal_monitoring" class="modal">
+  <div class="modal-box w-11/12 max-w-5xl">
+    <h3 class="font-bold text-lg mb-4">Manifest Details</h3>
+    
+    <div *ngIf="loadingManifest" class="py-12 flex justify-center">
+      <span class="loading loading-spinner loading-lg text-primary"></span>
+    </div>
+
+    <div *ngIf="!loadingManifest && selectedManifest" class="space-y-6">
+      <div class="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
+        <div>
+          <p class="text-xs text-gray-500 uppercase">Manifest No</p>
+          <p class="font-mono font-bold">{{selectedManifest.manifestNo}}</p>
+        </div>
+        <div>
+          <p class="text-xs text-gray-500 uppercase">Status</p>
+          <p class="font-semibold" [ngClass]="{
+            'text-green-600': selectedManifest.scanStatus === 'VERIFIED',
+            'text-yellow-600': selectedManifest.scanStatus === 'PENDING',
+            'text-blue-600': selectedManifest.scanStatus === 'PARTIAL'
+          }">{{selectedManifest.scanStatus}}</p>
+        </div>
+      </div>
+
+      <div class="tabs tabs-boxed bg-gray-100 p-1">
+        <a class="tab tab-sm font-semibold w-1/2" [class.tab-active]="activeTab === 'parts'" (click)="activeTab = 'parts'">Parts</a>
+        <a class="tab tab-sm font-semibold w-1/2" [class.tab-active]="activeTab === 'kanbans'" (click)="activeTab = 'kanbans'">Kanbans</a>
+      </div>
+
+      <!-- Parts Tab -->
+      <div *ngIf="activeTab === 'parts'">
+        <div class="flex justify-between items-center bg-white p-2 border border-gray-100 border-b-0 rounded-t-lg">
+          <h4 class="font-bold text-gray-700">List of Parts</h4>
+
+          <details class="collapse collapse-arrow bg-white w-full rounded-none">
+        <summary class="collapse-title font-semibold text-gray-700 min-h-0 p-4">Filter Monitoring</summary>
+        <div class="collapse-content px-4 pb-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            
+            <div class="form-control">
+              <label class="label"><span class="label-text">Delivery No</span></label>
+              <input type="text" placeholder="PO-123..." class="input input-bordered w-full input-sm" [(ngModel)]="filterState.poNo" (keyup.enter)="applyFilter()" />
+            </div>
+
+            <div class="form-control">
+              <label class="label"><span class="label-text">Manifest No</span></label>
+              <input type="text" placeholder="Manifest..." class="input input-bordered w-full input-sm" [(ngModel)]="filterState.manifestNo" (keyup.enter)="applyFilter()" />
+            </div>
+
+            <div class="form-control">
+              <label class="label"><span class="label-text">Tanggal Pickup</span></label>
+              <input type="date" class="input input-bordered w-full input-sm" [(ngModel)]="filterState.pickupDate" />
+            </div>
+
+            <div class="form-control">
+              <label class="label"><span class="label-text">Route</span></label>
+              <select class="select select-bordered w-full select-sm" [(ngModel)]="filterState.routeCode">
+                <option value="">-- All Routes --</option>
+                <option *ngFor="let r of routesMap | keyvalue" [value]="r.key">{{ r.value }}</option>
+              </select>
+            </div>
+
+            <div class="form-control">
+              <label class="label"><span class="label-text">Driver</span></label>
+              <select class="select select-bordered w-full select-sm" [(ngModel)]="filterState.driverId">
+                <option value="">-- All Drivers --</option>
+                <option *ngFor="let d of driversMap | keyvalue" [value]="d.key">{{ d.value }}</option>
+              </select>
+            </div>
+
+          </div>
+          
+          <div class="mt-4 flex justify-end gap-2">
+            <button class="btn btn-sm" (click)="resetFilter()">Reset</button>
+            <button class="btn btn-sm btn-primary" (click)="applyFilter()">Apply Filter</button>
+          </div>
+        </div>
+      </details>
+        </div>
+
+        <div class="overflow-x-auto border border-gray-100 rounded-b-lg">
+        <table class="table table-sm w-full">
+          <thead class="bg-gray-100">
+            <tr>
+              <th class="w-12 text-center">No</th>
+              <th>Part No</th>
+              <th>Unique No</th>
+              <th class="text-center">Box Type</th>
+              <th class="text-right">Qty/Box</th>
+              <th class="text-center">No. of KBN</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let p of paginatedParts" class="hover:bg-gray-50">
+              <td class="text-center text-gray-500">{{p.no}}</td>
+              <td class="font-mono text-indigo-700 font-medium">{{p.partNo}}</td>
+              <td><span class="badge badge-ghost badge-sm">{{p.uniqNo}}</span></td>
+              <td class="text-center">{{p.boxType}}</td>
+              <td class="text-right font-medium">{{p.pcsKbn}}</td>
+              <td class="text-center">
+                <span class="bg-indigo-50 text-indigo-700 px-2 py-1 rounded text-xs font-bold border border-indigo-100">
+                  {{p.noOfKbn}}
+                </span>
+              </td>
+            </tr>
+            <tr *ngIf="paginatedParts.length === 0">
+              <td colspan="6" class="text-center py-4 text-gray-500">No parts found matching your criteria.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+        <!-- Part Pagination -->
+        <div class="flex justify-between items-center py-2 px-1" *ngIf="partTotalPages > 1">
+          <span class="text-xs text-gray-500">
+            Showing {{(partPage - 1) * partPageSize + 1}} to {{math.min(partPage * partPageSize, filteredParts.length)}} of {{filteredParts.length}} parts
+          </span>
+          <div class="join">
+            <button class="join-item btn btn-xs min-h-0 h-7" [disabled]="partPage === 1" (click)="changePartPage(partPage - 1)">«</button>
+            <button class="join-item btn btn-xs min-h-0 h-7" *ngFor="let p of partPages" [class.btn-active]="p === partPage" (click)="changePartPage(p)">
+              {{p}}
+            </button>
+            <button class="join-item btn btn-xs min-h-0 h-7" [disabled]="partPage === partTotalPages" (click)="changePartPage(partPage + 1)">»</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Kanbans Tab -->
+      <div *ngIf="activeTab === 'kanbans'">
+        <div class="flex justify-between items-center bg-white p-2 border border-gray-100 border-b-0 rounded-t-lg">
+          <h4 class="font-bold text-gray-700">List of Kanbans</h4>
+          <div class="relative w-64">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg class="h-4 w-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"></path>
+              </svg>
+            </div>
+            <input type="text" [(ngModel)]="kanbanSearch" (ngModelChange)="onKanbanSearch()" placeholder="Search Part / Kanban Code..." class="input input-sm input-bordered w-full pl-9 focus:ring-1 focus:ring-primary">
+          </div>
+        </div>
+
+        <div class="overflow-x-auto border border-gray-100 rounded-b-lg">
+          <table class="table table-sm w-full">
+            <thead class="bg-gray-100">
+              <tr>
+                <th class="w-12 text-center">No</th>
+                <th>Part No</th>
+                <th>Kanban Code</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let k of paginatedKanbans; let i = index" class="hover:bg-gray-50">
+                <td class="text-center text-gray-500">{{ (kanbanPage - 1) * kanbanPageSize + i + 1 }}</td>
+                <td class="font-mono text-indigo-700 font-medium">{{k.partNo}}</td>
+                <td class="font-mono">{{k.kanbanCd}}</td>
+              </tr>
+              <tr *ngIf="paginatedKanbans.length === 0">
+                <td colspan="3" class="text-center py-4 text-gray-500">No kanbans found matching your criteria.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Kanban Pagination -->
+        <div class="flex justify-between items-center py-2 px-1" *ngIf="kanbanTotalPages > 1">
+          <span class="text-xs text-gray-500">
+            Showing {{(kanbanPage - 1) * kanbanPageSize + 1}} to {{math.min(kanbanPage * kanbanPageSize, filteredKanbans.length)}} of {{filteredKanbans.length}} kanbans
+          </span>
+          <div class="join">
+            <button class="join-item btn btn-xs min-h-0 h-7" [disabled]="kanbanPage === 1" (click)="changeKanbanPage(kanbanPage - 1)">«</button>
+            <button class="join-item btn btn-xs min-h-0 h-7" *ngFor="let p of kanbanPages" [class.btn-active]="p === kanbanPage" (click)="changeKanbanPage(p)">
+              {{p}}
+            </button>
+            <button class="join-item btn btn-xs min-h-0 h-7" [disabled]="kanbanPage === kanbanTotalPages" (click)="changeKanbanPage(kanbanPage + 1)">»</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-action">
+      <button class="btn" (click)="closeManifestModal()">Close</button>
+    </div>
+  </div>
+</dialog>

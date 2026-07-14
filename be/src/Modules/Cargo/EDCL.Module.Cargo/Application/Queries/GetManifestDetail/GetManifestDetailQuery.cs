@@ -10,10 +10,11 @@ public sealed record ManifestDetailDto(
     string DeliveryNo,
     string ManifestNo,
     int TotalKanban,
-    string OrderNo,
-    string DockCode,
-    string PLaneNo,
-    List<ManifestPartDto> PartList
+    string? OrderNo,
+    string? DockCode,
+    string? PLaneNo,
+    List<ManifestPartDto> PartList,
+    List<ManifestKanbanDto> KanbanList
 );
 
 public sealed record ManifestPartDto(
@@ -23,4 +24,9 @@ public sealed record ManifestPartDto(
     int PcsKbn,
     string BoxType,
     string NoOfKbn
+);
+
+public sealed record ManifestKanbanDto(
+    string PartNo,
+    string KanbanCd
 );

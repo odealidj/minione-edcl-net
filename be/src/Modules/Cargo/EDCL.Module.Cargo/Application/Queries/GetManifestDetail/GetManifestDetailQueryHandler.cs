@@ -55,7 +55,8 @@ public sealed class GetManifestDetailQueryHandler(CargoDbContext dbContext)
             OrderNo: manifest.OrderNo,
             DockCode: manifest.DockCode,
             PLaneNo: manifest.PLaneNo,
-            PartList: partDtos
+            PartList: partDtos,
+            KanbanList: manifest.Kanbans.Select(k => new ManifestKanbanDto(k.PartNo, k.KanbanCd)).ToList()
         );
 
         return Result<ManifestDetailDto>.Success(dto);

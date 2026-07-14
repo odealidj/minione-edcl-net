@@ -76,9 +76,18 @@ export class RoutePlanningFormComponent implements OnInit {
     supplierCode: ''
   };
 
+  isViewMode: boolean = false;
+
   ngOnInit() {
     this.initForm();
     this.loadMasterData();
+    
+    this.route.queryParamMap.subscribe(q => {
+      this.isViewMode = q.get('mode') === 'view';
+      if (this.isViewMode) {
+        this.form.disable();
+      }
+    });
     
     this.route.paramMap.subscribe(params => {
       const id = params.get('id');

@@ -5,7 +5,7 @@ import { Register } from './features/auth/register/register';
 import { Dashboard } from './features/dashboard/dashboard';
 import { DriverComponent } from './features/master/driver/driver';
 import { SupplierComponent } from './features/master/supplier/supplier';
-import { Monitoring } from './features/operations/monitoring/monitoring';
+
 import { authGuard } from './core/guards/auth.guard';
 import { adminGuard } from './core/guards/admin.guard';
 
@@ -35,7 +35,7 @@ export const routes: Routes = [
       { path: 'master/truck', component: TruckComponent },
       { path: 'master/truck-assignments', component: TruckAssignment },
 
-      { path: 'operations/monitoring', component: Monitoring },
+      { path: 'operations/monitoring', loadComponent: () => import('./features/admin/delivery-monitoring/delivery-monitoring').then(c => c.DeliveryMonitoringComponent) },
       { path: 'admin/users', loadComponent: () => import('./features/admin/user-management/user-management').then(c => c.UserManagementComponent), canActivate: [adminGuard] },
       { path: 'admin/manifest-problems', loadComponent: () => import('./features/admin/manifest-problem/manifest-problem').then(c => c.ManifestProblemComponent), canActivate: [adminGuard] },
       { path: 'admin/route-planning', loadComponent: () => import('./features/admin/route-planning/route-planning/route-planning').then(c => c.RoutePlanningComponent), canActivate: [adminGuard] },

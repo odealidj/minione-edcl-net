@@ -20,7 +20,7 @@ namespace EDCL.Api.Controllers;
 /// that knows about both, which is the correct place for cross-cutting concerns.
 /// </summary>
 [ApiController]
-[Route("api/v1/bff")]
+[Route("api/v1/web/bff")]
 [Authorize(Roles = "ADMIN")]
 public sealed class BffController(IMediator mediator, JobDbContext jobDbContext) : ControllerBase
 {
@@ -65,7 +65,8 @@ public sealed class BffController(IMediator mediator, JobDbContext jobDbContext)
                 ScannedKanban: jobManifest.ScannedKanban,
                 OrderNo:       null,
                 PLaneNo:       null,
-                Parts:         []
+                Parts:         [],
+                Kanbans:       []
             ), traceId));
         }
 
@@ -75,7 +76,7 @@ public sealed class BffController(IMediator mediator, JobDbContext jobDbContext)
         return Ok(ApiResponse<BffManifestDetailDto>.Success(new BffManifestDetailDto(
             ManifestNo:    manifestNo,
             OrderType:     jobManifest?.OrderType  ?? "ORG",
-            DockCode:      cargo.DockCode,
+            DockCode:      cargo.DockCode ?? string.Empty,
             ScanStatus:    jobManifest?.Status     ?? "UNKNOWN",
             TotalKanban:   jobManifest?.TotalKanban    ?? cargo.TotalKanban,
             ScannedKanban: jobManifest?.ScannedKanban  ?? 0,
@@ -88,6 +89,10 @@ public sealed class BffController(IMediator mediator, JobDbContext jobDbContext)
                 PcsKbn:  p.PcsKbn,
                 BoxType: p.BoxType,
                 NoOfKbn: p.NoOfKbn
+            )).ToList(),
+            Kanbans:       cargo.KanbanList.Select(k => new BffManifestKanbanDto(
+                PartNo:   k.PartNo,
+                KanbanCd: k.KanbanCd
             )).ToList()
         ), traceId));
     }
@@ -106,7 +111,8 @@ public sealed record BffManifestDetailDto(
     int     ScannedKanban,
     string? OrderNo,
     string? PLaneNo,
-    List<BffManifestPartDto> Parts
+    List<BffManifestPartDto> Parts,
+    List<BffManifestKanbanDto> Kanbans
 );
 
 public sealed record BffManifestPartDto(
@@ -116,4 +122,9 @@ public sealed record BffManifestPartDto(
     int    PcsKbn,
     string BoxType,
     string NoOfKbn
+);
+
+public sealed record BffManifestKanbanDto(
+    string PartNo,
+    string KanbanCd
 );

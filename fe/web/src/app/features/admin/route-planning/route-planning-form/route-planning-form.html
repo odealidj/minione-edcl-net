@@ -4,7 +4,7 @@
       <i class="fas fa-arrow-left"></i>
     </button>
     <div>
-      <h1 class="text-2xl font-bold text-gray-800">{{ orderId ? 'Edit Route Plan' : 'Create Route Plan' }}</h1>
+      <h1 class="text-2xl font-bold text-gray-800">{{ isViewMode ? 'View Route Plan' : (orderId ? 'Edit Route Plan' : 'Create Route Plan') }}</h1>
     </div>
   </div>
 
@@ -94,7 +94,7 @@
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
       <div class="flex justify-between items-center mb-4">
         <h2 class="text-lg font-semibold text-gray-700">Suppliers (Stops) Sequence</h2>
-        <button type="button" class="btn btn-sm btn-outline btn-primary" (click)="addStop()">
+        <button *ngIf="!isViewMode" type="button" class="btn btn-sm btn-outline btn-primary" (click)="addStop()">
           <i class="fas fa-plus mr-2"></i> Add Stop
         </button>
       </div>
@@ -117,10 +117,11 @@
                        class="input input-sm input-bordered w-full bg-white text-xs font-semibold text-gray-700"
                        placeholder="Select Supplier..."
                        [value]="stopUIStates[i]?.supplierName || ''"
-                       (focus)="stopUIStates[i].supplierDropdownOpen = true"
+                       [readonly]="isViewMode"
+                       (focus)="!isViewMode && (stopUIStates[i].supplierDropdownOpen = true)"
                        (blur)="onSupplierBlur(i)"
                        (input)="onSupplierSearch(i, $event)" />
-                <ul *ngIf="stopUIStates[i]?.supplierDropdownOpen" class="absolute top-10 left-0 z-50 menu p-2 shadow-lg bg-base-100 rounded-box w-full max-h-48 overflow-y-auto flex-nowrap border border-gray-200 text-xs font-normal">
+                <ul *ngIf="stopUIStates[i]?.supplierDropdownOpen && !isViewMode" class="absolute top-10 left-0 z-50 menu p-2 shadow-lg bg-base-100 rounded-box w-full max-h-48 overflow-y-auto flex-nowrap border border-gray-200 text-xs font-normal">
                   <li *ngIf="getFilteredSuppliers(i).length === 0"><a class="pointer-events-none text-gray-500">No supplier found</a></li>
                   <li><a (mousedown)="selectSupplier(i, null)">-- Select Supplier --</a></li>
                   <li *ngFor="let s of getFilteredSuppliers(i)">
@@ -129,7 +130,7 @@
                 </ul>
               </div>
             </div>
-            <button type="button" class="btn btn-ghost btn-sm text-red-500" (click)="removeStop(i)">
+            <button *ngIf="!isViewMode" type="button" class="btn btn-ghost btn-sm text-red-500" (click)="removeStop(i)">
               <i class="fas fa-times"></i>
             </button>
           </div>
@@ -138,7 +139,7 @@
           <div class="p-4">
             <div class="flex justify-between items-center mb-3">
               <h3 class="text-sm font-medium text-gray-600">Manifests to Pickup</h3>
-              <div class="flex items-center">
+              <div *ngIf="!isViewMode" class="flex items-center">
                 <span *ngIf="stopUIStates[i]?.isLoading" class="loading loading-spinner loading-sm text-primary mr-3"></span>
                 <button type="button" class="btn btn-xs btn-outline mr-2" (click)="openManifestModal(i)" title="Load manifests from database">
                   <i class="fas fa-sync-alt mr-1"></i> Reload
@@ -170,7 +171,7 @@
                        [value]="stopUIStates[i]?.search || ''"
                        (keyup.enter)="onStopManifestSearch(i, $any($event.target).value)" 
                        (blur)="onStopManifestSearch(i, $any($event.target).value)" />
-                <button type="button" class="btn btn-sm btn-error" 
+                <button *ngIf="!isViewMode" type="button" class="btn btn-sm btn-error" 
                         [disabled]="!stopUIStates[i]?.selectedCheckboxes.size"
                         (click)="bulkDeleteManifests(i)">
                   <i class="fas fa-trash mr-1"></i> Delete Selected
@@ -183,7 +184,7 @@
                 <table class="table table-xs w-full bg-white">
                   <thead class="bg-gray-50">
                     <tr>
-                      <th class="w-10 text-center">
+                      <th *ngIf="!isViewMode" class="w-10 text-center">
                         <input type="checkbox" class="checkbox checkbox-sm" (change)="toggleSelectAllManifests(i, $event)" />
                       </th>
                       <th>Manifest No*</th>
@@ -192,35 +193,35 @@
                       <th class="w-24">Type</th>
                       <th class="w-24">Skids</th>
                       <th class="w-24">Dock</th>
-                      <th class="w-12 text-center">Act</th>
+                      <th *ngIf="!isViewMode" class="w-12 text-center">Act</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr *ngFor="let m of getVisibleManifests(i).items; let j = index" [formGroupName]="m.originalIndex" class="hover:bg-gray-50">
-                      <td class="text-center">
+                      <td *ngIf="!isViewMode" class="text-center">
                         <input type="checkbox" class="checkbox checkbox-sm" 
                                [checked]="stopUIStates[i]?.selectedCheckboxes.has(m.originalIndex)"
                                (change)="toggleManifestCheckbox(i, m.originalIndex)" />
                       </td>
                       <td>
-                        <input type="text" formControlName="manifestNo" class="input input-xs input-bordered w-full" placeholder="Manifest No*" />
+                        <input type="text" formControlName="manifestNo" class="input input-xs input-bordered w-full" placeholder="Manifest No*" [readonly]="isViewMode" />
                       </td>
                       <td>
-                        <input type="number" formControlName="totalKanban" class="input input-xs input-bordered w-full" placeholder="KB" />
+                        <input type="number" formControlName="totalKanban" class="input input-xs input-bordered w-full" placeholder="KB" [readonly]="isViewMode" />
                       </td>
                       <td>
-                        <input type="number" formControlName="totalPart" class="input input-xs input-bordered w-full" placeholder="Part" />
+                        <input type="number" formControlName="totalPart" class="input input-xs input-bordered w-full" placeholder="Part" [readonly]="isViewMode" />
                       </td>
                       <td>
-                        <input type="text" formControlName="orderType" class="input input-xs input-bordered w-full" placeholder="Type" />
+                        <input type="text" formControlName="orderType" class="input input-xs input-bordered w-full" placeholder="Type" [readonly]="isViewMode" />
                       </td>
                       <td>
-                        <input type="number" formControlName="totalSkid" class="input input-xs input-bordered w-full" placeholder="Skid" />
+                        <input type="number" formControlName="totalSkid" class="input input-xs input-bordered w-full" placeholder="Skid" [readonly]="isViewMode" />
                       </td>
                       <td>
-                        <input type="text" formControlName="dockCode" class="input input-xs input-bordered w-full" placeholder="Dock" />
+                        <input type="text" formControlName="dockCode" class="input input-xs input-bordered w-full" placeholder="Dock" [readonly]="isViewMode" />
                       </td>
-                      <td class="text-center">
+                      <td *ngIf="!isViewMode" class="text-center">
                         <button type="button" class="btn btn-ghost btn-xs text-red-500 hover:bg-red-100" (click)="removeManifest(i, m.originalIndex)">
                           <i class="fas fa-trash"></i>
                         </button>
@@ -260,8 +261,8 @@
 
     <!-- Floating Action Bar -->
     <div class="fixed bottom-0 left-64 right-0 bg-white border-t border-gray-200 p-4 flex justify-end gap-3 z-40">
-      <button type="button" class="btn btn-ghost" routerLink="/admin/route-planning">Cancel</button>
-      <button type="submit" class="btn btn-primary" [disabled]="form.invalid || saving">
+      <button type="button" class="btn btn-ghost" routerLink="/admin/route-planning">{{ isViewMode ? 'Back' : 'Cancel' }}</button>
+      <button *ngIf="!isViewMode" type="submit" class="btn btn-primary" [disabled]="form.invalid || saving">
         <span *ngIf="saving" class="loading loading-spinner loading-sm mr-2"></span>
         {{ orderId ? 'Save Changes' : 'Create Route Plan' }}
       </button>

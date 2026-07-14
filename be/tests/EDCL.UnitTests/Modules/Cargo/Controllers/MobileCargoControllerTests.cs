@@ -33,7 +33,7 @@ public class MobileCargoControllerTests
     public async Task GetManifestDetail_ShouldReturnOk_WhenSuccess()
     {
         // Arrange
-        var response = new ManifestDetailDto("Cycle-1", "DEL-1", "MNF-123", 10, "ORD-1", "DOCK-1", "LANE-1", new List<ManifestPartDto>());
+        var response = new ManifestDetailDto("Cycle-1", "DEL-1", "MNF-123", 10, "ORD-1", "DOCK-1", "LANE-1", new List<ManifestPartDto>(), new List<ManifestKanbanDto>());
         _mediatorMock.Setup(m => m.Send(It.IsAny<GetManifestDetailQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<ManifestDetailDto>.Success(response));
 

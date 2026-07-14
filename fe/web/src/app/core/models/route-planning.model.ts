@@ -107,6 +107,11 @@ export interface BffManifestPart {
   noOfKbn: string;
 }
 
+export interface BffManifestKanban {
+  partNo: string;
+  kanbanCd: string;
+}
+
 export interface BffManifestDetail {
   manifestNo: string;
   orderType: string;
@@ -117,4 +122,5 @@ export interface BffManifestDetail {
   orderNo: string | null;
   pLaneNo: string | null;
   parts: BffManifestPart[];
+  kanbans: BffManifestKanban[];
 }

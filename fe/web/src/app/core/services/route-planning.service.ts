@@ -12,13 +12,22 @@ export class RoutePlanningService {
   private http = inject(HttpClient);
   private apiUrl = `${environment.apiUrl}/admin/pickup-orders`;
 
-  getPickupOrders(page: number = 1, pageSize: number = 10, search?: string): Observable<ApiResponse<PickupOrder[]>> {
+  getPickupOrders(
+    page: number = 1,
+    limit: number = 10,
+    filters: any = {}
+  ): Observable<ApiResponse<PickupOrder[]>> {
     let params = new HttpParams()
-      .set('pageNumber', page)
-      .set('pageSize', pageSize);
-    if (search) {
-      params = params.set('search', search);
-    }
+      .set('PageNumber', page.toString())
+      .set('PageSize', limit.toString());
+
+    if (filters.poNo) params = params.set('PoNo', filters.poNo);
+    if (filters.manifestNo) params = params.set('ManifestNo', filters.manifestNo);
+    if (filters.pickupDate) params = params.set('PickupDate', filters.pickupDate);
+    if (filters.routeCode) params = params.set('RouteCode', filters.routeCode);
+    if (filters.driverId) params = params.set('DriverId', filters.driverId.toString());
+    if (filters.status) params = params.set('Status', filters.status);
+
     return this.http.get<ApiResponse<PickupOrder[]>>(this.apiUrl, { params });
   }
 
