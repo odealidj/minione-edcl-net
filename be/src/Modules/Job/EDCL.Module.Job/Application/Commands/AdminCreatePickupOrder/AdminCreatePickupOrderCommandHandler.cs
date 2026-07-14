@@ -11,7 +11,7 @@ using Hangfire;
 
 namespace EDCL.Module.Job.Application.Commands.AdminCreatePickupOrder;
 
-internal sealed class AdminCreatePickupOrderCommandHandler(JobDbContext dbContext) 
+internal sealed class AdminCreatePickupOrderCommandHandler(JobDbContext dbContext, IMediator mediator)
     : IRequestHandler<AdminCreatePickupOrderCommand, Result<long>>
 {
     public async Task<Result<long>> Handle(AdminCreatePickupOrderCommand request, CancellationToken cancellationToken)
@@ -56,7 +56,7 @@ internal sealed class AdminCreatePickupOrderCommandHandler(JobDbContext dbContex
         await dbContext.SaveChangesAsync(cancellationToken);
 
         // Publish event asynchronously via Hangfire for resilience (retries if Cargo DB fails)
-        BackgroundJob.Enqueue<IMediator>(m => m.Publish(new ManifestsAssignedToRouteIntegrationEvent(requestedManifestNos, true), CancellationToken.None));
+        await mediator.Publish(new ManifestsAssignedToRouteIntegrationEvent(requestedManifestNos, true), cancellationToken);
 
         return Result<long>.Success(pickupOrder.Id);
     }

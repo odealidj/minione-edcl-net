@@ -17,22 +17,142 @@
     </div>
   </div>
 
-  <!-- Stats Grid -->
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-    @for (stat of stats; track stat.title) {
-      <div class="card bg-base-100 shadow-xl border border-base-200 hover:shadow-2xl transition-all hover:-translate-y-1">
-        <div class="card-body flex-row items-center justify-between p-6">
-          <div>
-            <div class="text-base-content/60 font-medium mb-1">{{ stat.title }}</div>
-            <div class="text-3xl font-bold text-base-content">{{ stat.value }}</div>
-          </div>
-          <div class="w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner" [class]="stat.bg">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" [class]="stat.color" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" [attr.d]="stat.icon" />
-            </svg>
-          </div>
+  <!-- Header with Date Picker -->
+  <div class="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+    <h2 class="text-xl font-bold text-gray-800">Operational Dashboard</h2>
+    <div class="flex items-center gap-3">
+      <span class="text-sm font-medium text-gray-500">Data Date:</span>
+      <input type="date" class="input input-bordered input-sm bg-gray-50 border-gray-200" [(ngModel)]="selectedDate" (change)="onDateChange()">
+      <button class="btn btn-primary btn-sm rounded-full" (click)="loadData()" [disabled]="loading">
+        <i class="fas fa-sync-alt" [class.animate-spin]="loading"></i> Refresh
+      </button>
+    </div>
+  </div>
+
+  @if (loading) {
+    <!-- Skeleton loader -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 animate-pulse">
+      @for (i of [1,2,3,4]; track i) {
+        <div class="h-28 bg-gray-200 rounded-2xl"></div>
+      }
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-pulse">
+      <div class="h-96 bg-gray-200 rounded-2xl"></div>
+      <div class="lg:col-span-2 h-96 bg-gray-200 rounded-2xl"></div>
+    </div>
+  } @else if (summary) {
+    <!-- KPI Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="card bg-white shadow-sm border border-gray-100 p-5 rounded-2xl flex flex-row items-center justify-between">
+        <div>
+          <p class="text-sm font-medium text-gray-500">Total Orders</p>
+          <h3 class="text-3xl font-bold text-gray-800 mt-1">{{summary.kpis.totalOrders}}</h3>
+        </div>
+        <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center">
+          <i class="fas fa-box text-xl"></i>
         </div>
       </div>
-    }
-  </div>
+      <div class="card bg-white shadow-sm border border-gray-100 p-5 rounded-2xl flex flex-row items-center justify-between">
+        <div>
+          <p class="text-sm font-medium text-gray-500">Pending</p>
+          <h3 class="text-3xl font-bold text-gray-800 mt-1">{{summary.kpis.pendingOrders}}</h3>
+        </div>
+        <div class="w-12 h-12 rounded-xl bg-yellow-50 text-yellow-500 flex items-center justify-center">
+          <i class="fas fa-hourglass-half text-xl"></i>
+        </div>
+      </div>
+      <div class="card bg-white shadow-sm border border-gray-100 p-5 rounded-2xl flex flex-row items-center justify-between">
+        <div>
+          <p class="text-sm font-medium text-gray-500">On Progress</p>
+          <h3 class="text-3xl font-bold text-gray-800 mt-1">{{summary.kpis.onProgressOrders}}</h3>
+        </div>
+        <div class="w-12 h-12 rounded-xl bg-purple-50 text-purple-500 flex items-center justify-center">
+          <i class="fas fa-truck-moving text-xl"></i>
+        </div>
+      </div>
+      <div class="card bg-white shadow-sm border border-gray-100 p-5 rounded-2xl flex flex-row items-center justify-between">
+        <div>
+          <p class="text-sm font-medium text-gray-500">Completed</p>
+          <h3 class="text-3xl font-bold text-gray-800 mt-1">{{summary.kpis.completedOrders}}</h3>
+        </div>
+        <div class="w-12 h-12 rounded-xl bg-green-50 text-green-500 flex items-center justify-center">
+          <i class="fas fa-check-circle text-xl"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts & Alerts Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Route Distribution Chart -->
+      <div class="card bg-white shadow-sm border border-gray-100 rounded-2xl">
+        <div class="p-5 border-b border-gray-100">
+          <h3 class="font-bold text-gray-800">Route Load Distribution</h3>
+          <p class="text-xs text-gray-500">Active pickup orders by route</p>
+        </div>
+        <div class="p-5 flex justify-center items-center h-72">
+          @if (summary.routeDistributions.length > 0) {
+            <div class="relative w-full h-full">
+              <canvas #routeChart></canvas>
+              <!-- Center Text -->
+              <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                <span class="text-3xl font-bold text-gray-800">{{summary.kpis.totalOrders}}</span>
+                <span class="text-xs text-gray-500 uppercase tracking-wider">Orders</span>
+              </div>
+            </div>
+          } @else {
+            <div class="text-center text-gray-400 flex flex-col items-center">
+              <i class="fas fa-chart-pie text-4xl mb-2 text-gray-200"></i>
+              <p>No route data for this date</p>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Late Departures Alert -->
+      <div class="lg:col-span-2 card bg-white shadow-sm border border-gray-100 rounded-2xl overflow-hidden flex flex-col">
+        <div class="p-5 bg-red-50/50 border-b border-red-100 flex justify-between items-center">
+          <div>
+            <h3 class="font-bold text-red-700 flex items-center gap-2">
+              <i class="fas fa-exclamation-triangle"></i> Late Departure Alerts
+            </h3>
+            <p class="text-xs text-red-600/80">Pending orders that have passed their Estimated Departure Time</p>
+          </div>
+          <span class="badge badge-error badge-sm text-white font-bold">{{summary.lateDepartures.length}}</span>
+        </div>
+        <div class="overflow-x-auto flex-1">
+          <table class="table table-zebra table-sm w-full">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="font-semibold text-gray-600">PO No</th>
+                <th class="font-semibold text-gray-600">Route</th>
+                <th class="font-semibold text-gray-600 text-right">Est. Departure</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (alert of summary.lateDepartures; track alert.poNo) {
+                <tr class="hover">
+                  <td class="font-medium font-mono text-xs">{{alert.poNo}}</td>
+                  <td><span class="badge badge-ghost badge-sm font-semibold">{{alert.routeCode}}</span></td>
+                  <td class="text-right text-red-600 font-bold">{{alert.estimatedDepartureTime}}</td>
+                </tr>
+              }
+              @if (summary.lateDepartures.length === 0) {
+                <tr>
+                  <td colspan="3" class="text-center py-10 text-gray-500">
+                    <div class="flex flex-col items-center gap-2">
+                      <div class="w-12 h-12 rounded-full bg-green-50 text-green-500 flex items-center justify-center">
+                        <i class="fas fa-check text-xl"></i>
+                      </div>
+                      <p class="font-medium">All clear!</p>
+                      <p class="text-xs">No late departures detected today.</p>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  }
 </div>

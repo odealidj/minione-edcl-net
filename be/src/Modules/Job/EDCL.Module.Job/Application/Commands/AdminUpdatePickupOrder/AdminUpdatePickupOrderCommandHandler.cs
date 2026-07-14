@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace EDCL.Module.Job.Application.Commands.AdminUpdatePickupOrder;
 
-internal sealed class AdminUpdatePickupOrderCommandHandler(JobDbContext dbContext) 
+internal sealed class AdminUpdatePickupOrderCommandHandler(JobDbContext dbContext, IMediator mediator) 
     : IRequestHandler<AdminUpdatePickupOrderCommand, Result<bool>>
 {
     public async Task<Result<bool>> Handle(AdminUpdatePickupOrderCommand request, CancellationToken cancellationToken)
@@ -64,10 +64,10 @@ internal sealed class AdminUpdatePickupOrderCommandHandler(JobDbContext dbContex
         await dbContext.SaveChangesAsync(cancellationToken);
 
         if (toUnassign.Any())
-            BackgroundJob.Enqueue<IMediator>(m => m.Publish(new ManifestsAssignedToRouteIntegrationEvent(toUnassign, false), CancellationToken.None));
+            await mediator.Publish(new ManifestsAssignedToRouteIntegrationEvent(toUnassign, false), cancellationToken);
 
         if (toAssign.Any())
-            BackgroundJob.Enqueue<IMediator>(m => m.Publish(new ManifestsAssignedToRouteIntegrationEvent(toAssign, true), CancellationToken.None));
+            await mediator.Publish(new ManifestsAssignedToRouteIntegrationEvent(toAssign, true), cancellationToken);
 
         return Result<bool>.Success(true);
     }
