@@ -11,6 +11,7 @@ public class CargoDbContext(DbContextOptions<CargoDbContext> options) : DbContex
     public DbSet<ManifestKanban> ManifestKanbans => Set<ManifestKanban>();
     public DbSet<ManifestSkid> ManifestSkids => Set<ManifestSkid>();
     public DbSet<IngestionError> IngestionErrors => Set<IngestionError>();
+    public DbSet<ManifestProblem> ManifestProblems => Set<ManifestProblem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -82,6 +83,20 @@ public class CargoDbContext(DbContextOptions<CargoDbContext> options) : DbContex
             b.Property(x => x.Payload).HasColumnType("nvarchar(max)").IsRequired();
             b.Property(x => x.ErrorMessage).HasColumnType("nvarchar(max)").IsRequired();
             b.Property(x => x.StackTrace).HasColumnType("nvarchar(max)");
+        });
+
+        modelBuilder.Entity<ManifestProblem>(b =>
+        {
+            b.ToTable("manifest_problems");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.OperationType).HasMaxLength(100).IsRequired();
+            b.Property(x => x.Payload).HasColumnType("nvarchar(max)").IsRequired();
+            b.Property(x => x.Description).HasColumnType("nvarchar(max)").IsRequired();
+            b.Property(x => x.Status).HasMaxLength(100).IsRequired();
+            b.Property(x => x.ManifestNo).HasMaxLength(100).IsRequired(false);
+            b.Property(x => x.DeliveryNo).HasMaxLength(100).IsRequired(false);
+            b.Property(x => x.ResolvedBy).HasMaxLength(100).IsRequired(false);
+            b.Property(x => x.ResolutionReason).HasColumnType("nvarchar(max)").IsRequired(false);
         });
 
         base.OnModelCreating(modelBuilder);

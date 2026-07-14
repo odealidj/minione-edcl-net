@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <UserSecretsId>edcl-worker-reporter</UserSecretsId>
+    <AssemblyName>edcl.worker.reporter</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup Label="NuGet Packages">

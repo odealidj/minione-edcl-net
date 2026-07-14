@@ -1,66 +1,68 @@
 # EDCL IDCS Seeder
 
-IDCS Seeder is a .NET Console Application simulation project designed to mimic the behavior of the legacy IDCS system by performing direct Data Manipulation (Insertions) into the IDCS database tables.
+IDCS Seeder adalah proyek simulasi berupa .NET Console Application yang dirancang untuk meniru perilaku sistem IDCS (*legacy*) dengan melakukan Manipulasi Data (Insert/Update) secara langsung ke dalam tabel-tabel *database* IDCS.
 
-This project is crucial for **End-to-End (E2E) Testing** of the **Change Data Capture (CDC)** mechanism using **Debezium**, which connects to **RabbitMQ** (via MassTransit) and is consumed by the backend `EDCL.Worker.Ingestion` service.
+Proyek ini menjadi tulang punggung (*backbone*) untuk **Pengujian End-to-End (E2E)** dari mekanisme **Change Data Capture (CDC)** menggunakan **Debezium**, yang terhubung ke **RabbitMQ** (melalui MassTransit) dan kemudian datanya dikonsumsi oleh layanan backend `EDCL.Worker.Ingestion`.
 
-## 🎯 Key Capabilities
+## 🎯 Kapabilitas Utama
 
-- **Initialize IDCS Database:** Automatically create the database, tables, and enable SQL Server Change Data Capture (CDC) at both the database and table levels.
-- **Simulate Real-time Inserts:** Insert random, realistic data (Manifests, Parts, Kanbans, Skids) mirroring the legacy IDCS data structure.
-- **Bulk Seeding:** Generate large volumes of data (e.g., 200 Manifests) for load testing and CDC performance evaluation.
-- **Edge-Case Simulation:**
-  - **Out of Order:** Simulates inserting child records (parts/kanbans) before their parent manifest, triggering EDCL's retry mechanisms and SSE fault events.
-  - **Race Conditions:** Simulates high-concurrency race conditions where related inserts are delayed.
-- **Master Data Seeding:** Automatically injects master data directly into the EDCL database.
+- **Inisialisasi Database IDCS:** Membuat *database*, tabel-tabel, dan mengaktifkan SQL Server Change Data Capture (CDC) secara otomatis baik di tingkat *database* maupun tabel.
+- **Simulasi Insert Real-time:** Memasukkan data acak yang realistis (Manifest, Part, Kanban, Skid) yang mencerminkan struktur data IDCS sesungguhnya.
+- **Bulk Seeding (Data Massal):** Menghasilkan data dalam volume besar (misalnya 200 Manifest sekaligus) untuk pengujian beban dan evaluasi performa CDC.
+- **Pengujian Gatekeeper (CDC Anomalies):** Menghasilkan status transaksional tertentu di backend EDCL secara spesifik untuk menguji aturan penolakan data (misalnya: menolak pembaruan CDC ketika status Manifest sudah `InTransit` atau `Delivered`).
+- **Simulasi Kasus Ekstrem (Edge-Case):**
+  - **Out of Order (Tidak Berurutan):** Mensimulasikan masuknya data anak (Part/Kanban) sebelum data induknya (Manifest) ada, memicu mekanisme *retry* EDCL dan memberikan peringatan via Server-Sent Events (SSE).
+  - **Race Conditions (Kondisi Balapan):** Mensimulasikan penundaan proses simpan data Manifest sehingga berbarengan dengan proses data lainnya di situasi konkurensi yang tinggi.
+- **Master Data Seeding:** Secara otomatis menyuntikkan data master pendukung langsung ke dalam *database* EDCL (seperti Ekspedisi, Rute, Truk, Sopir, Pemasok).
 
-## 🛠 Prerequisites
+## 🛠 Prasyarat
 
-This project comes with its own isolated SQL Server container for IDCS simulation (`docker-compose-idcs.yml`).
-1. Make sure you run `make idcs-up` in this directory to start the IDCS SQL Server on port 1466.
-2. The EDCL core infrastructure must also be running.
+Proyek ini menyertakan *container* SQL Server tersendiri yang terisolasi untuk keperluan simulasi IDCS (`docker-compose-idcs.yml`).
+1. Pastikan Anda menjalankan `make idcs-up` di direktori ini untuk menyalakan SQL Server IDCS di *port* `1466`.
+2. Infrastruktur utama EDCL (RabbitMQ, SQL Server EDCL di *port* `1444`, Debezium) juga harus dalam keadaan berjalan.
 
-## 🚀 Usage (Local Makefile)
+## 🚀 Panduan Penggunaan (Local Makefile)
 
-The `idcs-seeder` directory contains a dedicated `Makefile` to quickly run commands. From within the `idcs-seeder` directory, you can run:
+Direktori `idcs-seeder` menyediakan file `Makefile` khusus agar Anda dapat menjalankan perintah dengan cepat. Jalankan perintah di bawah ini dari dalam direktori `idcs-seeder`:
 
-### Infrastructure Commands
-| Command | Description |
+### Perintah Infrastruktur
+| Perintah | Deskripsi |
 |---|---|
-| `make idcs-up` | Starts the IDCS SQL Server container using `docker-compose-idcs.yml`. |
-| `make idcs-down` | Stops and removes the IDCS SQL Server container. |
+| `make idcs-up` | Menyalakan *container* SQL Server IDCS menggunakan `docker-compose-idcs.yml`. |
+| `make idcs-down` | Menghentikan dan menghapus *container* SQL Server IDCS. |
 
-### Initialization & Reset
-| Command | Description |
+### Inisialisasi & Pembersihan (Cleanup)
+| Perintah | Deskripsi |
 |---|---|
-| `make seed-init` | Initializes the IDCS database, creates all necessary tables, and enables CDC via `sys.sp_cdc_enable_db`. **Must be run first.** |
-| `make seed-reset` | Truncates and resets all Manifest transactional data in **both** IDCS and EDCL databases. Use this to clear data safely while maintaining referential integrity. |
+| `make seed-init` | Menginisialisasi *database* IDCS, membuat seluruh tabel yang diperlukan, dan mengaktifkan CDC via `sys.sp_cdc_enable_db`. **Perintah ini harus dijalankan paling pertama.** |
+| `make reset-transaction` | Menghapus (truncate) dan me-reset seluruh data transaksional Manifest di **kedua** *database* (IDCS maupun EDCL). |
+| `make reset-pickup` | Secara aman membersihkan tabel `job.pickup_orders` (dan anakannya) di EDCL yang dihasilkan saat proses *testing*. |
+| `make reset-master` | Mereset seluruh Data Master dari *database* EDCL. |
 
-### Master Data Seeding
-| Command | Description |
+### Master Data Seeding (Pembuatan Data Master)
+| Perintah | Deskripsi |
 |---|---|
-| `make seed-edcl-master` | Seeds core EDCL master data, specifically Transporters (`Hikari Logistics`), Trucks (`B 9607 PXT`), and basic Driver users with hashed PINs. |
-| `make seed-supplier` | Inserts mock Supplier data into both EDCL and IDCS databases. |
+| `make seed-master` | Membuat data master inti EDCL (Ekspedisi/Logistic Partners, Pemasok, Rute, Sopir, dan Truk). |
+| `make seed-one-master` | Membuat satu spesifik data master (secara interaktif). |
 
-### Transactional Data Seeding
-| Command | Description |
+### Transactional Data Seeding (Pembuatan Data Transaksi)
+| Perintah | Deskripsi |
 |---|---|
-| `make seed-bulk` | Performs a heavy insert of 200 Manifests with realistic Parts, Kanbans, and Skids to test CDC backpressure and load test the Ingestion Worker. |
-| `make seed-manifest` | Inserts 1 random Manifest record into the IDCS database. |
-| `make seed-part` | Inserts 1 random Part attached to the latest Manifest. |
-| `make seed-kanban` | Inserts 1 Kanban code attached to the latest Part. |
-| `make seed-skid` | Inserts 1 Skid code attached to the latest Manifest. |
+| `make seed-transaction` | Menyuntikkan satu alur transaksi lengkap (1 Manifest, 1 Skid, 1 Part, 1 Kanban). |
+| `make seed-bulk` | Menjalankan *insert* besar-besaran (200 Manifest beserta Part, Kanban, dan Skid yang realistis) untuk menguji kestabilan antrean CDC dan beban dari *Worker Ingestion*. |
 
-### Edge Case Simulations
-| Command | Description |
+### Simulasi Kasus Ekstrem & Gatekeeper
+| Perintah | Deskripsi |
 |---|---|
-| `make seed-out-of-order` | Inserts a Part with a non-existent `ManifestId`. Used to test Dead Letter Queues (DLQ) and Retry mechanisms in the Ingestion Worker. |
-| `make seed-race-condition`| Deliberately delays the insertion of a Manifest *after* its Parts have been inserted to observe handling of Race Conditions by the CDC Worker. |
-| `make seed-k6-clean` | Cleans up the environment specifically for K6 performance testing. |
+| `make trigger-reject` | **Pengujian Gatekeeper:** Membuat data *Pickup Order* fiktif dengan status `ON_PROGRESS` dan `COMPLETED` langsung di EDCL, kemudian memicu *update* CDC dari IDCS untuk menguji sistem menolak *update* tersebut dan merekamnya di tabel `manifest_problems`. |
+| `make seed-out-of-order` | Menyuntikkan data *Part* dengan ID *Manifest* yang tidak pernah ada. Digunakan untuk menguji *Dead Letter Queues* (DLQ) dan mekanisme *Retry* pada *Worker Ingestion*. |
+| `make seed-race-condition`| Secara sengaja menunda proses pembuatan *Manifest* *setelah* data *Part*-nya selesai dibuat guna melihat bagaimana *Worker* CDC menanggulangi *Race Conditions*. |
+| `make seed-k6-clean` | Membersihkan sistem khusus untuk persiapan tes performa K6. |
 
-## 🏗 How it Works (Under the Hood)
+## 🏗 Cara Kerja Sistem (Under the Hood)
 
-1. The seeder connects directly to the SQL Server instances using `Dapper` (`1466` for IDCS, `1444` for EDCL).
-2. When performing IDCS inserts (e.g., `make seed-bulk`), the Debezium Server container listens to the transaction log of the `IDCS` database.
-3. Debezium detects the new rows and publishes JSON payloads to RabbitMQ.
-4. The `EDCL.Worker.Ingestion` service consumes these messages from RabbitMQ and transforms them into EDCL's normalized tables (`edcl.ingestion.manifests`, etc).
+1. *Seeder* ini terhubung langsung ke SQL Server menggunakan `Dapper` (`1466` untuk IDCS, `1444` untuk EDCL).
+2. Ketika melakukan *insert* ke IDCS (contoh: `make seed-transaction`), *container* Debezium Server memantau log transaksi (*transaction log*) di dalam *database* `IDCS`.
+3. Debezium mendeteksi baris-baris baru dan langsung mengirimkan pesan (JSON *payloads*) ke RabbitMQ.
+4. Layanan `EDCL.Worker.Ingestion` (Worker) akan mengonsumsi pesan-pesan dari RabbitMQ ini.
+5. **Validasi Gatekeeper:** Worker memvalidasi data terhadap status `job.pickup_order_manifests` saat ini. Jika status valid, data akan dilanjutkan dan dirapihkan masuk ke dalam tabel `ingestion.manifests` EDCL. Namun jika ditolak (misalnya barang sudah *picked up*), *Worker* tersebut akan mencatat masalahnya (log) ke tabel `ingestion.manifest_problems`.

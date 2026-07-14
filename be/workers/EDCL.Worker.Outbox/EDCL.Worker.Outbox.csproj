@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <UserSecretsId>edcl-worker-outbox</UserSecretsId>
+    <AssemblyName>edcl.worker.outbox</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup Label="NuGet Packages">

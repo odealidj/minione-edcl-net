@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <UserSecretsId>edcl-worker-ingestion</UserSecretsId>
+    <AssemblyName>edcl.worker.ingestion</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup Label="NuGet Packages">

@@ -81,3 +81,13 @@ export interface PendingManifestSupplier {
   supplierCode: string;
   supplierName: string;
 }
+
+export interface ManifestProblem {
+  id: number;
+  operationType: string;
+  payload: string;
+  description: string;
+  status: string;
+  occurredAt: string;
+  manifestNo?: string | null;
+}

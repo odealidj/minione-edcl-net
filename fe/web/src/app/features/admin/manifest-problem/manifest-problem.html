@@ -1,0 +1,213 @@
+<div class="p-6">
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-bold text-gray-800">CDC Anomalies (Manifest Problems)</h1>
+    <button (click)="loadProblems()" class="btn btn-primary btn-sm">Refresh</button>
+  </div>
+
+  <!-- Filters -->
+  <div class="flex gap-4 mb-6">
+    <input 
+      type="text" 
+      placeholder="Search Manifest No or Description..." 
+      class="input input-bordered w-full max-w-xs" 
+      [(ngModel)]="searchQuery" 
+      (keyup.enter)="onSearch()" />
+      
+    <select class="select select-bordered" [(ngModel)]="statusFilter" (change)="onSearch()">
+      <option value="">All Statuses</option>
+      <option value="Pending Resolution">Pending Resolution</option>
+      <option value="Resolved">Resolved</option>
+    </select>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading()" class="flex justify-center p-8">
+    <span class="loading loading-spinner loading-lg"></span>
+  </div>
+
+  <!-- Data Table -->
+  <div class="overflow-x-auto bg-white rounded-box shadow" *ngIf="!isLoading()">
+    <table class="table table-zebra w-full">
+      <thead>
+        <tr class="bg-base-200">
+          <th>ID</th>
+          <th>Manifest No</th>
+          <th>Pickup Order</th>
+          <th>Operation</th>
+          <th>Description</th>
+          <th>Status</th>
+          <th>Occurred At</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let problem of problems()">
+          <td>{{ problem.id }}</td>
+          <td class="font-semibold">{{ problem.manifestNo || '-' }}</td>
+          <td class="font-semibold text-blue-600">{{ problem.deliveryNo || '-' }}</td>
+          <td>
+            <div class="badge" 
+                 [class.badge-info]="problem.operationType === 'UPDATE'"
+                 [class.badge-error]="problem.operationType === 'DELETE'"
+                 [class.badge-warning]="problem.operationType === 'INSERT'">
+              {{ problem.operationType }}
+            </div>
+          </td>
+          <td>
+            <div class="text-sm max-w-md truncate" [title]="problem.description">
+              {{ problem.description }}
+            </div>
+          </td>
+          <td>
+            <div class="badge"
+                 [class.badge-success]="problem.status === 'Resolved'"
+                 [class.badge-warning]="problem.status === 'Pending Resolution'">
+              {{ problem.status }}
+            </div>
+          </td>
+          <td>{{ problem.occurredAt | date:'medium' }}</td>
+          <td class="flex gap-2">
+            <button 
+              class="btn btn-xs btn-info text-white" 
+              (click)="openViewModal(problem)">
+              View
+            </button>
+            <button 
+              *ngIf="problem.status !== 'Resolved'"
+              class="btn btn-xs btn-success text-white" 
+              (click)="openResolveModal(problem.id)">
+              Resolve
+            </button>
+          </td>
+        </tr>
+        <tr *ngIf="problems().length === 0">
+          <td colspan="8" class="text-center py-4">No manifest problems found.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <div class="flex justify-between items-center mt-4" *ngIf="totalCount() > 0 && !isLoading()">
+    <div class="text-sm text-gray-500">
+      Showing {{ (page() - 1) * pageSize() + 1 }} to 
+      {{ page() * pageSize() > totalCount() ? totalCount() : page() * pageSize() }} 
+      of {{ totalCount() }} entries
+    </div>
+    <div class="join">
+      <button 
+        class="join-item btn btn-sm" 
+        [disabled]="page() === 1"
+        (click)="onPageChange(page() - 1)">«</button>
+      <button class="join-item btn btn-sm">Page {{ page() }}</button>
+      <button 
+        class="join-item btn btn-sm" 
+        [disabled]="page() * pageSize() >= totalCount()"
+        (click)="onPageChange(page() + 1)">»</button>
+    </div>
+  </div>
+
+  <!-- Resolve Modal -->
+  <dialog id="resolve_modal" class="modal">
+    <div class="modal-box">
+      <h3 class="font-bold text-lg mb-4">Resolve Manifest Problem</h3>
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Resolution Reason / Note</span>
+        </label>
+        <textarea 
+          class="textarea textarea-bordered h-24" 
+          placeholder="Describe how this issue was resolved..."
+          [(ngModel)]="resolveReason"
+        ></textarea>
+      </div>
+      <div class="modal-action">
+        <button class="btn btn-ghost" (click)="closeResolveModal()">Cancel</button>
+        <button class="btn btn-success text-white" (click)="submitResolve()">Submit Resolution</button>
+      </div>
+    </div>
+    <form method="dialog" class="modal-backdrop" (click)="closeResolveModal()">
+      <button>close</button>
+    </form>
+  </dialog>
+
+  <!-- View Details Modal -->
+  <dialog id="view_modal" class="modal">
+    <div class="modal-box w-11/12 max-w-3xl">
+      <h3 class="font-bold text-lg mb-4">Problem Details</h3>
+      
+      <div *ngIf="viewProblem()" class="grid grid-cols-2 gap-4 mb-6">
+        <div>
+          <p class="text-sm text-gray-500">Operation Type</p>
+          <p class="font-semibold">{{ viewProblem().operationType }}</p>
+        </div>
+        <div>
+          <p class="text-sm text-gray-500">Occurred At</p>
+          <p class="font-semibold">{{ viewProblem().occurredAt | date:'medium' }}</p>
+        </div>
+        <div class="col-span-2">
+          <p class="text-sm text-gray-500">Description</p>
+          <p>{{ viewProblem().description }}</p>
+        </div>
+      </div>
+
+      <div class="divider">Resolution</div>
+      
+      <div *ngIf="viewProblem()?.status === 'Resolved'; else notResolved" class="grid grid-cols-2 gap-4 mb-6 bg-green-50 p-4 rounded-lg">
+        <div>
+          <p class="text-sm text-gray-500">Resolved By</p>
+          <p class="font-semibold">{{ viewProblem().resolvedBy }}</p>
+        </div>
+        <div>
+          <p class="text-sm text-gray-500">Resolved At</p>
+          <p class="font-semibold">{{ viewProblem().resolvedAt | date:'medium' }}</p>
+        </div>
+        <div class="col-span-2">
+          <p class="text-sm text-gray-500">Resolution Reason</p>
+          <p>{{ viewProblem().resolutionReason }}</p>
+        </div>
+      </div>
+      <ng-template #notResolved>
+        <div class="mb-6 bg-yellow-50 p-4 rounded-lg text-yellow-800">
+          This problem is currently Pending Resolution.
+        </div>
+      </ng-template>
+
+      <div class="divider">Pickup Order Details</div>
+
+      <div *ngIf="!viewProblem()?.pickupOrderId" class="text-gray-500 italic">
+        No Pickup Order is associated with this anomaly.
+      </div>
+
+      <div *ngIf="viewProblem()?.pickupOrderId && !viewPickupOrder()" class="flex justify-center p-4">
+        <span class="loading loading-spinner"></span>
+      </div>
+
+      <div *ngIf="viewPickupOrder()" class="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
+        <div>
+          <p class="text-sm text-gray-500">Delivery No (PO)</p>
+          <p class="font-bold">{{ viewPickupOrder().poNo }}</p>
+        </div>
+        <div>
+          <p class="text-sm text-gray-500">Route Code</p>
+          <p class="font-semibold">{{ viewPickupOrder().routeCode }}</p>
+        </div>
+        <div>
+          <p class="text-sm text-gray-500">Pickup Date</p>
+          <p class="font-semibold">{{ viewPickupOrder().pickupDate | date:'mediumDate' }}</p>
+        </div>
+        <div>
+          <p class="text-sm text-gray-500">Status</p>
+          <p class="font-semibold">{{ viewPickupOrder().status }}</p>
+        </div>
+      </div>
+
+      <div class="modal-action">
+        <button class="btn btn-ghost" (click)="closeViewModal()">Close</button>
+      </div>
+    </div>
+    <form method="dialog" class="modal-backdrop" (click)="closeViewModal()">
+      <button>close</button>
+    </form>
+  </dialog>
+</div>

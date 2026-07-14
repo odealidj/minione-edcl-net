@@ -1,4 +1,4 @@
-.PHONY: idcs-up idcs-down seed-init seed-master seed-transaction seed-out-of-order seed-race-condition seed-bulk reset-transaction reset-master seed-one-master reset-pickup
+.PHONY: idcs-up idcs-down seed-init seed-master seed-transaction seed-out-of-order seed-race-condition seed-bulk reset-transaction reset-master seed-one-master reset-pickup trigger-reject
 
 idcs-up:
 	docker-compose -f docker-compose-idcs.yml up -d
@@ -32,6 +32,9 @@ reset-master:
 
 reset-pickup:
 	dotnet run reset-pickup
+
+trigger-reject:
+	dotnet run trigger-reject
 
 seed-k6-clean:
 	cd ../be/tests/k6/EDCL.K6Seeder && dotnet run clean

@@ -150,6 +150,8 @@ public class Worker : BackgroundService
 
     private async Task ProcessMessageAsync(string message)
     {
+        if (message == "default") return;
+
         _logger.LogInformation($"RAW MESSAGE: {message}");
         using var document = JsonDocument.Parse(message);
         var root = document.RootElement;
@@ -171,39 +173,49 @@ public class Worker : BackgroundService
             
         var op = opElement.GetString();
         
-        // We only care about creates and updates
-        if (op != "c" && op != "u")
+        // We only care about creates, updates, and deletes
+        if (op != "c" && op != "u" && op != "d")
             return;
             
-        if (!payload.TryGetProperty("after", out var after))
-            return;
+        JsonElement payloadData;
+        if (op == "d")
+        {
+            if (!payload.TryGetProperty("before", out payloadData))
+                return;
+        }
+        else
+        {
+            if (!payload.TryGetProperty("after", out payloadData))
+                return;
+        }
 
-        _logger.LogInformation($"Received CDC event for table: {table}");
+        _logger.LogInformation($"Received CDC event for table: {table}, op: {op}");
 
         if (table?.Equals("Manifests", StringComparison.OrdinalIgnoreCase) == true
             || table?.Equals("manifests", StringComparison.OrdinalIgnoreCase) == true)
         {
-            await ProcessManifestAsync(after);
+            await ProcessManifestAsync(payloadData, op);
         }
         else if (table?.Equals("ManifestParts", StringComparison.OrdinalIgnoreCase) == true
             || table?.Equals("manifest_parts", StringComparison.OrdinalIgnoreCase) == true)
         {
-            await ProcessManifestPartAsync(after);
+            await ProcessManifestPartAsync(payloadData, op);
         }
         else if (table?.Equals("ManifestKanbans", StringComparison.OrdinalIgnoreCase) == true
             || table?.Equals("manifest_kanbans", StringComparison.OrdinalIgnoreCase) == true)
         {
-            await ProcessManifestKanbanAsync(after);
+            await ProcessManifestKanbanAsync(payloadData, op);
         }
         else if (table?.Equals("ManifestSkids", StringComparison.OrdinalIgnoreCase) == true
             || table?.Equals("manifest_skids", StringComparison.OrdinalIgnoreCase) == true)
         {
-            await ProcessManifestSkidAsync(after);
+            await ProcessManifestSkidAsync(payloadData, op);
         }
         else if (table?.Equals("Suppliers", StringComparison.OrdinalIgnoreCase) == true
             || table?.Equals("suppliers", StringComparison.OrdinalIgnoreCase) == true)
         {
-            await ProcessSupplierAsync(after);
+            if (op != "d")
+                await ProcessSupplierAsync(payloadData);
         }
         else
         {
@@ -211,8 +223,55 @@ public class Worker : BackgroundService
         }
     }
 
-    private async Task ProcessManifestAsync(JsonElement after)
+    private string GetOperationName(string op) => op switch
     {
+        "c" => "INSERT",
+        "u" => "UPDATE",
+        "d" => "DELETE",
+        _ => "UNKNOWN"
+    };
+
+    private async Task<(bool IsLocked, string Status, string DeliveryNo, long? PickupOrderId)> IsManifestLockedAsync(SqlConnection connection, string manifestNo)
+    {
+        var sql = @"
+            SELECT TOP 1 po.Status, po.delivery_no, po.Id 
+            FROM edcl.job.pickup_orders po
+            INNER JOIN edcl.job.pickup_order_details pod ON po.Id = pod.PickupOrderId
+            INNER JOIN edcl.job.pickup_order_manifests pom ON pod.Id = pom.PickupOrderDetailId
+            WHERE pom.ManifestNo = @ManifestNo AND po.IsDeleted = 0 AND pom.IsDeleted = 0 AND pod.IsDeleted = 0";
+            
+        var result = await connection.QueryFirstOrDefaultAsync(sql, new { ManifestNo = manifestNo });
+        if (result != null)
+        {
+            string status = result.Status;
+            if (status == "ON_PROGRESS" || status == "COMPLETED")
+            {
+                return (true, status, result.delivery_no, result.Id);
+            }
+        }
+        return (false, string.Empty, string.Empty, null);
+    }
+
+    private async Task LogManifestProblemAsync(SqlConnection connection, string opType, string payload, string description, string manifestNo, string deliveryNo, long? pickupOrderId)
+    {
+        var sql = @"
+            INSERT INTO edcl.ingestion.manifest_problems (OperationType, Payload, Description, Status, OccurredAt, ManifestNo, CreatedAt, CreatedBy, DeliveryNo, PickupOrderId, IsDeleted, RowVersion)
+            VALUES (@OperationType, @Payload, @Description, 'UNRESOLVED', GETUTCDATE(), @ManifestNo, GETUTCDATE(), 'System', @DeliveryNo, @PickupOrderId, 0, CAST(0 AS varbinary(8)));";
+
+        await connection.ExecuteAsync(sql, new 
+        { 
+            OperationType = opType,
+            Payload = payload,
+            Description = description,
+            ManifestNo = manifestNo,
+            DeliveryNo = deliveryNo ?? (object)DBNull.Value,
+            PickupOrderId = pickupOrderId ?? (object)DBNull.Value
+        });
+    }
+
+    private async Task ProcessManifestAsync(JsonElement payloadData, string op)
+    {
+        var after = payloadData;
         _logger.LogInformation($"Processing Debezium payload: {after.GetRawText()}");
         
         long id = 0;
@@ -274,6 +333,23 @@ public class Worker : BackgroundService
         using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
 
+        var lockCheck = await IsManifestLockedAsync(connection, manifestNo);
+        if (lockCheck.IsLocked)
+        {
+            var opType = GetOperationName(op);
+            string reason = lockCheck.Status == "ON_PROGRESS" ? "InTransit" : "Delivered";
+            await LogManifestProblemAsync(connection, opType, after.GetRawText(), $"Rejected CDC {opType}: Manifest is already {reason}.", manifestNo, lockCheck.DeliveryNo, lockCheck.PickupOrderId);
+            _logger.LogWarning($"Rejected CDC {opType} for Manifest {manifestNo} because it is {reason}.");
+            return;
+        }
+
+        if (op == "d")
+        {
+            var sqlDelete = "DELETE FROM edcl.ingestion.Manifests WHERE ManifestNo = @ManifestNo";
+            await connection.ExecuteAsync(sqlDelete, new { ManifestNo = manifestNo });
+            return;
+        }
+
         var sql = @"
             SET IDENTITY_INSERT edcl.ingestion.Manifests ON;
             
@@ -316,8 +392,9 @@ public class Worker : BackgroundService
         _logger.LogInformation($"Successfully upserted Manifest ID {id} into edcl.ingestion.Manifests");
     }
 
-    private async Task ProcessManifestPartAsync(JsonElement after)
+    private async Task ProcessManifestPartAsync(JsonElement payloadData, string op)
     {
+        var after = payloadData;
         _logger.LogInformation($"Processing ManifestPart Debezium payload: {after.GetRawText()}");
         
         long id = 0;
@@ -397,8 +474,9 @@ public class Worker : BackgroundService
         _logger.LogInformation($"Successfully upserted ManifestPart ID {id}");
     }
 
-    private async Task ProcessManifestKanbanAsync(JsonElement after)
+    private async Task ProcessManifestKanbanAsync(JsonElement payloadData, string op)
     {
+        var after = payloadData;
         _logger.LogInformation($"Processing ManifestKanban Debezium payload: {after.GetRawText()}");
         
         long id = 0;
@@ -460,8 +538,9 @@ public class Worker : BackgroundService
         _logger.LogInformation($"Successfully upserted ManifestKanban ID {id}");
     }
 
-    private async Task ProcessManifestSkidAsync(JsonElement after)
+    private async Task ProcessManifestSkidAsync(JsonElement payloadData, string op)
     {
+        var after = payloadData;
         _logger.LogInformation($"Processing ManifestSkid Debezium payload: {after.GetRawText()}");
         
         long id = 0;

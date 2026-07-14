@@ -14,7 +14,7 @@ class Program
         Console.WriteLine("=== EDCL IDCS Data Seeder ===");
         if (args.Length == 0)
         {
-            Console.WriteLine("Usage: dotnet run -- [init|manifest|part|kanban|skid|bulk|reset|out-of-order|race-condition|one-master|logistic-partner|reset-logistic-partner|route|reset-route|driver|reset-driver|reset-pickup]");
+            Console.WriteLine("Usage: dotnet run -- [init|manifest|part|kanban|skid|bulk|reset|out-of-order|race-condition|one-master|logistic-partner|reset-logistic-partner|route|reset-route|driver|reset-driver|reset-pickup|trigger-reject]");
             return;
         }
 
@@ -107,6 +107,9 @@ class Program
                     break;
                 case "reset":
                     await ResetDataAsync();
+                    break;
+                case "trigger-reject":
+                    await TriggerRejectAsync();
                     break;
                 default:
                     Console.WriteLine($"Unknown action: {action}");
@@ -617,6 +620,9 @@ class Program
         // 1. Delete all pickup order transaction tables in EDCL
         try
         {
+            await connEdcl.ExecuteAsync("DELETE FROM ingestion.manifest_problems");
+            await connEdcl.ExecuteAsync("DBCC CHECKIDENT ('ingestion.manifest_problems', RESEED, 0)");
+
             await connEdcl.ExecuteAsync("DELETE FROM job.pickup_order_kanbans");
             await connEdcl.ExecuteAsync("DBCC CHECKIDENT ('job.pickup_order_kanbans', RESEED, 0)");
             
@@ -628,7 +634,7 @@ class Program
             
             var rows = await connEdcl.ExecuteAsync("DELETE FROM job.pickup_orders");
             await connEdcl.ExecuteAsync("DBCC CHECKIDENT ('job.pickup_orders', RESEED, 0)");
-            Console.WriteLine($"✅ Cleared all {rows} Pickup Orders and their children in EDCL.");
+            Console.WriteLine($"✅ Cleared {rows} Pickup Orders, their children, and Manifest Problems in EDCL.");
         }
         catch (SqlException ex)
         {
@@ -954,5 +960,107 @@ class Program
         {
             Console.WriteLine($"❌ Reset failed. Error: {ex.Message}");
         }
+    }
+
+    private static async Task TriggerRejectAsync()
+    {
+        Console.WriteLine("⚠️  Seeding mock InTransit (ON_PROGRESS) and Delivered (COMPLETED) transactions in EDCL...");
+
+        var manifestProg = "TRJ-PROG-" + new Random().Next(1000, 9999);
+        var manifestComp = "TRJ-COMP-" + new Random().Next(1000, 9999);
+        var manifestDel = "TRJ-DEL-" + new Random().Next(1000, 9999);
+        var manifestDelC = "TRJ-DELC-" + new Random().Next(1000, 9999);
+
+        using var edclConn = new SqlConnection(EdclConnectionString);
+        await edclConn.OpenAsync();
+
+        // 1. Seed EDCL Job schema directly
+        var sqlSeedEdcl = @"
+            DECLARE @PoProgId BIGINT, @PoCompId BIGINT, @PoDelId BIGINT, @PoDelCId BIGINT;
+            DECLARE @DetProgId BIGINT, @DetCompId BIGINT, @DetDelId BIGINT, @DetDelCId BIGINT;
+
+            -- Create ON_PROGRESS order for UPDATE test
+            INSERT INTO edcl.job.pickup_orders (delivery_no, pickup_date, route_code, cycle_code, estimated_departure_time, Status, CreatedAt, CreatedBy, IsDeleted)
+            VALUES ('PO-' + @ManifestProg, GETUTCDATE(), 'R-TEST', 'C1', '08:00:00', 'ON_PROGRESS', GETUTCDATE(), 'Seeder', 0);
+            SET @PoProgId = SCOPE_IDENTITY();
+
+            INSERT INTO edcl.job.pickup_order_details (PickupOrderId, SupplierId, Sequence, Status, CreatedAt, CreatedBy, IsDeleted)
+            VALUES (@PoProgId, 1, 1, 'PENDING', GETUTCDATE(), 'Seeder', 0);
+            SET @DetProgId = SCOPE_IDENTITY();
+
+            INSERT INTO edcl.job.pickup_order_manifests (PickupOrderDetailId, ManifestNo, TotalKanban, TotalSkid, ScannedKanban, Status, CreatedAt, CreatedBy, IsDeleted)
+            VALUES (@DetProgId, @ManifestProg, 1, 1, 0, 'PENDING', GETUTCDATE(), 'Seeder', 0);
+
+            -- Create COMPLETED order for UPDATE test
+            INSERT INTO edcl.job.pickup_orders (delivery_no, pickup_date, route_code, cycle_code, estimated_departure_time, Status, CreatedAt, CreatedBy, IsDeleted)
+            VALUES ('PO-' + @ManifestComp, GETUTCDATE(), 'R-TEST', 'C1', '08:00:00', 'COMPLETED', GETUTCDATE(), 'Seeder', 0);
+            SET @PoCompId = SCOPE_IDENTITY();
+
+            INSERT INTO edcl.job.pickup_order_details (PickupOrderId, SupplierId, Sequence, Status, CreatedAt, CreatedBy, IsDeleted)
+            VALUES (@PoCompId, 1, 1, 'PICKED_UP', GETUTCDATE(), 'Seeder', 0);
+            SET @DetCompId = SCOPE_IDENTITY();
+
+            INSERT INTO edcl.job.pickup_order_manifests (PickupOrderDetailId, ManifestNo, TotalKanban, TotalSkid, ScannedKanban, Status, CreatedAt, CreatedBy, IsDeleted)
+            VALUES (@DetCompId, @ManifestComp, 1, 1, 0, 'VERIFIED', GETUTCDATE(), 'Seeder', 0);
+
+            -- Create ON_PROGRESS order for DELETE test
+            INSERT INTO edcl.job.pickup_orders (delivery_no, pickup_date, route_code, cycle_code, estimated_departure_time, Status, CreatedAt, CreatedBy, IsDeleted)
+            VALUES ('PO-' + @ManifestDel, GETUTCDATE(), 'R-TEST', 'C1', '08:00:00', 'ON_PROGRESS', GETUTCDATE(), 'Seeder', 0);
+            SET @PoDelId = SCOPE_IDENTITY();
+
+            INSERT INTO edcl.job.pickup_order_details (PickupOrderId, SupplierId, Sequence, Status, CreatedAt, CreatedBy, IsDeleted)
+            VALUES (@PoDelId, 1, 1, 'PENDING', GETUTCDATE(), 'Seeder', 0);
+            SET @DetDelId = SCOPE_IDENTITY();
+
+            INSERT INTO edcl.job.pickup_order_manifests (PickupOrderDetailId, ManifestNo, TotalKanban, TotalSkid, ScannedKanban, Status, CreatedAt, CreatedBy, IsDeleted)
+            VALUES (@DetDelId, @ManifestDel, 1, 1, 0, 'PENDING', GETUTCDATE(), 'Seeder', 0);
+
+            -- Create COMPLETED order for DELETE test
+            INSERT INTO edcl.job.pickup_orders (delivery_no, pickup_date, route_code, cycle_code, estimated_departure_time, Status, CreatedAt, CreatedBy, IsDeleted)
+            VALUES ('PO-' + @ManifestDelC, GETUTCDATE(), 'R-TEST', 'C1', '08:00:00', 'COMPLETED', GETUTCDATE(), 'Seeder', 0);
+            SET @PoDelCId = SCOPE_IDENTITY();
+
+            INSERT INTO edcl.job.pickup_order_details (PickupOrderId, SupplierId, Sequence, Status, CreatedAt, CreatedBy, IsDeleted)
+            VALUES (@PoDelCId, 1, 1, 'PICKED_UP', GETUTCDATE(), 'Seeder', 0);
+            SET @DetDelCId = SCOPE_IDENTITY();
+
+            INSERT INTO edcl.job.pickup_order_manifests (PickupOrderDetailId, ManifestNo, TotalKanban, TotalSkid, ScannedKanban, Status, CreatedAt, CreatedBy, IsDeleted)
+            VALUES (@DetDelCId, @ManifestDelC, 1, 1, 0, 'VERIFIED', GETUTCDATE(), 'Seeder', 0);
+        ";
+
+        await edclConn.ExecuteAsync(sqlSeedEdcl, new { ManifestProg = manifestProg, ManifestComp = manifestComp, ManifestDel = manifestDel, ManifestDelC = manifestDelC });
+        Console.WriteLine($"✅ Seeded EDCL jobs for {manifestProg}, {manifestComp}, {manifestDel}, and {manifestDelC}.");
+
+        // 2. Seed into IDCS to trigger CDC Insert, then wait, then trigger CDC Update/Delete
+        Console.WriteLine($"⚠️  Inserting these manifests into IDCS database to trigger CDC...");
+        using var idcsConn = new SqlConnection(ConnectionString);
+        await idcsConn.OpenAsync();
+        
+        var sqlInsertIdcs = @"
+            INSERT INTO manifests (ManifestNo, SupplierCode, SupplierName, SupplierPlant, Sequence, OrderType, PickDate, Cycle, Status)
+            VALUES (@ManifestNo, 'SUP-01', 'Test Supplier', '1', 1, '1', GETDATE(), 'C1', 'Pending')";
+
+        await idcsConn.ExecuteAsync(sqlInsertIdcs, new { ManifestNo = manifestProg });
+        await idcsConn.ExecuteAsync(sqlInsertIdcs, new { ManifestNo = manifestComp });
+        await idcsConn.ExecuteAsync(sqlInsertIdcs, new { ManifestNo = manifestDel });
+        await idcsConn.ExecuteAsync(sqlInsertIdcs, new { ManifestNo = manifestDelC });
+
+        Console.WriteLine("✅ IDCS record inserted. Waiting 3 seconds for CDC Debezium to catch up...");
+        await Task.Delay(3000);
+
+        Console.WriteLine("⚠️  Now UPDATING them in IDCS to trigger the real rejection...");
+        var sqlUpdate = @"
+            UPDATE manifests 
+            SET Status = 'Modified By Seeder', 
+                SupplierName = 'Triggered Reject ' + CAST(NEWID() AS NVARCHAR(36))
+            WHERE ManifestNo IN (@ManifestProg, @ManifestComp)";
+
+        await idcsConn.ExecuteAsync(sqlUpdate, new { ManifestProg = manifestProg, ManifestComp = manifestComp });
+        
+        Console.WriteLine("⚠️  Now DELETING the last ones in IDCS to trigger a delete rejection...");
+        var sqlDelete = "DELETE FROM manifests WHERE ManifestNo IN (@ManifestDel, @ManifestDelC)";
+        await idcsConn.ExecuteAsync(sqlDelete, new { ManifestDel = manifestDel, ManifestDelC = manifestDelC });
+
+        Console.WriteLine($"\n✅ Trigger finished! Check EDCL Ingestion Worker logs. It should insert them into ingestion.manifest_problems with explicit reasons.");
     }
 }
