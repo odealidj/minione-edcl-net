@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { BackgroundJobsService, BackgroundJobDto } from '../../../core/services/background-jobs.service';
@@ -18,7 +18,10 @@ export class BackgroundJobsComponent implements OnInit {
   loading: boolean = false;
   selectedError: string | null = null;
 
-  constructor(private jobsService: BackgroundJobsService) {}
+  constructor(
+    private jobsService: BackgroundJobsService,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   ngOnInit(): void {
     this.loadData();
@@ -31,15 +34,18 @@ export class BackgroundJobsComponent implements OnInit {
 
   loadData() {
     this.loading = true;
+    this.cdr.detectChanges();
     if (this.activeTab === 'scheduled') {
       this.jobsService.getScheduledJobs().subscribe({
         next: (res) => {
           this.scheduledJobs = res?.data || [];
           this.loading = false;
+          this.cdr.detectChanges();
         },
         error: (err) => {
           console.error("Failed to load scheduled jobs:", err);
           this.loading = false;
+          this.cdr.detectChanges();
         }
       });
     } else {
@@ -47,10 +53,12 @@ export class BackgroundJobsComponent implements OnInit {
         next: (res) => {
           this.failedJobs = res?.data || [];
           this.loading = false;
+          this.cdr.detectChanges();
         },
         error: (err) => {
           console.error("Failed to load failed jobs:", err);
           this.loading = false;
+          this.cdr.detectChanges();
         }
       });
     }
