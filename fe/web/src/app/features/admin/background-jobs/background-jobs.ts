@@ -34,18 +34,24 @@ export class BackgroundJobsComponent implements OnInit {
     if (this.activeTab === 'scheduled') {
       this.jobsService.getScheduledJobs().subscribe({
         next: (res) => {
-          this.scheduledJobs = res.data || [];
+          this.scheduledJobs = res?.data || [];
           this.loading = false;
         },
-        error: () => this.loading = false
+        error: (err) => {
+          console.error("Failed to load scheduled jobs:", err);
+          this.loading = false;
+        }
       });
     } else {
       this.jobsService.getFailedJobs().subscribe({
         next: (res) => {
-          this.failedJobs = res.data || [];
+          this.failedJobs = res?.data || [];
           this.loading = false;
         },
-        error: () => this.loading = false
+        error: (err) => {
+          console.error("Failed to load failed jobs:", err);
+          this.loading = false;
+        }
       });
     }
   }
