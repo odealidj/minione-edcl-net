@@ -11,7 +11,9 @@ public sealed record DashboardKpiDto(
     int PendingOrders,
     int OnProgressOrders,
     int CompletedOrders,
-    int TotalKanban
+    int TotalKanban,
+    long ScheduledJobsCount,
+    long FailedJobsCount
 );
 
 public sealed record RouteDistributionDto(

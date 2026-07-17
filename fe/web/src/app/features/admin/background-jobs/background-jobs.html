@@ -1,0 +1,147 @@
+<div class="p-6 max-w-7xl mx-auto min-h-screen space-y-6">
+  <!-- Header -->
+  <div class="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+    <div class="flex items-center gap-4">
+      <div class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+        <i class="fas fa-server text-xl"></i>
+      </div>
+      <div>
+        <h1 class="text-2xl font-bold text-gray-800 tracking-tight">System Background Tasks</h1>
+        <p class="text-sm text-gray-500 mt-1">Manage scheduled reminders and failed background jobs</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="border-b border-gray-100">
+      <nav class="flex -mb-px px-6" aria-label="Tabs">
+        <button (click)="setTab('scheduled')" 
+                [class.border-indigo-500]="activeTab === 'scheduled'" 
+                [class.text-indigo-600]="activeTab === 'scheduled'"
+                [class.border-transparent]="activeTab !== 'scheduled'"
+                [class.text-gray-500]="activeTab !== 'scheduled'"
+                class="w-1/2 py-4 px-1 text-center border-b-2 font-medium text-sm hover:text-gray-700 hover:border-gray-300 transition-colors">
+          <i class="fas fa-clock mr-2"></i> Scheduled Jobs
+        </button>
+        <button (click)="setTab('failed')" 
+                [class.border-indigo-500]="activeTab === 'failed'" 
+                [class.text-indigo-600]="activeTab === 'failed'"
+                [class.border-transparent]="activeTab !== 'failed'"
+                [class.text-gray-500]="activeTab !== 'failed'"
+                class="w-1/2 py-4 px-1 text-center border-b-2 font-medium text-sm hover:text-gray-700 hover:border-gray-300 transition-colors">
+          <i class="fas fa-exclamation-triangle mr-2"></i> Failed Jobs
+        </button>
+      </nav>
+    </div>
+
+    <div class="p-6">
+      @if (loading) {
+        <div class="flex justify-center items-center py-12">
+          <span class="loading loading-spinner loading-md text-indigo-600"></span>
+        </div>
+      } @else {
+        
+        <!-- Scheduled Jobs Table -->
+        @if (activeTab === 'scheduled') {
+          <div class="overflow-x-auto">
+            <table class="table w-full">
+              <thead>
+                <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+                  <th class="rounded-l-lg py-3">Job ID</th>
+                  <th class="py-3">Method</th>
+                  <th class="rounded-r-lg py-3 text-right">Scheduled For</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (job of scheduledJobs; track job.jobId) {
+                  <tr class="hover:bg-gray-50/50 transition-colors border-b border-gray-50">
+                    <td class="font-medium text-gray-800">#{{job.jobId}}</td>
+                    <td>
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-800">
+                        {{job.methodName}}
+                      </span>
+                    </td>
+                    <td class="text-right text-gray-600">{{job.enqueueAt | date:'medium'}}</td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="3" class="text-center py-8 text-gray-500">
+                      <i class="fas fa-check-circle text-3xl text-gray-300 mb-2 block"></i>
+                      No scheduled jobs at the moment
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+
+        <!-- Failed Jobs Table -->
+        @if (activeTab === 'failed') {
+          <div class="overflow-x-auto">
+            <table class="table w-full">
+              <thead>
+                <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+                  <th class="rounded-l-lg py-3">Job ID</th>
+                  <th class="py-3">Method</th>
+                  <th class="py-3">Failed At</th>
+                  <th class="py-3">Error</th>
+                  <th class="rounded-r-lg py-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (job of failedJobs; track job.jobId) {
+                  <tr class="hover:bg-gray-50/50 transition-colors border-b border-gray-50">
+                    <td class="font-medium text-gray-800">#{{job.jobId}}</td>
+                    <td>
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-800">
+                        {{job.methodName}}
+                      </span>
+                    </td>
+                    <td class="text-gray-600">{{job.failedAt | date:'medium'}}</td>
+                    <td>
+                      <div class="max-w-xs truncate text-sm text-gray-600 cursor-pointer hover:text-indigo-600" (click)="showError(job.exceptionDetails)">
+                        {{job.exceptionMessage}}
+                      </div>
+                    </td>
+                    <td class="text-right">
+                      <button (click)="retryJob(job.jobId)" class="btn btn-sm btn-outline btn-primary">
+                        <i class="fas fa-redo text-xs mr-1"></i> Retry
+                      </button>
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="5" class="text-center py-8 text-gray-500">
+                      <i class="fas fa-thumbs-up text-3xl text-gray-300 mb-2 block"></i>
+                      No failed jobs! Everything is running smoothly.
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      }
+    </div>
+  </div>
+</div>
+
+<!-- Error Detail Modal -->
+<dialog class="modal" [class.modal-open]="selectedError !== null">
+  <div class="modal-box w-11/12 max-w-5xl">
+    <h3 class="font-bold text-lg text-red-600 flex items-center gap-2">
+      <i class="fas fa-bug"></i> Error Stack Trace
+    </h3>
+    <div class="mt-4 bg-gray-900 text-gray-300 p-4 rounded-lg overflow-x-auto text-sm font-mono whitespace-pre max-h-96 overflow-y-auto">
+      {{selectedError}}
+    </div>
+    <div class="modal-action">
+      <button class="btn btn-primary" (click)="closeError()">Close</button>
+    </div>
+  </div>
+  <form method="dialog" class="modal-backdrop">
+    <button (click)="closeError()">close</button>
+  </form>
+</dialog>

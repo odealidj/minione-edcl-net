@@ -3,6 +3,7 @@ using EDCL.Module.Job.Infrastructure.Persistence;
 using EDCL.Shared.Kernel.Common;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Hangfire;
 
 namespace EDCL.Module.Job.Application.Queries.AdminGetDashboardSummary;
 
@@ -26,7 +27,11 @@ internal sealed class AdminGetDashboardSummaryQueryHandler(JobDbContext dbContex
         var onProgressOrders = orders.Count(x => x.Status == PickupOrderStatus.OnProgress);
         var completedOrders = orders.Count(x => x.Status == PickupOrderStatus.Completed);
         
-        var kpis = new DashboardKpiDto(totalOrders, pendingOrders, onProgressOrders, completedOrders, 0);
+        var monitoringApi = JobStorage.Current.GetMonitoringApi();
+        var scheduledJobsCount = monitoringApi.ScheduledCount();
+        var failedJobsCount = monitoringApi.FailedCount();
+        
+        var kpis = new DashboardKpiDto(totalOrders, pendingOrders, onProgressOrders, completedOrders, 0, scheduledJobsCount, failedJobsCount);
 
         // Route Distributions
         var routeDistributions = orders

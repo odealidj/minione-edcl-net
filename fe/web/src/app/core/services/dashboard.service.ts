@@ -9,6 +9,8 @@ export interface DashboardKpiDto {
   onProgressOrders: number;
   completedOrders: number;
   totalKanban: number;
+  scheduledJobsCount: number;
+  failedJobsCount: number;
 }
 
 export interface RouteDistributionDto {

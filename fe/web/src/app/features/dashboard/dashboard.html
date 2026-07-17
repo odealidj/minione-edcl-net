@@ -81,6 +81,32 @@
       </div>
     </div>
 
+    <!-- System Tasks Overview -->
+    <div class="mt-6 mb-2 flex items-center justify-between">
+      <h2 class="text-lg font-bold text-gray-800">System Background Tasks</h2>
+      <a routerLink="/admin/background-jobs" class="text-sm text-indigo-600 hover:text-indigo-800 font-medium">View All <i class="fas fa-arrow-right ml-1"></i></a>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+      <a routerLink="/admin/background-jobs" class="card bg-white shadow-sm border border-gray-100 p-5 rounded-2xl flex flex-row items-center justify-between hover:border-indigo-300 hover:shadow-md transition-all cursor-pointer group">
+        <div>
+          <p class="text-sm font-medium text-gray-500 group-hover:text-indigo-600 transition-colors">Scheduled Reminders</p>
+          <h3 class="text-3xl font-bold text-gray-800 mt-1">{{summary.kpis.scheduledJobsCount}}</h3>
+        </div>
+        <div class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-500 flex items-center justify-center group-hover:bg-indigo-100 group-hover:scale-110 transition-transform">
+          <i class="fas fa-clock text-xl"></i>
+        </div>
+      </a>
+      <a routerLink="/admin/background-jobs" class="card bg-white shadow-sm border border-gray-100 p-5 rounded-2xl flex flex-row items-center justify-between hover:border-red-300 hover:shadow-md transition-all cursor-pointer group">
+        <div>
+          <p class="text-sm font-medium text-gray-500 group-hover:text-red-600 transition-colors">Failed Tasks</p>
+          <h3 class="text-3xl font-bold text-gray-800 mt-1">{{summary.kpis.failedJobsCount}}</h3>
+        </div>
+        <div class="w-12 h-12 rounded-xl bg-red-50 text-red-500 flex items-center justify-center group-hover:bg-red-100 group-hover:scale-110 transition-transform">
+          <i class="fas fa-exclamation-triangle text-xl"></i>
+        </div>
+      </a>
+    </div>
+
     <!-- Charts & Alerts Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <!-- Route Distribution Chart -->

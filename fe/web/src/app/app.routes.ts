@@ -37,6 +37,7 @@ export const routes: Routes = [
 
       { path: 'operations/monitoring', loadComponent: () => import('./features/admin/delivery-monitoring/delivery-monitoring').then(c => c.DeliveryMonitoringComponent) },
       { path: 'admin/users', loadComponent: () => import('./features/admin/user-management/user-management').then(c => c.UserManagementComponent), canActivate: [adminGuard] },
+      { path: 'admin/background-jobs', loadComponent: () => import('./features/admin/background-jobs/background-jobs').then(c => c.BackgroundJobsComponent), canActivate: [adminGuard] },
       { path: 'admin/manifest-problems', loadComponent: () => import('./features/admin/manifest-problem/manifest-problem').then(c => c.ManifestProblemComponent), canActivate: [adminGuard] },
       { path: 'admin/route-planning', loadComponent: () => import('./features/admin/route-planning/route-planning/route-planning').then(c => c.RoutePlanningComponent), canActivate: [adminGuard] },
       { path: 'admin/route-planning/:id', loadComponent: () => import('./features/admin/route-planning/route-planning-form/route-planning-form').then(c => c.RoutePlanningFormComponent), canActivate: [adminGuard] },
