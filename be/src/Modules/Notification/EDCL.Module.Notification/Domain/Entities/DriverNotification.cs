@@ -11,6 +11,8 @@ public class DriverNotification : AuditableEntity
     public bool IsRead { get; private set; }
     public string Type { get; private set; } = default!;
     public long? PickupOrderId { get; private set; } // Reference to a job if applicable
+    public string? FcmDeliveryStatus { get; private set; } // "Pending", "Sent", "Failed"
+    public string? FcmErrorMessage { get; private set; }
 
     protected DriverNotification() { } // EF Core
 
@@ -22,10 +24,22 @@ public class DriverNotification : AuditableEntity
         Type = type;
         PickupOrderId = pickupOrderId;
         IsRead = false;
+        FcmDeliveryStatus = "Pending";
     }
 
     public void MarkAsRead()
     {
         IsRead = true;
+    }
+
+    public void MarkFcmAsSent()
+    {
+        FcmDeliveryStatus = "Sent";
+    }
+
+    public void MarkFcmAsFailed(string error)
+    {
+        FcmDeliveryStatus = "Failed";
+        FcmErrorMessage = error;
     }
 }

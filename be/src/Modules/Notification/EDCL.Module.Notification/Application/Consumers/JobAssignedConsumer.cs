@@ -3,9 +3,15 @@ using EDCL.Module.Notification.Infrastructure.Persistence;
 using EDCL.Shared.Kernel.Events;
 using MassTransit;
 
+using EDCL.Module.Notification.Infrastructure;
+using EDCL.Shared.Kernel.Ports;
+
 namespace EDCL.Module.Notification.Application.Consumers;
 
-public class JobAssignedConsumer(NotificationDbContext dbContext) : IConsumer<JobAssignedIntegrationEvent>
+public class JobAssignedConsumer(
+    NotificationDbContext dbContext,
+    IDriverPort driverPort,
+    IFirebaseNotificationService firebaseNotificationService) : IConsumer<JobAssignedIntegrationEvent>
 {
     public async Task Consume(ConsumeContext<JobAssignedIntegrationEvent> context)
     {
@@ -17,10 +23,39 @@ public class JobAssignedConsumer(NotificationDbContext dbContext) : IConsumer<Jo
             message.DriverId,
             "Tugas Baru Ditugaskan!",
             body,
-            "ASSIGNMENT"
+            "ASSIGNMENT",
+            message.PickupOrderId
         );
 
         dbContext.DriverNotifications.Add(notification);
+
+        // Fetch DriverInfo to get FcmToken
+        var driverInfo = await driverPort.GetActiveDriverByIdAsync(message.DriverId);
+        
+        if (driverInfo?.FcmToken != null)
+        {
+            var dataPayload = new Dictionary<string, string>
+            {
+                { "title", "Tugas Baru Ditugaskan!" },
+                { "body", body },
+                { "type", "ASSIGNMENT" },
+                { "routeCode", message.RouteCode },
+                { "cycle", message.Cycle.ToString() },
+                { "pickupOrderId", message.PickupOrderId.ToString() }
+            };
+
+            var fcmResult = await firebaseNotificationService.SendDataNotificationAsync(driverInfo.FcmToken, dataPayload);
+            
+            if (fcmResult.IsSuccess)
+                notification.MarkFcmAsSent();
+            else
+                notification.MarkFcmAsFailed(fcmResult.ErrorMessage ?? "Unknown error");
+        }
+        else
+        {
+            notification.MarkFcmAsFailed("FCM Token not found or Driver inactive");
+        }
+
         await dbContext.SaveChangesAsync();
     }
 }

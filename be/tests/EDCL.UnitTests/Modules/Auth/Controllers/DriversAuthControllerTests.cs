@@ -9,18 +9,21 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Xunit;
+using EDCL.Shared.Infrastructure.Persistence;
 
 namespace EDCL.UnitTests.Modules.Auth.Controllers;
 
 public class DriversAuthControllerTests
 {
     private readonly Mock<IMediator> _mediatorMock;
+    private readonly Mock<ICurrentUserService> _currentUserServiceMock;
     private readonly DriversAuthController _controller;
 
     public DriversAuthControllerTests()
     {
         _mediatorMock = new Mock<IMediator>();
-        _controller = new DriversAuthController(_mediatorMock.Object);
+        _currentUserServiceMock = new Mock<ICurrentUserService>();
+        _controller = new DriversAuthController(_mediatorMock.Object, _currentUserServiceMock.Object);
 
         // Mock HttpContext for GetTraceId()
         var httpContext = new DefaultHttpContext();

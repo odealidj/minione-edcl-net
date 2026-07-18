@@ -7,12 +7,16 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using EDCL.Shared.Kernel.Ports;
+using EDCL.Shared.Infrastructure.Persistence;
 
 namespace EDCL.Module.Auth.Controllers;
 
 [ApiController]
 [Route("api/v1/mobile/auth/drivers")]
-public sealed class DriversAuthController(IMediator mediator) : ControllerBase
+public sealed class DriversAuthController(
+    IMediator mediator,
+    ICurrentUserService currentUserService) : ControllerBase
 {
     /// <summary>
     /// Authenticates a Driver via Mobile App.
@@ -84,5 +88,36 @@ public sealed class DriversAuthController(IMediator mediator) : ControllerBase
 
         // Idempotent logout - always return 200 OK even if token is already revoked
         return Ok(ApiResponse<EDCL.Module.Auth.Application.Commands.LogoutDriver.LogoutDriverResponse>.Success(result.Value!, traceId));
+    }
+
+    public record UpdateFcmTokenRequest(string FcmToken);
+
+    /// <summary>
+    /// Updates the driver's FCM Token for push notifications.
+    /// </summary>
+    [HttpPut("fcm-token")]
+    [Authorize]
+    [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> UpdateFcmToken(
+        [FromBody] UpdateFcmTokenRequest request,
+        CancellationToken cancellationToken)
+    {
+        var traceId = HttpContext.GetTraceId();
+        var driverId = currentUserService.DriverId;
+
+        if (driverId is null)
+            return Unauthorized(ApiResponse<object>.Fail("Unauthorized", traceId, 401));
+
+        var command = new EDCL.Module.Auth.Application.Commands.UpdateFcmToken.UpdateFcmTokenCommand(driverId.Value, request.FcmToken);
+        var result = await mediator.Send(command, cancellationToken);
+
+        if (result.IsFailure)
+        {
+            var errors = new[] { new ApiError("auth", result.Error.Code, result.Error.Message) };
+            return BadRequest(ApiResponse<object>.Fail(result.Error.Message, traceId, 400, errors));
+        }
+
+        return Ok(ApiResponse<bool>.Success(result.Value, traceId));
     }
 }

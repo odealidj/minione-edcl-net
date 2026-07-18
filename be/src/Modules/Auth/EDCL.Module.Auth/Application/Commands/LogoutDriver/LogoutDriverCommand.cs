@@ -26,6 +26,7 @@ public sealed class LogoutDriverCommandHandler(
     {
         // Find the active refresh token
         var tokenEntity = await dbContext.RefreshTokens
+            .Include(rt => rt.Driver)
             .FirstOrDefaultAsync(rt => rt.Token == request.RefreshToken && !rt.IsRevoked, cancellationToken);
 
         if (tokenEntity is null)
@@ -35,6 +36,13 @@ public sealed class LogoutDriverCommandHandler(
         }
 
         tokenEntity.Revoke();
+        
+        // Nullify FCM Token on logout
+        if (tokenEntity.Driver != null)
+        {
+            tokenEntity.Driver.UpdateFcmToken(null);
+        }
+
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return Result<LogoutDriverResponse>.Success(new LogoutDriverResponse(true));

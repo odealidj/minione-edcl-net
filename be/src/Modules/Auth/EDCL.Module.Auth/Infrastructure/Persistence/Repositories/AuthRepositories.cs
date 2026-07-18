@@ -75,7 +75,8 @@ public sealed class DriverPortAdapter(AuthDbContext db) : IDriverPort
             PhotoUrl: driver.PhotoUrl,
             LogisticPartnerId: driver.LogisticPartnerId,
             LogisticPartnerName: null, // LogisticPartner has been moved to Driver module
-            IsActive: driver.IsActive);
+            IsActive: driver.IsActive,
+            FcmToken: driver.FcmToken);
     }
 
     public async Task<IReadOnlyList<DriverInfo>> GetDriversByIdsAsync(IEnumerable<long> driverIds, CancellationToken ct)
@@ -93,7 +94,8 @@ public sealed class DriverPortAdapter(AuthDbContext db) : IDriverPort
             PhotoUrl: driver.PhotoUrl,
             LogisticPartnerId: driver.LogisticPartnerId,
             LogisticPartnerName: null,
-            IsActive: driver.IsActive)).ToList();
+            IsActive: driver.IsActive,
+            FcmToken: driver.FcmToken)).ToList();
     }
 
     public async Task<IReadOnlyList<DriverInfo>> GetActiveDriversByLogisticPartnerIdAsync(long logisticPartnerId, CancellationToken ct = default)
@@ -109,7 +111,8 @@ public sealed class DriverPortAdapter(AuthDbContext db) : IDriverPort
                 d.PhotoUrl, 
                 d.LogisticPartnerId, 
                 null, 
-                d.IsActive))
+                d.IsActive,
+                d.FcmToken))
             .ToListAsync(ct);
     }
 }

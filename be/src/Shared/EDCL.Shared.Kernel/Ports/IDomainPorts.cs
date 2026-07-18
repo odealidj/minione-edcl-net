@@ -45,7 +45,8 @@ public sealed record DriverInfo(
     string? PhotoUrl,
     long? LogisticPartnerId,
     string? LogisticPartnerName,
-    bool IsActive);
+    bool IsActive,
+    string? FcmToken = null);
 
 public sealed record SupplierInfo(
     long Id,

@@ -40,7 +40,7 @@ public sealed class Driver : AuditableEntity
             IsActive = true
         };
 
-    public void UpdateFcmToken(string fcmToken) => FcmToken = fcmToken;
+    public void UpdateFcmToken(string? fcmToken) => FcmToken = fcmToken;
 
     public void ChangePin(string newPinHash)
     {

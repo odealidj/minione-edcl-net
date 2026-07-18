@@ -9,3 +9,5 @@
 .vscode/
 docs/contoh/
 brain/
+/firebase
+google-services.json

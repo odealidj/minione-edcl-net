@@ -4,6 +4,7 @@ using EDCL.Module.Notification.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using EDCL.Module.Notification.Infrastructure;
 
 public static class NotificationModuleRegistration
 {
@@ -13,6 +14,25 @@ public static class NotificationModuleRegistration
             opts.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
 
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(NotificationModuleRegistration).Assembly));
+        services.AddScoped<IFirebaseNotificationService, FirebaseNotificationService>();
+
+        // Initialize Firebase
+        var credentialPath = configuration["Firebase:CredentialPath"];
+        if (!string.IsNullOrEmpty(credentialPath) && System.IO.File.Exists(credentialPath))
+        {
+            if (FirebaseAdmin.FirebaseApp.DefaultInstance == null)
+            {
+                FirebaseAdmin.FirebaseApp.Create(new FirebaseAdmin.AppOptions
+                {
+                    Credential = Google.Apis.Auth.OAuth2.GoogleCredential.FromFile(credentialPath)
+                });
+            }
+        }
+        else
+        {
+            // Fallback or warning if we want to run without firebase in local
+            Console.WriteLine("[Warning] Firebase CredentialPath is not configured or file missing. Push notifications will fail.");
+        }
 
         return services;
     }
