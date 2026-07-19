@@ -44,21 +44,24 @@ public sealed class AssignJobCommandHandler(
         };
         await publishEndpoint.Publish(assignedEvent, cancellationToken);
 
-        // Schedule Hangfire Reminders
-        var h1Time = pickupOrder.PickupDate.AddHours(-1);
-        var h30Time = pickupOrder.PickupDate.AddMinutes(-30);
+        // Schedule Hangfire Reminders based on exact departure time (WIB = UTC+7)
+        var departureTimeLocal = DateTime.SpecifyKind(pickupOrder.PickupDate.Date + pickupOrder.EstimatedDepartureTime, DateTimeKind.Unspecified);
+        var departureTimeOffset = new DateTimeOffset(departureTimeLocal, TimeSpan.FromHours(7));
+
+        var h1Time = departureTimeOffset.AddHours(-1);
+        var h30Time = departureTimeOffset.AddMinutes(-30);
         
         string? jobIdH1 = null;
         string? jobIdH30 = null;
 
-        if (h1Time > DateTime.UtcNow)
+        if (h1Time > DateTimeOffset.UtcNow)
         {
             jobIdH1 = BackgroundJob.Schedule<IJobReminderService>(
                 x => x.PublishReminderAsync(pickupOrder.Id, "H-1h"), 
                 h1Time);
         }
 
-        if (h30Time > DateTime.UtcNow)
+        if (h30Time > DateTimeOffset.UtcNow)
         {
             jobIdH30 = BackgroundJob.Schedule<IJobReminderService>(
                 x => x.PublishReminderAsync(pickupOrder.Id, "H-30m"), 

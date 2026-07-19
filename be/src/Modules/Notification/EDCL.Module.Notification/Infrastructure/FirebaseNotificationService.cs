@@ -20,9 +20,25 @@ public class FirebaseNotificationService(ILogger<FirebaseNotificationService> lo
 
         try
         {
+            data.TryGetValue("title", out var title);
+            data.TryGetValue("body", out var body);
+
             var message = new Message()
             {
                 Token = fcmToken,
+                Notification = (title != null || body != null) ? new FirebaseAdmin.Messaging.Notification
+                {
+                    Title = title,
+                    Body = body
+                } : null,
+                Android = new AndroidConfig
+                {
+                    Priority = Priority.High,
+                    Notification = new AndroidNotification
+                    {
+                        ChannelId = "edcl_fcm_channel"
+                    }
+                },
                 Data = data
             };
 

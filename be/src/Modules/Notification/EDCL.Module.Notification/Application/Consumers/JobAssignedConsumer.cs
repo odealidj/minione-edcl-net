@@ -36,12 +36,12 @@ public class JobAssignedConsumer(
         {
             var dataPayload = new Dictionary<string, string>
             {
-                { "title", "Tugas Baru Ditugaskan!" },
-                { "body", body },
-                { "type", "ASSIGNMENT" },
-                { "routeCode", message.RouteCode },
-                { "cycle", message.Cycle.ToString() },
-                { "pickupOrderId", message.PickupOrderId.ToString() }
+                { "type", "JOB_ASSIGNED" },
+                { "pickupOrderId", context.Message.PickupOrderId.ToString() },
+                { "routeCode", context.Message.RouteCode },
+                { "pickupDate", context.Message.PickupDate.ToString("o") },
+                { "title", "New Route Plan Assigned" },
+                { "body", $"You have a new route {context.Message.RouteCode} on {context.Message.PickupDate:dd MMM yyyy HH:mm}." }
             };
 
             var fcmResult = await firebaseNotificationService.SendDataNotificationAsync(driverInfo.FcmToken, dataPayload);
