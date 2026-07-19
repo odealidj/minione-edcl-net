@@ -18,6 +18,7 @@ import kotlinx.serialization.Serializable
 sealed interface Screen : NavKey
 @Serializable data object Login : Screen
 @Serializable data object Home : Screen
+@Serializable data class ChangePin(val phone: String, val oldPin: String) : Screen
 
 @Composable
 fun MainNavigation() {
@@ -34,10 +35,25 @@ fun MainNavigation() {
     entryProvider =
       entryProvider {
         entry<Login> {
-          LoginScreen(onLoginSuccess = { 
-            backStack.clear()
-            backStack.add(Home) 
-          })
+          LoginScreen(
+            onLoginSuccess = { 
+              backStack.clear()
+              backStack.add(Home) 
+            },
+            onChangePinRequired = { phone, pin ->
+              backStack.add(ChangePin(phone, pin))
+            }
+          )
+        }
+        entry<ChangePin> { changePinArgs ->
+          com.example.edclfcm.ui.ChangePinScreen(
+            phone = changePinArgs.phone,
+            oldPin = changePinArgs.oldPin,
+            onChangeSuccess = {
+              backStack.clear()
+              backStack.add(Home)
+            }
+          )
         }
         entry<Home> {
           HomeScreen(onLogout = { 

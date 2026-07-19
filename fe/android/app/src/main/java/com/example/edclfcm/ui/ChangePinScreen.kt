@@ -8,17 +8,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.example.edclfcm.api.ApiClient
-import com.example.edclfcm.api.LoginRequest
+import com.example.edclfcm.api.ChangePinRequest
 import com.example.edclfcm.util.TokenManager
 import kotlinx.coroutines.launch
 import androidx.compose.ui.platform.LocalContext
 
 @Composable
-fun LoginScreen(onLoginSuccess: () -> Unit, onChangePinRequired: (String, String) -> Unit) {
+fun ChangePinScreen(phone: String, oldPin: String, onChangeSuccess: () -> Unit) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-    var phone by remember { mutableStateOf("") }
-    var pin by remember { mutableStateOf("") }
+    var newPin by remember { mutableStateOf("") }
+    var confirmPin by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
 
@@ -29,21 +29,24 @@ fun LoginScreen(onLoginSuccess: () -> Unit, onChangePinRequired: (String, String
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text(text = "EDCL FCM Simulator", style = MaterialTheme.typography.headlineMedium)
+        Text(text = "Change Default PIN", style = MaterialTheme.typography.headlineMedium)
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(text = "For security reasons, you must change your default PIN before continuing.", style = MaterialTheme.typography.bodyMedium)
         Spacer(modifier = Modifier.height(32.dp))
 
         OutlinedTextField(
-            value = phone,
-            onValueChange = { phone = it },
-            label = { Text("Phone Number") },
+            value = newPin,
+            onValueChange = { newPin = it },
+            label = { Text("New PIN") },
+            visualTransformation = PasswordVisualTransformation(),
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(modifier = Modifier.height(16.dp))
         
         OutlinedTextField(
-            value = pin,
-            onValueChange = { pin = it },
-            label = { Text("PIN") },
+            value = confirmPin,
+            onValueChange = { confirmPin = it },
+            label = { Text("Confirm New PIN") },
             visualTransformation = PasswordVisualTransformation(),
             modifier = Modifier.fillMaxWidth()
         )
@@ -56,41 +59,34 @@ fun LoginScreen(onLoginSuccess: () -> Unit, onChangePinRequired: (String, String
 
         Button(
             onClick = {
-                if (phone.isBlank() || pin.isBlank()) {
-                    errorMessage = "Please enter phone and PIN"
+                if (newPin.isBlank() || confirmPin.isBlank()) {
+                    errorMessage = "Please enter and confirm your new PIN"
                     return@Button
                 }
+                if (newPin != confirmPin) {
+                    errorMessage = "PINs do not match"
+                    return@Button
+                }
+
                 isLoading = true
                 errorMessage = ""
                 coroutineScope.launch {
                     try {
-                        val response = ApiClient.service.login(LoginRequest(phone, pin))
+                        val response = ApiClient.service.changePin(
+                            ChangePinRequest(
+                                phoneNumber = phone,
+                                oldPin = oldPin,
+                                newPin = newPin
+                            )
+                        )
                         if (response.isSuccessful && response.body()?.status == "success") {
                             val data = response.body()?.data
                             data?.accessToken?.let {
                                 TokenManager(context).saveAccessToken(it)
                             }
-                            onLoginSuccess()
-                        } else if (response.code() == 401) {
-                            val errorJson = response.errorBody()?.string()
-                            if (errorJson != null) {
-                                try {
-                                    val type = object : com.google.gson.reflect.TypeToken<com.example.edclfcm.api.ApiResponse<Any>>() {}.type
-                                    val errorResponse: com.example.edclfcm.api.ApiResponse<Any> = com.google.gson.Gson().fromJson(errorJson, type)
-                                    val isForceChangePin = errorResponse.errors?.any { it.code == "Auth.ForceChangePin" } == true
-                                    if (isForceChangePin) {
-                                        onChangePinRequired(phone, pin)
-                                        return@launch
-                                    }
-                                    errorMessage = errorResponse.message
-                                } catch (e: Exception) {
-                                    errorMessage = "Login failed"
-                                }
-                            } else {
-                                errorMessage = "Login failed"
-                            }
+                            onChangeSuccess()
                         } else {
-                            errorMessage = response.body()?.message ?: "Login failed"
+                            errorMessage = response.body()?.message ?: "Change PIN failed"
                         }
                     } catch (e: Exception) {
                         errorMessage = e.localizedMessage ?: "Unknown error"
@@ -105,7 +101,7 @@ fun LoginScreen(onLoginSuccess: () -> Unit, onChangePinRequired: (String, String
             if (isLoading) {
                 CircularProgressIndicator(modifier = Modifier.size(24.dp))
             } else {
-                Text("Login")
+                Text("Update PIN & Login")
             }
         }
     }

@@ -7,7 +7,8 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 object ApiClient {
     // 10.0.2.2 is the alias for localhost from Android emulator
-    private const val BASE_URL = "http://10.0.2.2:5000/"
+    // The native .NET backend (EDCL.Api) runs on port 5140
+    private const val BASE_URL = "http://10.0.2.2:5140/"
     
     private lateinit var tokenManager: TokenManager
 
