@@ -32,12 +32,12 @@ export class MasterDataService {
     return this.http.get<ApiResponse<Driver[]>>(`${environment.apiUrl}/master/drivers`, { params });
   }
 
-  createDriver(name: string, nik: string, phoneNumber: string, logisticPartnerId?: number | null): Observable<ApiResponse<string>> {
-    return this.http.post<ApiResponse<string>>(`${environment.apiUrl}/master/drivers`, { name, nik, phoneNumber, logisticPartnerId });
+  createDriver(name: string, nik: string, phoneNumber: string, logisticPartnerId?: number | null, isActive: boolean = true): Observable<ApiResponse<string>> {
+    return this.http.post<ApiResponse<string>>(`${environment.apiUrl}/master/drivers`, { name, nik, phoneNumber, logisticPartnerId, isActive });
   }
 
-  updateDriver(id: number, name: string, nik: string, phoneNumber: string, logisticPartnerId?: number | null): Observable<ApiResponse<any>> {
-    return this.http.put<ApiResponse<any>>(`${environment.apiUrl}/master/drivers/${id}`, { id, name, nik, phoneNumber, logisticPartnerId });
+  updateDriver(id: number, name: string, nik: string, phoneNumber: string, logisticPartnerId?: number | null, isActive: boolean = true): Observable<ApiResponse<any>> {
+    return this.http.put<ApiResponse<any>>(`${environment.apiUrl}/master/drivers/${id}`, { id, name, nik, phoneNumber, logisticPartnerId, isActive });
   }
 
   deleteDriver(id: number): Observable<ApiResponse<any>> {

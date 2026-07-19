@@ -46,7 +46,8 @@ export class DriverComponent implements OnInit {
       name: ['', Validators.required],
       nik: ['', Validators.required],
       phoneNumber: [''],
-      logisticPartnerId: [null]
+      logisticPartnerId: [null],
+      isActive: [true]
     });
   }
 
@@ -153,7 +154,7 @@ export class DriverComponent implements OnInit {
     if (item) {
       this.isEditMode = true;
       this.editingId = item.id;
-      this.form.patchValue({ name: item.name, nik: item.nik, phoneNumber: item.phoneNumber, logisticPartnerId: item.logisticPartnerId });
+      this.form.patchValue({ name: item.name, nik: item.nik, phoneNumber: item.phoneNumber, logisticPartnerId: item.logisticPartnerId, isActive: item.isActive !== false });
     } else {
       this.isEditMode = false;
       this.editingId = null;
@@ -175,12 +176,12 @@ export class DriverComponent implements OnInit {
     const logisticPartnerId = val.logisticPartnerId ? Number(val.logisticPartnerId) : null;
 
     if (this.isEditMode && this.editingId) {
-      this.service.updateDriver(this.editingId, val.name, val.nik, val.phoneNumber, logisticPartnerId).subscribe({
+      this.service.updateDriver(this.editingId, val.name, val.nik, val.phoneNumber, logisticPartnerId, val.isActive).subscribe({
         next: () => { this.isSaving = false; this.closeModal(); this.loadData(); },
         error: (err) => { console.error(err); this.isSaving = false; }
       });
     } else {
-      this.service.createDriver(val.name, val.nik, val.phoneNumber, logisticPartnerId).subscribe({
+      this.service.createDriver(val.name, val.nik, val.phoneNumber, logisticPartnerId, val.isActive).subscribe({
         next: () => { this.isSaving = false; this.closeModal(); this.currentPage = 1; this.loadData(); },
         error: (err) => { console.error(err); this.isSaving = false; }
       });

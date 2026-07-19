@@ -32,6 +32,7 @@ export interface Driver {
   phoneNumber: string;
   logisticPartnerId?: number | null;
   logisticPartnerName?: string | null;
+  isActive?: boolean;
   createdBy: string;
   createdOnUtc: string;
 }

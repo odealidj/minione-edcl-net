@@ -28,7 +28,7 @@ public sealed class Driver : AuditableEntity
 
     public static Driver Create(
         string name, string nik, string phoneNumber,
-        string pinHash, long? logisticPartnerId = null)
+        string pinHash, long? logisticPartnerId = null, bool isActive = true)
         => new()
         {
             Name = name,
@@ -37,7 +37,7 @@ public sealed class Driver : AuditableEntity
             PinHash = pinHash,
             MustChangePin = true,
             LogisticPartnerId = logisticPartnerId,
-            IsActive = true
+            IsActive = isActive
         };
 
     public void UpdateFcmToken(string? fcmToken) => FcmToken = fcmToken;

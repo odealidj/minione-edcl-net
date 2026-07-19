@@ -22,6 +22,9 @@ internal sealed class UpdateDriverCommandHandler(AuthDbContext dbContext)
         typeof(EDCL.Module.Auth.Domain.Entities.Driver).GetProperty("Nik")!.SetValue(entity, request.Nik);
         typeof(EDCL.Module.Auth.Domain.Entities.Driver).GetProperty("PhoneNumber")!.SetValue(entity, request.PhoneNumber);
         typeof(EDCL.Module.Auth.Domain.Entities.Driver).GetProperty("LogisticPartnerId")!.SetValue(entity, request.LogisticPartnerId);
+        
+        if (request.IsActive) entity.Activate();
+        else entity.Deactivate();
         await dbContext.SaveChangesAsync(cancellationToken);
         return Result.Success();
     }

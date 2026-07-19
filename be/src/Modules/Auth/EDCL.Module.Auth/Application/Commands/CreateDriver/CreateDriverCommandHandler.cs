@@ -39,7 +39,8 @@ public sealed class CreateDriverCommandHandler(
             nik: request.Nik,
             phoneNumber: request.PhoneNumber,
             pinHash: pinHash,
-            logisticPartnerId: request.LogisticPartnerId);
+            logisticPartnerId: request.LogisticPartnerId,
+            isActive: request.IsActive);
 
         // 5. Save to DB
         await driverRepository.AddAsync(driver, cancellationToken);
