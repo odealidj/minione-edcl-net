@@ -14,14 +14,14 @@ export interface NotificationLogDto {
   isRead: boolean;
   fcmDeliveryStatus: string | null;
   fcmErrorMessage: string | null;
-  createdAtUtc: string;
+  createdAt: string;
 }
 
 @Injectable({
   providedIn: 'root'
 })
 export class AdminNotificationService {
-  private apiUrl = `${environment.apiUrl}/v1/admin/notifications`;
+  private apiUrl = `${environment.apiUrl}/admin/notifications`;
 
   constructor(private http: HttpClient) {}
 

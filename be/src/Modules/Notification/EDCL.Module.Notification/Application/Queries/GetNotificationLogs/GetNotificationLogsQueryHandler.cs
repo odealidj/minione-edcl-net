@@ -38,10 +38,10 @@ public sealed class GetNotificationLogsQueryHandler(NotificationDbContext dbCont
         var sql = $@"
             SELECT 
                 Id, DriverId, Title, Message, Type, PickupOrderId, IsRead, 
-                FcmDeliveryStatus, FcmErrorMessage, CreatedAtUtc
+                FcmDeliveryStatus, FcmErrorMessage, CreatedAt
             FROM [notification].[driver_notifications]
             WHERE {whereClause}
-            ORDER BY CreatedAtUtc DESC
+            ORDER BY CreatedAt DESC
             OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY";
 
         parameters.Add("Offset", offset);

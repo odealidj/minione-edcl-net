@@ -14,4 +14,7 @@ interface ApiService {
 
     @POST("api/v1/mobile/auth/drivers/change-pin")
     suspend fun changePin(@Body request: ChangePinRequest): Response<ApiResponse<LoginResponse>>
+
+    @POST("api/v1/mobile/notifications/{id}/read")
+    suspend fun markAsRead(@retrofit2.http.Path("id") notificationId: Long): Response<ApiResponse<Any>>
 }

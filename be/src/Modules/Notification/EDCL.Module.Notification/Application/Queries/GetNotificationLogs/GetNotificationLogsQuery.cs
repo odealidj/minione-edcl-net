@@ -13,7 +13,7 @@ public sealed record NotificationLogDto(
     bool IsRead,
     string? FcmDeliveryStatus,
     string? FcmErrorMessage,
-    DateTime CreatedAtUtc);
+    DateTime CreatedAt);
 
 public sealed record GetNotificationLogsResponse(
     IReadOnlyList<NotificationLogDto> Items,

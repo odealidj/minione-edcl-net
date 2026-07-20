@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace EDCL.Module.Notification.Api;
 
 [ApiController]
-[Route("api/v1/admin/notifications")]
+[Route("api/v1/web/admin/notifications")]
 [Authorize(Roles = "ADMIN")]
 public sealed class AdminNotificationController(IMediator mediator) : ControllerBase
 {

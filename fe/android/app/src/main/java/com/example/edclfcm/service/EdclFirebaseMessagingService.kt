@@ -21,18 +21,20 @@ class EdclFirebaseMessagingService : FirebaseMessagingService() {
         super.onMessageReceived(remoteMessage)
         Log.d("FCM", "From: ${remoteMessage.from}")
 
-        // Check if message contains a data payload.
-        if (remoteMessage.data.isNotEmpty()) {
-            Log.d("FCM", "Message data payload: ${remoteMessage.data}")
-            val title = remoteMessage.data["title"] ?: "New Notification"
-            val body = remoteMessage.data["body"] ?: "You have a new message."
-            showNotification(title, body)
-        }
+        val hasData = remoteMessage.data.isNotEmpty()
+        val hasNotification = remoteMessage.notification != null
 
-        // Check if message contains a notification payload.
-        remoteMessage.notification?.let {
-            Log.d("FCM", "Message Notification Body: ${it.body}")
-            showNotification(it.title ?: "Notification", it.body ?: "")
+        val title = remoteMessage.notification?.title 
+                    ?: remoteMessage.data["title"] 
+                    ?: "New Notification"
+        
+        val body = remoteMessage.notification?.body 
+                   ?: remoteMessage.data["body"] 
+                   ?: "You have a new message."
+        
+        if (hasData || hasNotification) {
+            Log.d("FCM", "Message received. Showing notification.")
+            showNotification(title, body, remoteMessage.data)
         }
     }
 
@@ -53,7 +55,7 @@ class EdclFirebaseMessagingService : FirebaseMessagingService() {
         }
     }
 
-    private fun showNotification(title: String, messageBody: String) {
+    private fun showNotification(title: String, messageBody: String, dataPayload: Map<String, String>? = null) {
         val channelId = "edcl_fcm_channel"
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
@@ -62,12 +64,26 @@ class EdclFirebaseMessagingService : FirebaseMessagingService() {
             notificationManager.createNotificationChannel(channel)
         }
 
+        val intent = android.content.Intent(this, com.example.edclfcm.MainActivity::class.java).apply {
+            flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
+            dataPayload?.get("notificationId")?.let { idStr ->
+                putExtra("notificationId", idStr.toLongOrNull() ?: -1L)
+            }
+        }
+        val pendingIntent = android.app.PendingIntent.getActivity(
+            this, 
+            0, 
+            intent, 
+            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+        )
+
         val notificationBuilder = NotificationCompat.Builder(this, channelId)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle(title)
             .setContentText(messageBody)
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setContentIntent(pendingIntent)
 
         notificationManager.notify(System.currentTimeMillis().toInt(), notificationBuilder.build())
     }

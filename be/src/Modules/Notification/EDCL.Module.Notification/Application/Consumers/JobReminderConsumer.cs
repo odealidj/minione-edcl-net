@@ -29,6 +29,7 @@ public class JobReminderConsumer(
         );
 
         dbContext.DriverNotifications.Add(notification);
+        await dbContext.SaveChangesAsync();
 
         // Fetch DriverInfo to get FcmToken
         var driverInfo = await driverPort.GetActiveDriverByIdAsync(message.DriverId);
@@ -42,7 +43,8 @@ public class JobReminderConsumer(
                 { "type", "REMINDER" },
                 { "routeCode", message.RouteCode },
                 { "cycle", message.Cycle.ToString() },
-                { "pickupOrderId", message.PickupOrderId.ToString() }
+                { "pickupOrderId", message.PickupOrderId.ToString() },
+                { "notificationId", notification.Id.ToString() }
             };
 
             var fcmResult = await firebaseNotificationService.SendDataNotificationAsync(driverInfo.FcmToken, dataPayload);

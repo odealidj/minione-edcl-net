@@ -1,6 +1,6 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AdminNotificationService, NotificationLogDto } from '../../../core/services/admin-notification.service';
 import { PaginationMeta } from '../../../core/models/api.model';
@@ -22,11 +22,17 @@ export class NotificationLogsComponent implements OnInit {
 
   constructor(
     private notificationService: AdminNotificationService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private route: ActivatedRoute
   ) {}
 
   ngOnInit(): void {
-    this.loadData();
+    this.route.queryParams.subscribe(params => {
+      if (params['driverId']) {
+        this.filterDriverId = Number(params['driverId']);
+      }
+      this.loadData();
+    });
   }
 
   loadData() {

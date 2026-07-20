@@ -60,7 +60,7 @@
             <tbody>
               @for (log of logs; track log.id) {
                 <tr class="hover:bg-gray-50/50 transition-colors border-b border-gray-50">
-                  <td class="text-gray-600 whitespace-nowrap">{{log.createdAtUtc | date:'short'}}</td>
+                  <td class="text-gray-600 whitespace-nowrap">{{log.createdAt | date:'dd MMM yyyy, HH:mm'}}</td>
                   <td class="font-medium text-gray-800">
                     ID: {{log.driverId}}
                   </td>

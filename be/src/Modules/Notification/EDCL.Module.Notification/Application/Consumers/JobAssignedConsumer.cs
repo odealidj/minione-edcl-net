@@ -28,6 +28,7 @@ public class JobAssignedConsumer(
         );
 
         dbContext.DriverNotifications.Add(notification);
+        await dbContext.SaveChangesAsync();
 
         // Fetch DriverInfo to get FcmToken
         var driverInfo = await driverPort.GetActiveDriverByIdAsync(message.DriverId);
@@ -41,7 +42,8 @@ public class JobAssignedConsumer(
                 { "routeCode", context.Message.RouteCode },
                 { "pickupDate", context.Message.PickupDate.ToString("o") },
                 { "title", "Tugas Baru Ditugaskan!" },
-                { "body", body }
+                { "body", body },
+                { "notificationId", notification.Id.ToString() }
             };
 
             var fcmResult = await firebaseNotificationService.SendDataNotificationAsync(driverInfo.FcmToken, dataPayload);
