@@ -14,26 +14,36 @@
 
   <!-- Filters -->
   <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-    <div class="flex flex-col md:flex-row gap-4">
-      <div class="flex-1">
-        <label class="block text-sm font-medium text-gray-700 mb-1">Driver ID</label>
-        <input type="number" [(ngModel)]="filterDriverId" placeholder="Filter by Driver ID" class="input input-bordered w-full" />
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Search</label>
+        <input type="text" [(ngModel)]="q" (keyup.enter)="onFilterChange()" placeholder="Delivery No or Driver Name" class="input input-bordered w-full" />
       </div>
-      <div class="flex-1">
-        <label class="block text-sm font-medium text-gray-700 mb-1">Delivery Status</label>
-        <select [(ngModel)]="filterStatus" class="select select-bordered w-full">
-          <option value="">All Statuses</option>
-          <option value="Success">Success</option>
-          <option value="Failed">Failed</option>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Driver</label>
+        <select [(ngModel)]="driverId" (change)="onFilterChange()" class="select select-bordered w-full">
+          <option [ngValue]="null">All Drivers</option>
+          @for (d of drivers; track d.id) {
+            <option [value]="d.id">{{ d.fullName }}</option>
+          }
         </select>
       </div>
-      <div class="flex items-end gap-2">
-        <button (click)="applyFilters()" class="btn btn-primary">
-          <i class="fas fa-search"></i> Search
-        </button>
-        <button (click)="clearFilters()" class="btn btn-ghost">
-          Clear
-        </button>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Read Status</label>
+        <select [(ngModel)]="isRead" (change)="onFilterChange()" class="select select-bordered w-full">
+          <option value="">All</option>
+          <option value="true">Read</option>
+          <option value="false">Unread</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">FCM Status</label>
+        <select [(ngModel)]="deliveryStatus" (change)="onFilterChange()" class="select select-bordered w-full">
+          <option value="">All Statuses</option>
+          <option value="Sent">Sent</option>
+          <option value="Failed">Failed</option>
+          <option value="Pending">Pending</option>
+        </select>
       </div>
     </div>
   </div>
@@ -50,11 +60,14 @@
           <table class="table w-full">
             <thead>
               <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
-                <th class="rounded-l-lg py-3">Date</th>
+                <th class="rounded-l-lg py-3">Time</th>
                 <th class="py-3">Driver</th>
+                <th class="py-3">Delivery No</th>
+                <th class="py-3">Route/Cycle</th>
+                <th class="py-3">Pickup Date</th>
                 <th class="py-3">Notification</th>
-                <th class="py-3">FCM Status</th>
-                <th class="rounded-r-lg py-3 text-center">Read Status</th>
+                <th class="py-3 text-center">Status</th>
+                <th class="rounded-r-lg py-3 text-center">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -62,42 +75,64 @@
                 <tr class="hover:bg-gray-50/50 transition-colors border-b border-gray-50">
                   <td class="text-gray-600 whitespace-nowrap">{{log.createdAt | date:'dd MMM yyyy, HH:mm'}}</td>
                   <td class="font-medium text-gray-800">
-                    ID: {{log.driverId}}
+                    {{log.driverName || 'ID: ' + log.driverId}}
                   </td>
+                  <td>
+                    <span class="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">
+                      {{ log.poNo || '-' }}
+                    </span>
+                  </td>
+                  <td>
+                    @if (log.routeCode) {
+                      <span class="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
+                        {{ log.routeCode }} / {{ log.cycleCode }}
+                      </span>
+                    } @else {
+                      -
+                    }
+                  </td>
+                  <td class="text-gray-600">{{ log.pickupDate ? (log.pickupDate | date:'short') : '-' }}</td>
                   <td>
                     <div class="font-medium text-gray-800">{{log.title}}</div>
-                    <div class="text-sm text-gray-500 truncate max-w-xs" [title]="log.message">{{log.message}}</div>
+                    <div class="text-sm text-gray-500 truncate max-w-[200px]" [title]="log.message">{{log.message}}</div>
                   </td>
-                  <td>
-                    @if (log.fcmDeliveryStatus === 'Success') {
-                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-800">
-                        <i class="fas fa-check-circle mr-1"></i> Success
-                      </span>
-                    } @else if (log.fcmDeliveryStatus === 'Failed') {
-                      <div class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-800 cursor-pointer" [title]="log.fcmErrorMessage">
-                        <i class="fas fa-times-circle mr-1"></i> Failed
-                      </div>
-                    } @else {
-                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-50 text-gray-800">
-                        {{log.fcmDeliveryStatus || 'Unknown'}}
-                      </span>
-                    }
+                  <td class="text-center space-y-1">
+                    <div>
+                      @if (log.isRead) {
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-800">
+                          Read
+                        </span>
+                      } @else {
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-orange-50 text-orange-800">
+                          Unread
+                        </span>
+                      }
+                    </div>
+                    <div>
+                      @if (log.fcmDeliveryStatus === 'Sent') {
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-green-50 text-green-800">
+                          Sent
+                        </span>
+                      } @else if (log.fcmDeliveryStatus === 'Failed') {
+                        <div class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-red-50 text-red-800 cursor-pointer" [title]="log.fcmErrorMessage">
+                          Failed
+                        </div>
+                      } @else {
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-gray-50 text-gray-800">
+                          {{log.fcmDeliveryStatus || 'Unknown'}}
+                        </span>
+                      }
+                    </div>
                   </td>
                   <td class="text-center">
-                    @if (log.isRead) {
-                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-800">
-                        Read
-                      </span>
-                    } @else {
-                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-50 text-orange-800">
-                        Unread
-                      </span>
-                    }
+                    <button class="btn btn-xs btn-outline btn-primary" (click)="resendNotification(log.id)">
+                      <i class="fas fa-paper-plane mr-1"></i> Resend
+                    </button>
                   </td>
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="5" class="text-center py-8 text-gray-500">
+                  <td colspan="8" class="text-center py-8 text-gray-500">
                     <i class="fas fa-bell-slash text-3xl text-gray-300 mb-2 block"></i>
                     No notifications found
                   </td>
@@ -108,20 +143,20 @@
         </div>
 
         <!-- Pagination -->
-        @if (pagination.total_pages > 1) {
+        @if (totalItems > pageSize) {
           <div class="flex justify-center mt-6">
             <div class="join">
-              <button 
-                class="join-item btn btn-sm" 
-                [disabled]="pagination.page === 1"
-                (click)="changePage(pagination.page - 1)">«</button>
-              
-              <button class="join-item btn btn-sm">Page {{pagination.page}} of {{pagination.total_pages}}</button>
-              
-              <button 
-                class="join-item btn btn-sm" 
-                [disabled]="pagination.page === pagination.total_pages"
-                (click)="changePage(pagination.page + 1)">»</button>
+              <button
+                class="join-item btn btn-sm"
+                [disabled]="currentPage === 1"
+                (click)="onPageChange(currentPage - 1)">«</button>
+
+              <button class="join-item btn btn-sm">Page {{currentPage}}</button>
+
+              <button
+                class="join-item btn btn-sm"
+                [disabled]="currentPage * pageSize >= totalItems"
+                (click)="onPageChange(currentPage + 1)">»</button>
             </div>
           </div>
         }

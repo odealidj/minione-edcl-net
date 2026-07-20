@@ -27,6 +27,13 @@ internal sealed class AdminDeletePickupOrderCommandHandler(JobDbContext dbContex
             
         var manifestNos = pickupOrder.Details.SelectMany(x => x.Manifests).Select(x => x.ManifestNo).ToList();
             
+        // Delete scheduled hangfire jobs
+        if (!string.IsNullOrEmpty(pickupOrder.HangfireJobIdH1))
+            BackgroundJob.Delete(pickupOrder.HangfireJobIdH1);
+            
+        if (!string.IsNullOrEmpty(pickupOrder.HangfireJobIdH30))
+            BackgroundJob.Delete(pickupOrder.HangfireJobIdH30);
+
         dbContext.PickupOrders.Remove(pickupOrder);
         await dbContext.SaveChangesAsync(cancellationToken);
         

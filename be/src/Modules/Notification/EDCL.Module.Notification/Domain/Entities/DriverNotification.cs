@@ -13,6 +13,7 @@ public class DriverNotification : AuditableEntity
     public long? PickupOrderId { get; private set; } // Reference to a job if applicable
     public string? FcmDeliveryStatus { get; private set; } // "Pending", "Sent", "Failed"
     public string? FcmErrorMessage { get; private set; }
+    public bool AdminAlertAcknowledged { get; private set; }
 
     protected DriverNotification() { } // EF Core
 
@@ -41,5 +42,10 @@ public class DriverNotification : AuditableEntity
     {
         FcmDeliveryStatus = "Failed";
         FcmErrorMessage = error;
+    }
+
+    public void AcknowledgeAdminAlert()
+    {
+        AdminAlertAcknowledged = true;
     }
 }

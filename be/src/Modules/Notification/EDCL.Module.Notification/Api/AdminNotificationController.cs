@@ -1,4 +1,7 @@
+using EDCL.Module.Notification.Application.Commands.AcknowledgeAlert;
+using EDCL.Module.Notification.Application.Commands.ResendNotification;
 using EDCL.Module.Notification.Application.Queries.GetNotificationLogs;
+using EDCL.Module.Notification.Application.Queries.GetUnreadAlerts;
 using EDCL.Shared.Http.Middlewares;
 using EDCL.Shared.Http.Responses;
 using MediatR;
@@ -13,9 +16,6 @@ namespace EDCL.Module.Notification.Api;
 [Authorize(Roles = "ADMIN")]
 public sealed class AdminNotificationController(IMediator mediator) : ControllerBase
 {
-    /// <summary>
-    /// Gets paginated notification logs (FCM status).
-    /// </summary>
     [HttpGet("logs")]
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<NotificationLogDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetNotificationLogs(
@@ -23,10 +23,12 @@ public sealed class AdminNotificationController(IMediator mediator) : Controller
         [FromQuery] int pageSize = 10,
         [FromQuery] long? driverId = null,
         [FromQuery] string? deliveryStatus = null,
+        [FromQuery] string? q = null,
+        [FromQuery] bool? isRead = null,
         CancellationToken cancellationToken = default)
     {
         var traceId = HttpContext.GetTraceId();
-        var query = new GetNotificationLogsQuery(page, pageSize, driverId, deliveryStatus);
+        var query = new GetNotificationLogsQuery(page, pageSize, driverId, deliveryStatus, q, isRead);
         
         var result = await mediator.Send(query, cancellationToken);
         
@@ -38,5 +40,50 @@ public sealed class AdminNotificationController(IMediator mediator) : Controller
 
         var pagination = PaginationMeta.From(page, pageSize, result.Value.TotalCount);
         return Ok(ApiResponse<IReadOnlyList<NotificationLogDto>>.Paginated(result.Value.Items, pagination, traceId));
+    }
+
+    [HttpGet("alerts")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<NotificationLogDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetUnreadAlerts(CancellationToken cancellationToken)
+    {
+        var traceId = HttpContext.GetTraceId();
+        var query = new GetUnreadAlertsQuery();
+        
+        var result = await mediator.Send(query, cancellationToken);
+        
+        if (result.IsFailure)
+            return BadRequest(ApiResponse<object>.Fail(result.Error.Message, traceId, 400));
+
+        return Ok(ApiResponse<IReadOnlyList<NotificationLogDto>>.Success(result.Value, traceId));
+    }
+
+    [HttpPut("alerts/{id}/acknowledge")]
+    [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> AcknowledgeAlert(long id, CancellationToken cancellationToken)
+    {
+        var traceId = HttpContext.GetTraceId();
+        var command = new AcknowledgeAlertCommand(id);
+        
+        var result = await mediator.Send(command, cancellationToken);
+        
+        if (result.IsFailure)
+            return BadRequest(ApiResponse<object>.Fail(result.Error.Message, traceId, 400));
+
+        return Ok(ApiResponse<bool>.Success(result.Value, traceId));
+    }
+
+    [HttpPost("{id}/resend")]
+    [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> ResendNotification(long id, CancellationToken cancellationToken)
+    {
+        var traceId = HttpContext.GetTraceId();
+        var command = new ResendNotificationCommand(id);
+        
+        var result = await mediator.Send(command, cancellationToken);
+        
+        if (result.IsFailure)
+            return BadRequest(ApiResponse<object>.Fail(result.Error.Message, traceId, 400));
+
+        return Ok(ApiResponse<bool>.Success(result.Value, traceId));
     }
 }

@@ -17,7 +17,8 @@ public class JobAssignedConsumer(
     {
         var message = context.Message;
         
-        var body = $"Kamu telah ditugaskan untuk Route {message.RouteCode}, Cycle {message.Cycle} pada waktu {message.PickupDate:dd MMM yyyy HH:mm}. Mohon bersiap.";
+        var localPickupDate = message.PickupDate.AddHours(7);
+        var body = $"Kamu telah ditugaskan untuk Route {message.RouteCode}, Cycle {message.Cycle} pada waktu {localPickupDate:dd MMM yyyy HH:mm}. Mohon bersiap.";
         
         var notification = new DriverNotification(
             message.DriverId,

@@ -6,9 +6,14 @@ services:
     container_name: edcl_sqlserver
     entrypoint: ["/opt/mssql/bin/sqlservr"]
     stop_grace_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 2G
     environment:
       ACCEPT_EULA: "Y"
       MSSQL_SA_PASSWORD: "${SA_PASSWORD}"
+      MSSQL_MEMORY_LIMIT_MB: "1600"
     ports:
       - "${SQL_SERVER_PORT}:1433"
     volumes:

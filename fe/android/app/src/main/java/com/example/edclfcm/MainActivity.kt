@@ -15,12 +15,42 @@ import androidx.compose.ui.Modifier
 import com.example.edclfcm.theme.EdclFcmTheme
 import kotlinx.coroutines.launch
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
+
 class MainActivity : ComponentActivity() {
+  private val requestPermissionLauncher = registerForActivityResult(
+      ActivityResultContracts.RequestPermission()
+  ) { isGranted: Boolean ->
+      if (isGranted) {
+          android.util.Log.d("MainActivity", "Notification permission granted")
+      } else {
+          android.util.Log.e("MainActivity", "Notification permission denied")
+      }
+  }
+
+  private fun askNotificationPermission() {
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+          if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) ==
+              PackageManager.PERMISSION_GRANTED
+          ) {
+              // Permission is already granted
+          } else {
+              // Directly ask for the permission
+              requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+          }
+      }
+  }
+
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
 
     enableEdgeToEdge()
     com.example.edclfcm.api.ApiClient.init(com.example.edclfcm.util.TokenManager(this))
+    
+    askNotificationPermission()
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
         val channelId = "edcl_fcm_channel"
