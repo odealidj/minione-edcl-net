@@ -110,7 +110,7 @@ internal sealed class AdminUpdatePickupOrderCommandHandler(JobDbContext dbContex
                 DriverId = pickupOrder.DriverId.Value,
                 RouteCode = pickupOrder.RouteCode,
                 Cycle = pickupOrder.CycleCode,
-                PickupDate = pickupOrder.PickupDate
+                PickupDate = pickupOrder.PickupDate.Date + pickupOrder.EstimatedDepartureTime
             };
             await publishEndpoint.Publish(assignedEvent, cancellationToken);
         }

@@ -30,7 +30,7 @@ public sealed class GetNotificationLogsQueryHandler(NotificationDbContext dbCont
 
         var whereClause = string.Join(" AND ", conditions);
         
-        var countSql = $"SELECT COUNT(1) FROM driver_notifications WHERE {whereClause}";
+        var countSql = $"SELECT COUNT(1) FROM [notification].[driver_notifications] WHERE {whereClause}";
         var totalCount = await connection.ExecuteScalarAsync<long>(countSql, parameters);
 
         var offset = (request.Page - 1) * request.PageSize;
@@ -39,7 +39,7 @@ public sealed class GetNotificationLogsQueryHandler(NotificationDbContext dbCont
             SELECT 
                 Id, DriverId, Title, Message, Type, PickupOrderId, IsRead, 
                 FcmDeliveryStatus, FcmErrorMessage, CreatedAtUtc
-            FROM driver_notifications
+            FROM [notification].[driver_notifications]
             WHERE {whereClause}
             ORDER BY CreatedAtUtc DESC
             OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY";

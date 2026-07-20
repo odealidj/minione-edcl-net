@@ -40,8 +40,8 @@ public class JobAssignedConsumer(
                 { "pickupOrderId", context.Message.PickupOrderId.ToString() },
                 { "routeCode", context.Message.RouteCode },
                 { "pickupDate", context.Message.PickupDate.ToString("o") },
-                { "title", "New Route Plan Assigned" },
-                { "body", $"You have a new route {context.Message.RouteCode} on {context.Message.PickupDate:dd MMM yyyy HH:mm}." }
+                { "title", "Tugas Baru Ditugaskan!" },
+                { "body", body }
             };
 
             var fcmResult = await firebaseNotificationService.SendDataNotificationAsync(driverInfo.FcmToken, dataPayload);
