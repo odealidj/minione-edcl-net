@@ -22,9 +22,10 @@ public static class NotificationModuleRegistration
         {
             if (FirebaseAdmin.FirebaseApp.DefaultInstance == null)
             {
+                Environment.SetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS", credentialPath);
                 FirebaseAdmin.FirebaseApp.Create(new FirebaseAdmin.AppOptions
                 {
-                    Credential = Google.Apis.Auth.OAuth2.GoogleCredential.FromFile(credentialPath)
+                    Credential = Google.Apis.Auth.OAuth2.GoogleCredential.GetApplicationDefault()
                 });
             }
         }

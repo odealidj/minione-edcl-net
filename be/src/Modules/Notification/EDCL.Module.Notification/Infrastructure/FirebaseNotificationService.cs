@@ -25,7 +25,9 @@ public class FirebaseNotificationService(ILogger<FirebaseNotificationService> lo
 
             var message = new Message()
             {
+#pragma warning disable CS0618 // Type or member is obsolete
                 Token = fcmToken,
+#pragma warning restore CS0618 // Type or member is obsolete
                 Notification = (title != null || body != null) ? new FirebaseAdmin.Messaging.Notification
                 {
                     Title = title,
