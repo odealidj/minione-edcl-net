@@ -54,6 +54,7 @@ class Program
                     break;
                 case "reset-pickup":
                     await ResetPickupAsync();
+                    await ResetNotificationAsync();
                     break;
                 case "bulk":
                     await SeedBulkAsync();
@@ -74,6 +75,7 @@ class Program
                     await ResetRouteAsync();
                     await ResetSupplierAsync();
                     await ResetLogisticPartnerAsync();
+                    await ResetNotificationAsync();
                     break;
                 case "supplier":
                     await SeedSupplierAsync();
@@ -107,6 +109,7 @@ class Program
                     break;
                 case "reset":
                     await ResetDataAsync();
+                    await ResetNotificationAsync();
                     break;
                 case "trigger-reject":
                     await TriggerRejectAsync();
@@ -607,6 +610,23 @@ class Program
         Console.WriteLine("[EDCL] Done.");
 
         Console.WriteLine("✅ Reset complete. Both IDCS & EDCL manifest data cleared.");
+    }
+
+    private static async Task ResetNotificationAsync()
+    {
+        Console.WriteLine("⚠️  Starting reset for Notifications...");
+        using var connEdcl = new SqlConnection(EdclConnectionString);
+        await connEdcl.OpenAsync();
+        try
+        {
+            var rows = await connEdcl.ExecuteAsync("DELETE FROM notification.driver_notifications");
+            await connEdcl.ExecuteAsync("DBCC CHECKIDENT ('notification.driver_notifications', RESEED, 0)");
+            Console.WriteLine($"✅ Cleared {rows} Notifications in EDCL.");
+        }
+        catch (SqlException ex)
+        {
+            Console.WriteLine($"❌ Failed to delete Notifications in EDCL: {ex.Message}");
+        }
     }
 
     private static async Task ResetPickupAsync()
