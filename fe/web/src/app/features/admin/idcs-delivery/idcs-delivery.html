@@ -1,0 +1,79 @@
+<div class="p-6">
+  <div class="flex justify-between items-center mb-6">
+    <div>
+      <h1 class="text-2xl font-semibold text-slate-800">IDCS Delivery Status</h1>
+      <p class="text-sm text-slate-500 mt-1">Live delivery records directly from IDCS database</p>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-xl shadow-sm border border-slate-200">
+    <!-- Header/Toolbar -->
+    <div class="p-4 border-b border-slate-200">
+      <div class="flex flex-col sm:flex-row justify-between gap-4">
+        <app-search-bar placeholder="Search Manifest No..." (search)="onSearch($event)" class="w-full sm:max-w-md"></app-search-bar>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm text-slate-600">
+        <thead class="bg-slate-50/50 text-slate-500 border-b border-slate-200 uppercase text-xs">
+          <tr>
+            <th class="px-6 py-4 font-medium">ID</th>
+            <th class="px-6 py-4 font-medium">Manifest ID</th>
+            <th class="px-6 py-4 font-medium">Manifest No</th>
+            <th class="px-6 py-4 font-medium">Status</th>
+            <th class="px-6 py-4 font-medium">Delivered At</th>
+            <th class="px-6 py-4 font-medium">Remarks</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          <tr *ngIf="isLoading">
+            <td colspan="6" class="px-6 py-8 text-center text-slate-400">Loading data...</td>
+          </tr>
+          <tr *ngIf="!isLoading && deliveries.length === 0">
+            <td colspan="6" class="px-6 py-8 text-center text-slate-400">No records found.</td>
+          </tr>
+          <tr *ngFor="let item of deliveries" class="hover:bg-slate-50/50 transition-colors">
+            <td class="px-6 py-4 font-medium text-slate-700">{{ item.id }}</td>
+            <td class="px-6 py-4 text-slate-500">{{ item.manifestId || '-' }}</td>
+            <td class="px-6 py-4 font-medium text-blue-600">{{ item.manifestNo }}</td>
+            <td class="px-6 py-4">
+              <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium"
+                [ngClass]="{
+                  'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20': item.status === 'Delivered',
+                  'bg-slate-50 text-slate-700 ring-1 ring-inset ring-slate-600/20': item.status !== 'Delivered'
+                }">
+                {{ item.status || 'Unknown' }}
+              </span>
+            </td>
+            <td class="px-6 py-4 text-slate-500">{{ item.deliveredAt | date:'medium' }}</td>
+            <td class="px-6 py-4 text-slate-500">{{ item.remarks || '-' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="px-6 py-4 border-t border-slate-200 flex items-center justify-between" *ngIf="totalPages > 1">
+      <div class="text-sm text-slate-500">
+        Showing page <span class="font-medium text-slate-700">{{ currentPage }}</span> of <span class="font-medium text-slate-700">{{ totalPages }}</span> ({{ totalRecords }} records)
+      </div>
+      <div class="flex gap-1">
+        <button [disabled]="currentPage === 1" (click)="changePage(currentPage - 1)"
+          class="px-3 py-1 text-sm border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">
+          Prev
+        </button>
+        <button *ngFor="let p of pages" (click)="changePage(p)"
+          [class.bg-blue-50]="p === currentPage" [class.text-blue-600]="p === currentPage" [class.border-blue-200]="p === currentPage"
+          class="px-3 py-1 text-sm border border-slate-200 rounded-lg hover:bg-slate-50">
+          {{ p }}
+        </button>
+        <button [disabled]="currentPage === totalPages" (click)="changePage(currentPage + 1)"
+          class="px-3 py-1 text-sm border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">
+          Next
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -15,6 +15,9 @@ public static class CargoModuleRegistration
         services.AddDbContext<CargoDbContext>(opts =>
             opts.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
 
+        services.AddDbContext<IdcsDbContext>(opts =>
+            opts.UseSqlServer(configuration.GetConnectionString("IdcsDb")));
+
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(CargoModuleRegistration).Assembly));
 
         return services;

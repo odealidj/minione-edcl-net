@@ -45,7 +45,22 @@ export class CargoService {
     return this.http.get<ApiResponse<ManifestProblem[]>>(`${this.baseUrl}/manifest-problems`, { params });
   }
 
-  resolveManifestProblem(id: number, reason: string): Observable<ApiResponse<boolean>> {
-    return this.http.patch<ApiResponse<boolean>>(`${this.baseUrl}/manifest-problems/${id}/resolve`, { reason });
+  resolveManifestProblem(problemId: number, resolution: string, isResolved: boolean = true): Observable<ApiResponse<boolean>> {
+    return this.http.post<ApiResponse<boolean>>(`${environment.apiUrl}/admin/cargo/manifest-problems/${problemId}/resolve`, {
+      resolution,
+      isResolved
+    });
+  }
+
+  getIdcsDeliveries(searchQuery?: string, page: number = 1, pageSize: number = 10): Observable<ApiResponse<any[]>> {
+    let params = new HttpParams()
+      .set('page', page.toString())
+      .set('pageSize', pageSize.toString());
+
+    if (searchQuery) {
+      params = params.set('search', searchQuery);
+    }
+
+    return this.http.get<ApiResponse<any[]>>(`${environment.apiUrl}/admin/cargo/idcs-deliveries`, { params });
   }
 }
