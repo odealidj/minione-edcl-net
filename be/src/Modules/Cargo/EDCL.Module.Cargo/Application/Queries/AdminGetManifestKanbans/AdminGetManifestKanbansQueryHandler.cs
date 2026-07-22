@@ -26,6 +26,11 @@ internal sealed class AdminGetManifestKanbansQueryHandler(CargoDbContext dbConte
             query = query.Where(x => x.Kanban.ManifestId == request.ManifestId.Value);
         }
 
+        if (!string.IsNullOrWhiteSpace(request.PartNo))
+        {
+            query = query.Where(x => x.Kanban.PartNo == request.PartNo);
+        }
+
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
             var searchTerm = request.Search.ToLower();

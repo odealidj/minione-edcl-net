@@ -13,6 +13,17 @@ public class Worker : BackgroundService
     private readonly string _connectionString;
     private readonly string _rabbitMqConnectionString;
 
+    // --- Metrics State ---
+    private int _sessionSuccessCount = 0;
+    private int _sessionFailedCount = 0;
+    private int _sessionProcessedCount = 0;
+    private long? _currentSessionId = null;
+    private DateTime _sessionStartTime = DateTime.UtcNow;
+    private DateTime _lastMessageTime = DateTime.UtcNow;
+    private bool _sessionMetricsDirty = false;
+    private readonly object _metricsLock = new object();
+    // ---------------------
+
     public Worker(ILogger<Worker> logger, IConfiguration configuration)
     {
         _logger = logger;
@@ -39,6 +50,7 @@ public class Worker : BackgroundService
         var consumer = new AsyncEventingBasicConsumer(channel);
         consumer.ReceivedAsync += async (model, ea) =>
         {
+            await EnsureSessionExistsAsync();
             var body = ea.Body.ToArray();
             var message = Encoding.UTF8.GetString(body);
             
@@ -56,6 +68,14 @@ public class Worker : BackgroundService
             {
                 await ProcessMessageAsync(message);
                 await channel.BasicAckAsync(ea.DeliveryTag, false, stoppingToken);
+                
+                lock (_metricsLock)
+                {
+                    _sessionSuccessCount++;
+                    _sessionProcessedCount++;
+                    _lastMessageTime = DateTime.UtcNow;
+                    _sessionMetricsDirty = true;
+                }
             }
             catch (Exception ex)
             {
@@ -99,6 +119,14 @@ public class Worker : BackgroundService
                         basicProperties: props,
                         body: faultBody,
                         cancellationToken: stoppingToken);
+                        
+                    lock (_metricsLock)
+                    {
+                        _sessionFailedCount++;
+                        _sessionProcessedCount++;
+                        _lastMessageTime = DateTime.UtcNow;
+                        _sessionMetricsDirty = true;
+                    }
                 }
                 else
                 {
@@ -144,7 +172,46 @@ public class Worker : BackgroundService
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            await Task.Delay(1000, stoppingToken);
+            await Task.Delay(2000, stoppingToken);
+            
+            bool shouldUpdateDb = false;
+            long? sessionIdToUpdate = null;
+            bool shouldCompleteSession = false;
+            int currentSuccess = 0;
+            int currentFailed = 0;
+            int currentProcessed = 0;
+
+            lock (_metricsLock)
+            {
+                if (_currentSessionId.HasValue)
+                {
+                    if ((DateTime.UtcNow - _lastMessageTime).TotalHours >= 1)
+                    {
+                        shouldCompleteSession = true;
+                        sessionIdToUpdate = _currentSessionId;
+                        _currentSessionId = null;
+                    }
+                    else if (_sessionMetricsDirty)
+                    {
+                        shouldUpdateDb = true;
+                        sessionIdToUpdate = _currentSessionId;
+                        _sessionMetricsDirty = false;
+                    }
+                    currentSuccess = _sessionSuccessCount;
+                    currentFailed = _sessionFailedCount;
+                    currentProcessed = _sessionProcessedCount;
+                }
+            }
+
+            if (shouldCompleteSession && sessionIdToUpdate.HasValue)
+            {
+                await CompleteSessionAsync(sessionIdToUpdate.Value, currentProcessed, currentSuccess, currentFailed);
+            }
+            else if (shouldUpdateDb && sessionIdToUpdate.HasValue)
+            {
+                await UpdateSessionMetricsAsync(sessionIdToUpdate.Value, currentProcessed, currentSuccess, currentFailed);
+                await PublishMetricsEventAsync(channel, sessionIdToUpdate.Value, currentProcessed, currentSuccess, currentFailed, stoppingToken);
+            }
         }
     }
 
@@ -173,8 +240,8 @@ public class Worker : BackgroundService
             
         var op = opElement.GetString();
         
-        // We only care about creates, updates, and deletes
-        if (op != "c" && op != "u" && op != "d")
+        // We only care about creates, updates, deletes, and initial reads
+        if (op != "c" && op != "u" && op != "d" && op != "r")
             return;
             
         JsonElement payloadData;
@@ -438,6 +505,13 @@ public class Worker : BackgroundService
         using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
 
+        if (op == "d")
+        {
+            var sqlDelete = "DELETE FROM edcl.ingestion.manifest_parts WHERE Id = @Id";
+            await connection.ExecuteAsync(sqlDelete, new { Id = id });
+            return;
+        }
+
         var sql = @"
             SET IDENTITY_INSERT edcl.ingestion.manifest_parts ON;
             
@@ -508,6 +582,13 @@ public class Worker : BackgroundService
         using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
 
+        if (op == "d")
+        {
+            var sqlDelete = "DELETE FROM edcl.ingestion.manifest_kanbans WHERE Id = @Id";
+            await connection.ExecuteAsync(sqlDelete, new { Id = id });
+            return;
+        }
+
         var sql = @"
             SET IDENTITY_INSERT edcl.ingestion.manifest_kanbans ON;
             
@@ -567,6 +648,13 @@ public class Worker : BackgroundService
 
         using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
+
+        if (op == "d")
+        {
+            var sqlDelete = "DELETE FROM edcl.ingestion.manifest_skids WHERE Id = @Id";
+            await connection.ExecuteAsync(sqlDelete, new { Id = id });
+            return;
+        }
 
         var sql = @"
             SET IDENTITY_INSERT edcl.ingestion.manifest_skids ON;
@@ -646,5 +734,128 @@ public class Worker : BackgroundService
         });
         
         _logger.LogInformation($"Successfully upserted Supplier ID {id} into edcl.driver.suppliers");
+    }
+
+    private async Task EnsureSessionExistsAsync()
+    {
+        if (_currentSessionId.HasValue) return;
+
+        using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        // Cleanup sessions older than 30 days
+        var cleanupSql = "DELETE FROM edcl.ingestion.sync_sessions WHERE SessionDate < DATEADD(day, -30, GETUTCDATE())";
+        await connection.ExecuteAsync(cleanupSql);
+
+        var sql = @"
+            INSERT INTO edcl.ingestion.sync_sessions 
+            (SessionDate, StartTime, TotalProcessed, SuccessCount, FailedCount, Status, CreatedAt, CreatedBy, IsDeleted, RowVersion)
+            OUTPUT INSERTED.Id
+            VALUES (CAST(GETUTCDATE() AS DATE), GETUTCDATE(), 0, 0, 0, 'IN_PROGRESS', GETUTCDATE(), 'System', 0, CAST(0 AS varbinary(8)));";
+
+        var id = await connection.ExecuteScalarAsync<long>(sql);
+        
+        lock (_metricsLock)
+        {
+            _currentSessionId = id;
+            _sessionStartTime = DateTime.UtcNow;
+            _sessionSuccessCount = 0;
+            _sessionFailedCount = 0;
+            _sessionProcessedCount = 0;
+            _sessionMetricsDirty = false;
+        }
+        
+        _logger.LogInformation($"Created new SyncSession ID {id}");
+    }
+
+    private async Task CompleteSessionAsync(long sessionId, int processed, int success, int failed)
+    {
+        using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        var sql = @"
+            UPDATE edcl.ingestion.sync_sessions 
+            SET EndTime = GETUTCDATE(),
+                TotalProcessed = @Processed,
+                SuccessCount = @Success,
+                FailedCount = @Failed,
+                Status = 'COMPLETED',
+                UpdatedAt = GETUTCDATE()
+            WHERE Id = @Id;";
+
+        await connection.ExecuteAsync(sql, new { Id = sessionId, Processed = processed, Success = success, Failed = failed });
+        _logger.LogInformation($"Completed SyncSession ID {sessionId}");
+    }
+
+    private async Task UpdateSessionMetricsAsync(long sessionId, int processed, int success, int failed)
+    {
+        using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        var sql = @"
+            UPDATE edcl.ingestion.sync_sessions 
+            SET TotalProcessed = @Processed,
+                SuccessCount = @Success,
+                FailedCount = @Failed,
+                UpdatedAt = GETUTCDATE()
+            WHERE Id = @Id;";
+
+        var affected = await connection.ExecuteAsync(sql, new { Id = sessionId, Processed = processed, Success = success, Failed = failed });
+        if (affected == 0)
+        {
+            _logger.LogWarning($"SyncSession {sessionId} not found in DB. Recreating...");
+            var insertSql = @"
+                INSERT INTO edcl.ingestion.sync_sessions 
+                (SessionDate, StartTime, TotalProcessed, SuccessCount, FailedCount, Status, CreatedAt, CreatedBy, IsDeleted, RowVersion)
+                OUTPUT INSERTED.Id
+                VALUES (CAST(GETUTCDATE() AS DATE), @StartTime, @Processed, @Success, @Failed, 'IN_PROGRESS', GETUTCDATE(), 'System', 0, CAST(0 AS varbinary(8)));";
+
+            var newId = await connection.ExecuteScalarAsync<long>(insertSql, new 
+            { 
+                StartTime = _sessionStartTime, 
+                Processed = processed, 
+                Success = success, 
+                Failed = failed 
+            });
+
+            lock (_metricsLock)
+            {
+                if (_currentSessionId == sessionId)
+                {
+                    _currentSessionId = newId;
+                }
+            }
+        }
+    }
+
+    private async Task PublishMetricsEventAsync(IChannel channel, long sessionId, int processed, int success, int failed, CancellationToken ct)
+    {
+        var metricsEvent = new
+        {
+            SessionId = sessionId,
+            SessionDate = DateTime.UtcNow.Date,
+            StartTime = _sessionStartTime,
+            EndTime = (DateTime?)null,
+            TotalProcessed = processed,
+            SuccessCount = success,
+            FailedCount = failed,
+            Status = "IN_PROGRESS"
+        };
+
+        var json = JsonSerializer.Serialize(metricsEvent);
+        var body = Encoding.UTF8.GetBytes(json);
+
+        var props = new RabbitMQ.Client.BasicProperties { ContentType = "application/json" };
+        
+        // Ensure exchange exists (MassTransit will bind queue to this)
+        await channel.ExchangeDeclareAsync("EDCL.Module.Cargo.Domain.Events:IngestionMetricsEvent", "fanout", true, false, null, cancellationToken: ct);
+        
+        await channel.BasicPublishAsync(
+            exchange: "EDCL.Module.Cargo.Domain.Events:IngestionMetricsEvent",
+            routingKey: "",
+            mandatory: false,
+            basicProperties: props,
+            body: body,
+            cancellationToken: ct);
     }
 }

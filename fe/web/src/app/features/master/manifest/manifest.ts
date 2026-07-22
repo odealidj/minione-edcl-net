@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Manifest, ManifestKanban } from '../../../core/models/master.model';
+import { Manifest, ManifestPart, ManifestKanban } from '../../../core/models/master.model';
 import { PaginationMeta } from '../../../core/models/api.model';
 import { CargoService } from '../../../core/services/cargo.service';
 
@@ -25,9 +25,14 @@ export class ManifestComponent implements OnInit {
   searchQuery = '';
   currentPage = 1;
   pageSize = 10;
-  statusFilter = '';
-
   expandedManifestId = signal<number | null>(null);
+  parts = signal<ManifestPart[]>([]);
+  partMeta = signal<PaginationMeta | null>(null);
+  partIsLoading = signal(false);
+  partSearchQuery = '';
+  partCurrentPage = 1;
+
+  expandedPartNo = signal<string | null>(null);
   kanbans = signal<ManifestKanban[]>([]);
   kanbanMeta = signal<PaginationMeta | null>(null);
   kanbanIsLoading = signal(false);
@@ -42,7 +47,7 @@ export class ManifestComponent implements OnInit {
 
   loadData(): void {
     this.isLoading.set(true);
-    this.service.getManifests(this.searchQuery, undefined, this.statusFilter || undefined, undefined, this.currentPage, this.pageSize).subscribe({
+    this.service.getManifests(this.searchQuery, undefined, undefined, undefined, this.currentPage, this.pageSize).subscribe({
       next: (res) => {
         if (res.status === 'success') {
           this.items.set(res.data);
@@ -63,12 +68,6 @@ export class ManifestComponent implements OnInit {
     this.loadData();
   }
 
-  onStatusFilterChange(event: Event): void {
-    this.statusFilter = (event.target as HTMLSelectElement).value;
-    this.currentPage = 1;
-    this.loadData();
-  }
-
   changePage(page: number): void {
     this.currentPage = page;
     this.loadData();
@@ -83,17 +82,60 @@ export class ManifestComponent implements OnInit {
   toggleExpand(manifestId: number): void {
     if (this.expandedManifestId() === manifestId) {
       this.expandedManifestId.set(null);
+      this.expandedPartNo.set(null);
     } else {
       this.expandedManifestId.set(manifestId);
-      this.kanbanSearchQuery = '';
-      this.kanbanCurrentPage = 1;
-      this.loadKanbans(manifestId);
+      this.expandedPartNo.set(null);
+      this.partSearchQuery = '';
+      this.partCurrentPage = 1;
+      this.loadParts(manifestId);
     }
   }
 
-  loadKanbans(manifestId: number): void {
+  loadParts(manifestId: number): void {
+    this.partIsLoading.set(true);
+    this.service.getManifestParts(manifestId, this.partSearchQuery, this.partCurrentPage, 10).subscribe({
+      next: (res) => {
+        if (res.status === 'success') {
+          this.parts.set(res.data);
+          this.partMeta.set(res.pagination);
+        }
+        this.partIsLoading.set(false);
+      },
+      error: (err) => {
+        console.error('Failed to load parts', err);
+        this.partIsLoading.set(false);
+      }
+    });
+  }
+
+  onPartSearch(query: string, manifestId: number): void {
+    this.partSearchQuery = query;
+    this.partCurrentPage = 1;
+    this.expandedPartNo.set(null);
+    this.loadParts(manifestId);
+  }
+
+  changePartPage(page: number, manifestId: number): void {
+    this.partCurrentPage = page;
+    this.expandedPartNo.set(null);
+    this.loadParts(manifestId);
+  }
+
+  toggleExpandPart(partNo: string, manifestId: number): void {
+    if (this.expandedPartNo() === partNo) {
+      this.expandedPartNo.set(null);
+    } else {
+      this.expandedPartNo.set(partNo);
+      this.kanbanSearchQuery = '';
+      this.kanbanCurrentPage = 1;
+      this.loadKanbans(manifestId, partNo);
+    }
+  }
+
+  loadKanbans(manifestId: number, partNo: string): void {
     this.kanbanIsLoading.set(true);
-    this.service.getManifestKanbans(manifestId, this.kanbanSearchQuery, this.kanbanCurrentPage, 10).subscribe({
+    this.service.getManifestKanbans(manifestId, partNo, this.kanbanSearchQuery, this.kanbanCurrentPage, 10).subscribe({
       next: (res) => {
         if (res.status === 'success') {
           this.kanbans.set(res.data);
@@ -108,14 +150,14 @@ export class ManifestComponent implements OnInit {
     });
   }
 
-  onKanbanSearch(query: string, manifestId: number): void {
+  onKanbanSearch(query: string, manifestId: number, partNo: string): void {
     this.kanbanSearchQuery = query;
     this.kanbanCurrentPage = 1;
-    this.loadKanbans(manifestId);
+    this.loadKanbans(manifestId, partNo);
   }
 
-  changeKanbanPage(page: number, manifestId: number): void {
+  changeKanbanPage(page: number, manifestId: number, partNo: string): void {
     this.kanbanCurrentPage = page;
-    this.loadKanbans(manifestId);
+    this.loadKanbans(manifestId, partNo);
   }
 }

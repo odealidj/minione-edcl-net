@@ -1,6 +1,7 @@
 using System.Data;
 using Dapper;
 using Microsoft.Data.SqlClient;
+using RabbitMQ.Client;
 
 namespace EDCL.IdcsSeeder;
 
@@ -262,6 +263,29 @@ class Program
         }
     }
 
+    private static async Task DisableCdcOnTableAsync(SqlConnection conn, string tableName)
+    {
+        try
+        {
+            var isTableCdcEnabled = await conn.ExecuteScalarAsync<bool>(
+                "SELECT is_tracked_by_cdc FROM sys.tables WHERE name = @TableName", new { TableName = tableName });
+                
+            if (isTableCdcEnabled)
+            {
+                await conn.ExecuteAsync($@"
+                    EXEC sys.sp_cdc_disable_table
+                    @source_schema = N'dbo',
+                    @source_name   = N'{tableName}',
+                    @capture_instance = 'all';");
+                Console.WriteLine($"Disabled CDC on table {tableName}.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Warning: Could not disable CDC on {tableName}. Error: {ex.Message}");
+        }
+    }
+
     private static async Task SeedSupplierAsync()
     {
         Console.WriteLine("Seeding Suppliers into EDCL & IDCS...");
@@ -314,8 +338,9 @@ class Program
 
         try
         {
-            await connIdcs.ExecuteAsync("DELETE FROM suppliers");
-            await connIdcs.ExecuteAsync("DBCC CHECKIDENT ('suppliers', RESEED, 0)");
+            await DisableCdcOnTableAsync(connIdcs, "suppliers");
+            await connIdcs.ExecuteAsync("TRUNCATE TABLE suppliers");
+            await EnableCdcOnTableAsync(connIdcs, "suppliers");
             
             await connEdcl.ExecuteAsync("DELETE FROM edcl.driver.suppliers");
             await connEdcl.ExecuteAsync("DBCC CHECKIDENT ('edcl.driver.suppliers', RESEED, 0)");
@@ -576,24 +601,53 @@ class Program
         Console.WriteLine("⚠️  Starting data reset for IDCS & EDCL...");
 
         // ── IDCS ────────────────────────────────────────────────────────────────
-        Console.WriteLine("[IDCS] Deleting manifest_kanbans, manifest_parts, manifest_skids, manifests...");
+        Console.WriteLine("[IDCS] Disabling CDC and Truncating IDCS tables...");
         using (var idcsConn = new SqlConnection(ConnectionString))
         {
-            // Delete in FK-safe order (children first)
-            await idcsConn.ExecuteAsync("DELETE FROM manifest_kanbans");
-            await idcsConn.ExecuteAsync("DELETE FROM manifest_parts");
-            await idcsConn.ExecuteAsync("DELETE FROM manifest_skids");
-            await idcsConn.ExecuteAsync("DELETE FROM manifests");
-            // Reset identity seeds so IDs restart from 1
-            await idcsConn.ExecuteAsync("DBCC CHECKIDENT ('manifest_kanbans', RESEED, 0)");
-            await idcsConn.ExecuteAsync("DBCC CHECKIDENT ('manifest_parts',    RESEED, 0)");
-            await idcsConn.ExecuteAsync("DBCC CHECKIDENT ('manifest_skids',    RESEED, 0)");
-            await idcsConn.ExecuteAsync("DBCC CHECKIDENT ('manifests',          RESEED, 0)");
+            await idcsConn.OpenAsync();
+            var tables = new[] { "manifest_kanbans", "manifest_parts", "manifest_skids", "manifests" };
+            
+            foreach(var t in tables) await DisableCdcOnTableAsync(idcsConn, t);
+
+            await idcsConn.ExecuteAsync("TRUNCATE TABLE manifest_kanbans");
+            await idcsConn.ExecuteAsync("TRUNCATE TABLE manifest_parts");
+            await idcsConn.ExecuteAsync("TRUNCATE TABLE manifest_skids");
+            await idcsConn.ExecuteAsync("TRUNCATE TABLE manifests");
+            
+            foreach(var t in tables) await EnableCdcOnTableAsync(idcsConn, t);
         }
         Console.WriteLine("[IDCS] Done.");
 
+        // ── RabbitMQ ────────────────────────────────────────────────────────────
+        Console.WriteLine("[RabbitMQ] Purging edcl_ingestion queues from leftover messages...");
+        try
+        {
+            var factory = new ConnectionFactory { Uri = new Uri("amqp://localhost:5672") };
+            using var connection = await factory.CreateConnectionAsync();
+            var queuesToPurge = new[] { 
+                "edcl_ingestion", "edcl_ingestion_faults", 
+                "edcl_ingestion_retry_2000", "edcl_ingestion_retry_4000",
+                "edcl_ingestion_retry_8000", "edcl_ingestion_retry_16000", "edcl_ingestion_retry_32000"
+            };
+
+            foreach (var q in queuesToPurge)
+            {
+                try 
+                {
+                    using var channel = await connection.CreateChannelAsync();
+                    await channel.QueuePurgeAsync(q);
+                }
+                catch { /* Ignore 404 */ }
+            }
+            Console.WriteLine("[RabbitMQ] Done.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[RabbitMQ] Warning: {ex.Message}");
+        }
+
         // ── EDCL ingestion ──────────────────────────────────────────────────────
-        Console.WriteLine("[EDCL] Deleting ingestion.ManifestKanbans, ManifestParts, ManifestSkids, Manifests...");
+        Console.WriteLine("[EDCL] Deleting ingestion.ManifestKanbans, ManifestParts, ManifestSkids, Manifests, SyncSessions, IngestionErrors...");
         using (var edclConn = new SqlConnection(EdclConnectionString))
         {
             // Delete in FK-safe order (children first)
@@ -601,11 +655,16 @@ class Program
             await edclConn.ExecuteAsync("DELETE FROM edcl.ingestion.manifest_parts");
             await edclConn.ExecuteAsync("DELETE FROM edcl.ingestion.manifest_skids");
             await edclConn.ExecuteAsync("DELETE FROM edcl.ingestion.manifests");
+            // Also clean up ingestion tracking tables
+            await edclConn.ExecuteAsync("DELETE FROM edcl.ingestion.sync_sessions");
+            await edclConn.ExecuteAsync("DELETE FROM edcl.ingestion.ingestion_errors");
             // Reset identity seeds
             await edclConn.ExecuteAsync("DBCC CHECKIDENT ('edcl.ingestion.manifest_kanbans', RESEED, 0)");
             await edclConn.ExecuteAsync("DBCC CHECKIDENT ('edcl.ingestion.manifest_parts',    RESEED, 0)");
             await edclConn.ExecuteAsync("DBCC CHECKIDENT ('edcl.ingestion.manifest_skids',    RESEED, 0)");
             await edclConn.ExecuteAsync("DBCC CHECKIDENT ('edcl.ingestion.manifests',          RESEED, 0)");
+            await edclConn.ExecuteAsync("DBCC CHECKIDENT ('edcl.ingestion.sync_sessions',      RESEED, 0)");
+            await edclConn.ExecuteAsync("DBCC CHECKIDENT ('edcl.ingestion.ingestion_errors',   RESEED, 0)");
         }
         Console.WriteLine("[EDCL] Done.");
 

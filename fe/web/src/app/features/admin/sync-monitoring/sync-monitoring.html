@@ -1,0 +1,140 @@
+<div class="p-6">
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-800">Sync Command Center</h1>
+    <p class="text-gray-600">Monitor real-time data ingestion and manage Dead-Letter Queue (DLQ) errors.</p>
+  </div>
+
+  <!-- Real-time metrics card (always visible at top if there is an active session) -->
+  <div *ngIf="currentMetrics() && currentMetrics()!.Status === 'PROCESSING'" class="mb-6 card bg-base-100 shadow-xl border-l-4 border-blue-500">
+    <div class="card-body">
+      <h2 class="card-title text-blue-600 flex justify-between">
+        <span class="flex items-center gap-2">
+          <span class="loading loading-ring loading-md"></span>
+          Active Sync Session ({{ currentMetrics()!.SessionDate | date:'mediumDate' }})
+        </span>
+        <span class="badge badge-info">{{ currentMetrics()!.Status }}</span>
+      </h2>
+      
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
+        <div class="stat bg-blue-50 rounded-box">
+          <div class="stat-title">Total Processed</div>
+          <div class="stat-value text-blue-600">{{ currentMetrics()!.TotalProcessed }}</div>
+        </div>
+        <div class="stat bg-green-50 rounded-box">
+          <div class="stat-title">Success</div>
+          <div class="stat-value text-green-600">{{ currentMetrics()!.SuccessCount }}</div>
+        </div>
+        <div class="stat bg-red-50 rounded-box">
+          <div class="stat-title">Failed (DLQ)</div>
+          <div class="stat-value text-red-600">{{ currentMetrics()!.FailedCount }}</div>
+        </div>
+        <div class="stat bg-gray-50 rounded-box">
+          <div class="stat-title">Start Time</div>
+          <div class="stat-value text-gray-600 text-lg">{{ currentMetrics()!.StartTime | date:'mediumTime' }}</div>
+        </div>
+      </div>
+
+      <!-- Optional progress bar (assuming we know total expected, but here we just show an indeterminate or relative progress if we don't) -->
+      <div class="mt-4">
+        <div class="text-sm text-gray-500 mb-1">Activity Indicator</div>
+        <progress class="progress progress-primary w-full"></progress>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div role="tablist" class="tabs tabs-lifted mb-4">
+    <a role="tab" class="tab" [class.tab-active]="activeTab() === 'dashboard'" (click)="setTab('dashboard')">
+      Dashboard (History)
+    </a>
+    <a role="tab" class="tab" [class.tab-active]="activeTab() === 'dlq'" (click)="setTab('dlq')">
+      DLQ Resolution
+      <div class="badge badge-sm badge-error ml-2" *ngIf="errors().length > 0">{{ errors().length }}</div>
+    </a>
+  </div>
+
+  <!-- Dashboard Tab Content -->
+  <div *ngIf="activeTab() === 'dashboard'" class="bg-base-100 p-6 rounded-box shadow-sm border">
+    <h3 class="text-lg font-semibold mb-4">Recent Sessions</h3>
+    <div class="overflow-x-auto">
+      <table class="table table-zebra w-full">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Date</th>
+            <th>Start Time</th>
+            <th>End Time</th>
+            <th>Processed</th>
+            <th>Success</th>
+            <th>Failed</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let session of sessions()">
+            <td>{{ session.id }}</td>
+            <td>{{ session.sessionDate | date:'mediumDate' }}</td>
+            <td>{{ session.startTime | date:'mediumTime' }}</td>
+            <td>{{ session.endTime ? (session.endTime | date:'mediumTime') : '-' }}</td>
+            <td>{{ session.totalProcessed }}</td>
+            <td class="text-green-600 font-medium">{{ session.successCount }}</td>
+            <td class="text-red-600 font-medium">{{ session.failedCount }}</td>
+            <td>
+              <span class="badge" 
+                [class.badge-success]="session.status === 'COMPLETED' && session.failedCount === 0"
+                [class.badge-warning]="session.status === 'COMPLETED' && session.failedCount > 0"
+                [class.badge-info]="session.status === 'PROCESSING'"
+                [class.badge-error]="session.status === 'FAILED'">
+                {{ session.status }}
+              </span>
+            </td>
+          </tr>
+          <tr *ngIf="sessions().length === 0">
+            <td colspan="8" class="text-center py-4 text-gray-500">No sessions found.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- DLQ Tab Content -->
+  <div *ngIf="activeTab() === 'dlq'" class="bg-base-100 p-6 rounded-box shadow-sm border">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-lg font-semibold">Dead-Letter Queue (Ingestion Errors)</h3>
+      <button 
+        class="btn btn-primary btn-sm" 
+        [disabled]="errors().length === 0 || isRetrying()" 
+        (click)="retryAllErrors()">
+        <span *ngIf="isRetrying()" class="loading loading-spinner loading-xs"></span>
+        Retry All ({{ errors().length }})
+      </button>
+    </div>
+    
+    <div class="overflow-x-auto">
+      <table class="table table-sm w-full">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Event Type</th>
+            <th>Error Message</th>
+            <th>Payload (Truncated)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let err of errors()">
+            <td>{{ err.id }}</td>
+            <td><span class="badge badge-ghost">{{ err.eventType }}</span></td>
+            <td class="text-red-500 max-w-xs truncate" [title]="err.errorMessage">{{ err.errorMessage }}</td>
+            <td class="max-w-xs truncate text-xs font-mono" [title]="err.payload">{{ err.payload }}</td>
+          </tr>
+          <tr *ngIf="errors().length === 0">
+            <td colspan="4" class="text-center py-8 text-gray-500">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-gray-300 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+              No errors in DLQ. All systems operational!
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

@@ -71,6 +71,12 @@ export interface Manifest {
   totalParts: number;
 }
 
+export interface ManifestPart {
+  id: number;
+  partNo: string;
+  partName: string;
+}
+
 export interface ManifestKanban {
   id: number;
   partNo: string;

@@ -5,7 +5,7 @@ using EDCL.Module.Cargo.Application.DTOs;
 
 namespace EDCL.Module.Cargo.Application.Queries.AdminGetManifestKanbans;
 
-public sealed record AdminGetManifestKanbansQuery(long? ManifestId = null, string? Search = null, int PageNumber = 1, int PageSize = 10) 
+public sealed record AdminGetManifestKanbansQuery(long? ManifestId = null, string? PartNo = null, string? Search = null, int PageNumber = 1, int PageSize = 10) 
     : IRequest<Result<AdminGetManifestKanbansResponse>>;
 
 public sealed record AdminGetManifestKanbansResponse(

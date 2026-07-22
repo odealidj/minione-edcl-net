@@ -4,6 +4,8 @@ services:
   idcs-sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: idcs_sqlserver
+    entrypoint: ["/opt/mssql/bin/sqlservr"]
+    stop_grace_period: 30s
     environment:
       ACCEPT_EULA: "Y"
       MSSQL_SA_PASSWORD: "IdcsPassword123!"

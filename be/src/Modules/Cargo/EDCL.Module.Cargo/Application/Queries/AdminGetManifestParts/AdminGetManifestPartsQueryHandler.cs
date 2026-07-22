@@ -17,6 +17,11 @@ internal sealed class AdminGetManifestPartsQueryHandler(CargoDbContext dbContext
     {
         var query = dbContext.ManifestParts.AsQueryable();
         
+        if (request.ManifestId.HasValue)
+        {
+            query = query.Where(x => x.ManifestId == request.ManifestId.Value);
+        }
+
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
             var searchTerm = request.Search.ToLower();

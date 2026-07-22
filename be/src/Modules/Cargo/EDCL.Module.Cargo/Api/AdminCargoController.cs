@@ -36,9 +36,9 @@ public class AdminCargoController(IMediator mediator) : ControllerBase
 
     [HttpGet("manifest-parts")]
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<Application.DTOs.AdminManifestPartDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetManifestParts([FromQuery] string? search = null, [FromQuery] int page = 1, [FromQuery] int pageSize = 10, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> GetManifestParts([FromQuery] long? manifestId = null, [FromQuery] string? search = null, [FromQuery] int page = 1, [FromQuery] int pageSize = 10, CancellationToken cancellationToken = default)
     {
-        var result = await mediator.Send(new Application.Queries.AdminGetManifestParts.AdminGetManifestPartsQuery(search, page, pageSize), cancellationToken);
+        var result = await mediator.Send(new Application.Queries.AdminGetManifestParts.AdminGetManifestPartsQuery(manifestId, search, page, pageSize), cancellationToken);
         var traceId = HttpContext.TraceIdentifier;
         return result.IsSuccess 
             ? Ok(ApiResponse<IReadOnlyList<Application.DTOs.AdminManifestPartDto>>.Paginated(result.Value.Items, PaginationMeta.From(result.Value.PageNumber, result.Value.PageSize, result.Value.TotalCount), traceId))
@@ -47,9 +47,9 @@ public class AdminCargoController(IMediator mediator) : ControllerBase
 
     [HttpGet("manifest-kanbans")]
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<Application.DTOs.AdminManifestKanbanDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetManifestKanbans([FromQuery] long? manifestId = null, [FromQuery] string? search = null, [FromQuery] int page = 1, [FromQuery] int pageSize = 10, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> GetManifestKanbans([FromQuery] long? manifestId = null, [FromQuery] string? partNo = null, [FromQuery] string? search = null, [FromQuery] int page = 1, [FromQuery] int pageSize = 10, CancellationToken cancellationToken = default)
     {
-        var result = await mediator.Send(new Application.Queries.AdminGetManifestKanbans.AdminGetManifestKanbansQuery(manifestId, search, page, pageSize), cancellationToken);
+        var result = await mediator.Send(new Application.Queries.AdminGetManifestKanbans.AdminGetManifestKanbansQuery(manifestId, partNo, search, page, pageSize), cancellationToken);
         var traceId = HttpContext.TraceIdentifier;
         return result.IsSuccess 
             ? Ok(ApiResponse<IReadOnlyList<Application.DTOs.AdminManifestKanbanDto>>.Paginated(result.Value.Items, PaginationMeta.From(result.Value.PageNumber, result.Value.PageSize, result.Value.TotalCount), traceId))

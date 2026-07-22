@@ -12,6 +12,7 @@ public class CargoDbContext(DbContextOptions<CargoDbContext> options) : DbContex
     public DbSet<ManifestSkid> ManifestSkids => Set<ManifestSkid>();
     public DbSet<IngestionError> IngestionErrors => Set<IngestionError>();
     public DbSet<ManifestProblem> ManifestProblems => Set<ManifestProblem>();
+    public DbSet<SyncSession> SyncSessions => Set<SyncSession>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -97,6 +98,19 @@ public class CargoDbContext(DbContextOptions<CargoDbContext> options) : DbContex
             b.Property(x => x.DeliveryNo).HasMaxLength(100).IsRequired(false);
             b.Property(x => x.ResolvedBy).HasMaxLength(100).IsRequired(false);
             b.Property(x => x.ResolutionReason).HasColumnType("nvarchar(max)").IsRequired(false);
+        });
+
+        modelBuilder.Entity<SyncSession>(b =>
+        {
+            b.ToTable("sync_sessions");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.SessionDate).HasColumnType("date").IsRequired();
+            b.Property(x => x.StartTime).IsRequired();
+            b.Property(x => x.EndTime);
+            b.Property(x => x.TotalProcessed).IsRequired();
+            b.Property(x => x.SuccessCount).IsRequired();
+            b.Property(x => x.FailedCount).IsRequired();
+            b.Property(x => x.Status).HasMaxLength(50).IsRequired();
         });
 
         base.OnModelCreating(modelBuilder);

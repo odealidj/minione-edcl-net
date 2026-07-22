@@ -3,7 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ApiResponse } from '../models/api.model';
-import { Manifest, ManifestKanban, PendingManifestSupplier, ManifestProblem } from '../models/master.model';
+import { Manifest, ManifestPart, ManifestKanban, PendingManifestSupplier, ManifestProblem } from '../models/master.model';
 
 @Injectable({
   providedIn: 'root'
@@ -21,8 +21,15 @@ export class CargoService {
     return this.http.get<ApiResponse<Manifest[]>>(`${this.baseUrl}/manifests`, { params });
   }
 
-  getManifestKanbans(manifestId: number, search?: string, page: number = 1, pageSize: number = 10): Observable<ApiResponse<ManifestKanban[]>> {
+  getManifestParts(manifestId: number, search?: string, page: number = 1, pageSize: number = 10): Observable<ApiResponse<ManifestPart[]>> {
     let params = new HttpParams().set('manifestId', manifestId).set('page', page).set('pageSize', pageSize);
+    if (search) params = params.set('search', search);
+    return this.http.get<ApiResponse<ManifestPart[]>>(`${this.baseUrl}/manifest-parts`, { params });
+  }
+
+  getManifestKanbans(manifestId: number, partNo?: string, search?: string, page: number = 1, pageSize: number = 10): Observable<ApiResponse<ManifestKanban[]>> {
+    let params = new HttpParams().set('manifestId', manifestId).set('page', page).set('pageSize', pageSize);
+    if (partNo) params = params.set('partNo', partNo);
     if (search) params = params.set('search', search);
     return this.http.get<ApiResponse<ManifestKanban[]>>(`${this.baseUrl}/manifest-kanbans`, { params });
   }

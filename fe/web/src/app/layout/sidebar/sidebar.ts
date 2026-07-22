@@ -1,6 +1,8 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
+import { SyncMonitoringService } from '../../core/services/sync-monitoring.service';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-sidebar',
@@ -8,12 +10,30 @@ import { AuthService } from '../../core/services/auth.service';
   templateUrl: './sidebar.html',
   styleUrl: './sidebar.css'
 })
-export class Sidebar {
+export class Sidebar implements OnInit, OnDestroy {
   authService = inject(AuthService);
+  syncService = inject(SyncMonitoringService);
+  
+  isSyncing = signal(false);
+  private syncSub?: Subscription;
 
   get isAdmin(): boolean {
     const user = this.authService.currentUserValue;
     return user && user.role === 'ADMIN';
+  }
+
+  ngOnInit() {
+    if (this.isAdmin) {
+      this.syncSub = this.syncService.getMetricsStream().subscribe({
+        next: (metrics) => {
+          this.isSyncing.set(metrics.Status === 'PROCESSING');
+        }
+      });
+    }
+  }
+
+  ngOnDestroy() {
+    this.syncSub?.unsubscribe();
   }
 
   menuItems = [
