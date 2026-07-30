@@ -25,8 +25,8 @@ export class MasterDataService {
     return this.http.get<ApiResponse<GpsVendor[]>>(`${environment.apiUrl}/master/gps-vendors`, { params });
   }
 
-  testGpsConnection(providerType: number, apiUrl?: string, apiUsername?: string, apiPassword?: string, apiToken?: string): Observable<ApiResponse<boolean>> {
-    return this.http.post<ApiResponse<boolean>>(`${environment.apiUrl}/master/gps-vendors/test-connection`, { providerType, apiUrl, apiUsername, apiPassword, apiToken });
+  testGpsConnection(id: number): Observable<ApiResponse<boolean>> {
+    return this.http.post<ApiResponse<boolean>>(`${environment.apiUrl}/master/gps-vendors/${id}/test-connection`, {});
   }
 
   createGpsVendor(code: string, name: string, providerType: number, apiUrl?: string, apiUsername?: string, apiPassword?: string, apiToken?: string): Observable<ApiResponse<string>> {

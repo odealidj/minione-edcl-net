@@ -7,4 +7,6 @@ public sealed record GpsVendorDto(
     int ProviderType,
     string? ApiUrl,
     string? ApiUsername,
-    string? ApiToken);
+    string? ApiToken,
+    string? ConnectionStatus,
+    DateTime? LastCheckedAt);

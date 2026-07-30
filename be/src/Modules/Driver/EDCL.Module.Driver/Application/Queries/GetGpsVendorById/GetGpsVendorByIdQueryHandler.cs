@@ -27,7 +27,9 @@ internal sealed class GetGpsVendorByIdQueryHandler(DriverDbContext dbContext)
             (int)x.ProviderType,
             x.ApiUrl,
             x.ApiUsername,
-            x.ApiToken
+            x.ApiToken,
+            x.ConnectionStatus,
+            x.LastCheckedAt
         ));
     }
 }

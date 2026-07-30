@@ -4,9 +4,5 @@ using MediatR;
 namespace EDCL.Module.Driver.Application.Queries.TestGpsConnection;
 
 public sealed record TestGpsConnectionQuery(
-    int ProviderType,
-    string? ApiUrl,
-    string? ApiUsername,
-    string? ApiPassword,
-    string? ApiToken
+    long Id
 ) : IRequest<Result<bool>>;

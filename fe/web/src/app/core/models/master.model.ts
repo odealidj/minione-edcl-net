@@ -27,6 +27,8 @@ export interface GpsVendor {
   apiUrl?: string;
   apiUsername?: string;
   apiToken?: string;
+  connectionStatus?: string;
+  lastCheckedAt?: string;
 }
 
 export interface Route {

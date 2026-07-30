@@ -39,7 +39,9 @@ internal sealed class GetGpsVendorsQueryHandler(DriverDbContext dbContext)
             (int)x.ProviderType,
             x.ApiUrl,
             x.ApiUsername,
-            x.ApiToken
+            x.ApiToken,
+            x.ConnectionStatus,
+            x.LastCheckedAt
         )).ToList();
 
         var totalPages = request.PageSize > 0 ? (int)Math.Ceiling((double)totalCount / request.PageSize) : 0;

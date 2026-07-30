@@ -19,6 +19,9 @@ public sealed class GpsVendor : AuditableEntity
     public string? ApiPassword { get; private set; }
     public string? ApiToken { get; private set; }
 
+    public string? ConnectionStatus { get; private set; }
+    public DateTime? LastCheckedAt { get; private set; }
+
     public ICollection<LogisticPartnerGpsVendor> LogisticPartnerMappings { get; private set; } = [];
 
     private GpsVendor() { }
@@ -44,5 +47,11 @@ public sealed class GpsVendor : AuditableEntity
         ApiUsername = apiUsername;
         ApiPassword = apiPassword;
         ApiToken = apiToken;
+    }
+
+    public void UpdateConnectionStatus(string status, DateTime checkedAt)
+    {
+        ConnectionStatus = status;
+        LastCheckedAt = checkedAt;
     }
 }

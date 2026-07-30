@@ -29,8 +29,9 @@ export class GpsVendorComponent implements OnInit {
   form: FormGroup;
   isEditMode = false;
   editingId: number | null = null;
+  editingId: number | null = null;
   isSaving = false;
-  isTestingConnection = signal(false);
+  testingId = signal<number | null>(null);
 
   private service = inject(MasterDataService);
   private fb = inject(FormBuilder);
@@ -161,34 +162,12 @@ export class GpsVendorComponent implements OnInit {
   }
 
   testConnection(): void {
-    const v = this.form.value;
-    if (!v.providerType) {
-      alert('Please select a Provider Type first.');
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
       return;
     }
 
-    this.isTestingConnection.set(true);
-    this.service.testGpsConnection(
-      v.providerType,
-      v.apiUrl,
-      v.apiUsername,
-      v.apiPassword,
-      v.apiToken
-    ).subscribe({
-      next: (res) => {
-        this.isTestingConnection.set(false);
-        if (res.status === 'success' && res.data) {
-          alert('✅ Connection Successful!');
-        } else {
-          alert('❌ Connection Failed. Check console for details.');
-        }
-      },
-      error: (err) => {
-        this.isTestingConnection.set(false);
-        const msg = err.error?.message || err.message || 'Unknown error';
-        alert(`❌ Connection Failed: ${msg}`);
-        console.error('Test Connection Error', err);
-      }
-    });
+    this.isSaving = true;
+    const val = this.form.value;
   }
 }

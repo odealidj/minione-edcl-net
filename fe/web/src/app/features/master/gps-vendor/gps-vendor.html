@@ -12,7 +12,8 @@
           <th>Provider Type</th>
           <th>API URL</th>
           <th>Username</th>
-          <th class="w-24 text-center">Actions</th>
+          <th>Status</th>
+          <th class="w-48 text-center">Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -36,10 +37,31 @@
               </td>
               <td class="text-xs text-base-content/70 truncate max-w-[200px]" [title]="item.apiUrl || '-'">{{ item.apiUrl || '-' }}</td>
               <td>{{ item.apiUsername || '-' }}</td>
+              <td>
+                <div class="flex flex-col gap-1">
+                  @if (item.connectionStatus === 'Connected') {
+                    <span class="badge badge-success badge-sm">Connected</span>
+                  } @else if (item.connectionStatus === 'Failed') {
+                    <span class="badge badge-error badge-sm">Failed</span>
+                  } @else {
+                    <span class="badge badge-ghost badge-sm">Untested</span>
+                  }
+                  @if (item.lastCheckedAt) {
+                    <span class="text-[10px] text-base-content/50">{{ item.lastCheckedAt | date:'short' }}</span>
+                  }
+                </div>
+              </td>
               <td class="text-center">
                 <div class="join">
-                  <button class="btn btn-sm btn-ghost join-item text-info" (click)="openModal(item)">Edit</button>
-                  <button class="btn btn-sm btn-ghost join-item text-error" (click)="deleteItem(item.id)">Delete</button>
+                  <button class="btn btn-sm btn-ghost join-item text-primary" (click)="testConnection(item)" [disabled]="testingId() === item.id">
+                    @if (testingId() === item.id) {
+                      <span class="loading loading-spinner loading-xs"></span>
+                    } @else {
+                      Test
+                    }
+                  </button>
+                  <button class="btn btn-sm btn-ghost join-item text-info" (click)="openModal(item)" [disabled]="testingId() === item.id">Edit</button>
+                  <button class="btn btn-sm btn-ghost join-item text-error" (click)="deleteItem(item.id)" [disabled]="testingId() === item.id">Delete</button>
                 </div>
               </td>
             </tr>
@@ -106,18 +128,15 @@
 
       </div>
 
-      <div class="modal-action flex justify-between">
-        <div>
-          <button type="button" class="btn btn-outline btn-info" (click)="testConnection()" [disabled]="isTestingConnection() || isSaving">
-            @if (isTestingConnection()) { <span class="loading loading-spinner loading-sm"></span> }
-            Test Connection
-          </button>
-        </div>
+      <div class="modal-action flex justify-end">
         <div class="flex gap-2">
-          <button type="button" class="btn" (click)="closeModal()" [disabled]="isSaving || isTestingConnection()">Cancel</button>
-          <button type="submit" class="btn btn-primary" [disabled]="isSaving || isTestingConnection()">
-            @if (isSaving) { <span class="loading loading-spinner loading-sm"></span> }
-            Save
+          <button type="button" class="btn" (click)="closeModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary" [disabled]="form.invalid || isSaving">
+            @if (isSaving) {
+              <span class="loading loading-spinner loading-sm"></span>
+            } @else {
+              Save
+            }
           </button>
         </div>
       </div>

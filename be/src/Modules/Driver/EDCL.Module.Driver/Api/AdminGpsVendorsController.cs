@@ -68,10 +68,10 @@ public class AdminGpsVendorsController(IMediator mediator) : ControllerBase
             : BadRequest(ApiResponse<object>.Fail(result.Error.Message, traceId, 400));
     }
 
-    [HttpPost("test-connection")]
-    public async Task<IActionResult> TestConnection([FromBody] Application.Queries.TestGpsConnection.TestGpsConnectionQuery query, CancellationToken cancellationToken)
+    [HttpPost("{id}/test-connection")]
+    public async Task<IActionResult> TestConnection(long id, CancellationToken cancellationToken)
     {
-        var result = await mediator.Send(query, cancellationToken);
+        var result = await mediator.Send(new Application.Queries.TestGpsConnection.TestGpsConnectionQuery(id), cancellationToken);
         var traceId = HttpContext.TraceIdentifier;
         return result.IsSuccess 
             ? Ok(ApiResponse<bool>.Success(result.Value, traceId))

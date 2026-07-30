@@ -49,6 +49,7 @@ builder.Services.AddMassTransit(x =>
 
 builder.Services.AddHostedService<RealGpsPollingWorker>();
 builder.Services.AddHostedService<RouteSimulatorWorker>();
+builder.Services.AddHostedService<GpsConnectionCheckerWorker>();
 
 var host = builder.Build();
 host.Run();
