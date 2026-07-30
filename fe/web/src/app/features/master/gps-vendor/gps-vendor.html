@@ -11,7 +11,6 @@
           <th>Name</th>
           <th>Provider Type</th>
           <th>API URL</th>
-          <th>Username</th>
           <th>Status</th>
           <th class="w-48 text-center">Actions</th>
         </tr>
@@ -36,7 +35,6 @@
                 }
               </td>
               <td class="text-xs text-base-content/70 truncate max-w-[200px]" [title]="item.apiUrl || '-'">{{ item.apiUrl || '-' }}</td>
-              <td>{{ item.apiUsername || '-' }}</td>
               <td>
                 <div class="flex flex-col gap-1">
                   @if (item.connectionStatus === 'Connected') {
