@@ -16,24 +16,30 @@ internal sealed class GetLogisticPartnersQueryHandler(DriverDbContext dbContext)
 {
     public async Task<Result<GetLogisticPartnersResponse>> Handle(GetLogisticPartnersQuery request, CancellationToken cancellationToken)
     {
-        var query = dbContext.LogisticPartners.Where(x => !x.IsDeleted);
-        
+        var query = dbContext.LogisticPartners
+            .Include(x => x.GpsVendorMappings)
+            .Where(x => !x.IsDeleted);
+
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
-            var searchTerm = request.Search.ToLower();
-            query = query.Where(x => x.Name.ToLower().Contains(searchTerm));
+            var search = request.Search.ToLower();
+            query = query.Where(x => x.Code.ToLower().Contains(search) || x.Name.ToLower().Contains(search));
         }
 
-        query = query.AsNoTracking();
-
         var totalCount = await query.CountAsync(cancellationToken);
+        
         var items = await query
             .OrderByDescending(x => x.CreatedAt)
             .Skip((request.PageNumber - 1) * request.PageSize)
             .Take(request.PageSize)
             .ToListAsync(cancellationToken);
 
-        var dtos = items.Select(x => new LogisticPartnerDto(x.Id, x.Code, x.Name)).ToList();
+        var dtos = items.Select(x => new LogisticPartnerDto(
+            x.Id,
+            x.Code,
+            x.Name,
+            x.GpsVendorMappings.Select(m => m.GpsVendorId).ToList()
+        )).ToList();
         var totalPages = request.PageSize > 0 ? (int)Math.Ceiling((double)totalCount / request.PageSize) : 0;
 
         return Result<GetLogisticPartnersResponse>.Success(new GetLogisticPartnersResponse(dtos, totalCount, request.PageNumber, request.PageSize, totalPages));

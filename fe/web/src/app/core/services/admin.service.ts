@@ -29,12 +29,12 @@ export class AdminService {
     return this.http.get<ApiResponse<LogisticPartner[]>>(`${environment.apiUrl}/master/logistic-partners`, { params });
   }
 
-  createLogisticPartner(code: string, name: string): Observable<ApiResponse<string>> {
-    return this.http.post<ApiResponse<string>>(`${environment.apiUrl}/master/logistic-partners`, { code, name });
+  createLogisticPartner(code: string, name: string, gpsVendorIds: number[] = []): Observable<ApiResponse<string>> {
+    return this.http.post<ApiResponse<string>>(`${environment.apiUrl}/master/logistic-partners`, { code, name, gpsVendorIds });
   }
 
-  updateLogisticPartner(id: number, code: string, name: string): Observable<ApiResponse<any>> {
-    return this.http.put<ApiResponse<any>>(`${environment.apiUrl}/master/logistic-partners/${id}`, { id, code, name });
+  updateLogisticPartner(id: number, code: string, name: string, gpsVendorIds: number[] = []): Observable<ApiResponse<any>> {
+    return this.http.put<ApiResponse<any>>(`${environment.apiUrl}/master/logistic-partners/${id}`, { id, code, name, gpsVendorIds });
   }
 
   deleteLogisticPartner(id: number): Observable<ApiResponse<any>> {

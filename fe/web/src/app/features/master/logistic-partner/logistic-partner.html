@@ -18,14 +18,15 @@
           </th>
           <th>Code</th>
           <th>Name</th>
+          <th>GPS Vendors</th>
           <th class="w-24 text-center">Actions</th>
         </tr>
       </thead>
       <tbody>
         @if (isLoading()) {
-          <tr><td colspan="4" class="text-center py-8"><span class="loading loading-spinner loading-lg text-primary"></span></td></tr>
+          <tr><td colspan="5" class="text-center py-8"><span class="loading loading-spinner loading-lg text-primary"></span></td></tr>
         } @else if (items().length === 0) {
-          <tr><td colspan="4" class="text-center py-8 text-base-content/50">No data found.</td></tr>
+          <tr><td colspan="5" class="text-center py-8 text-base-content/50">No data found.</td></tr>
         } @else {
           @for (item of items(); track item.id) {
             <tr class="hover:bg-base-200/50 transition-colors">
@@ -36,6 +37,7 @@
               </td>
               <td>{{ item.code }}</td>
               <td>{{ item.name }}</td>
+              <td class="text-xs text-base-content/80">{{ getVendorNames(item.gpsVendorIds) }}</td>
               <td class="text-center">
                 <div class="join">
                   <button class="btn btn-sm btn-ghost join-item text-info" (click)="openModal(item)">Edit</button>
@@ -70,6 +72,15 @@
         <div class="form-control w-full">
           <label class="label"><span class="label-text">Name</span></label>
           <input type="text" formControlName="name" class="input input-bordered w-full" placeholder="Enter Name" />
+        </div>
+        <div class="form-control">
+          <label class="label"><span class="label-text">GPS Vendors</span></label>
+          <select formControlName="gpsVendorIds" class="select select-bordered w-full h-32" multiple>
+            @for (vendor of gpsVendors(); track vendor.id) {
+              <option [ngValue]="vendor.id">{{ vendor.name }}</option>
+            }
+          </select>
+          <label class="label"><span class="label-text-alt">Hold Ctrl/Cmd to select multiple</span></label>
         </div>
       </div>
       <div class="modal-action mt-6">

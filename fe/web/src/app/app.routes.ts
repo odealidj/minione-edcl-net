@@ -31,6 +31,7 @@ export const routes: Routes = [
       { path: 'manifests', component: ManifestComponent },
 
       { path: 'master/logisticPartner', component: LogisticPartnerComponent, canActivate: [adminGuard] },
+      { path: 'master/gps-vendor', loadComponent: () => import('./features/master/gps-vendor/gps-vendor').then(c => c.GpsVendorComponent), canActivate: [adminGuard] },
       { path: 'master/route', loadComponent: () => import('./features/master/route/route').then(c => c.RouteComponent), canActivate: [adminGuard] },
       { path: 'master/truck', component: TruckComponent },
       { path: 'master/truck-assignments', component: TruckAssignment },

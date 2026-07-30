@@ -1,12 +1,14 @@
 using EDCL.Module.Job.Application.Ports;
 using EDCL.Shared.Kernel.Common;
 using MediatR;
+using MassTransit;
 
 namespace EDCL.Module.Job.Application.Commands.StartJob;
 
 public sealed class StartJobCommandHandler(
     IPickupOrderRepository repository,
-    IJobNotificationPort notificationPort) : IRequestHandler<StartJobCommand, Result<bool>>
+    IJobNotificationPort notificationPort,
+    IPublishEndpoint publishEndpoint) : IRequestHandler<StartJobCommand, Result<bool>>
 {
     public async Task<Result<bool>> Handle(StartJobCommand request, CancellationToken cancellationToken)
     {
@@ -24,6 +26,13 @@ public sealed class StartJobCommandHandler(
             
             // Notify driver
             await notificationPort.NotifyDriverJobStartedAsync(request.DriverId, job.Id, cancellationToken);
+
+            // Publish Integration Event
+            await publishEndpoint.Publish(new EDCL.Shared.Kernel.Events.JobStartedIntegrationEvent 
+            { 
+                JobId = job.Id, 
+                TruckId = job.TruckId ?? 0 
+            }, cancellationToken);
 
             return true;
         }

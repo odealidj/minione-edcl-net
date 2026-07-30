@@ -2,9 +2,10 @@ import { Component, OnInit, inject, ViewChild, ElementRef, signal, computed } fr
 import { CommonModule } from '@angular/common';
 import { forkJoin } from 'rxjs';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
-import { LogisticPartner } from '../../../core/models/master.model';
+import { LogisticPartner, GpsVendor } from '../../../core/models/master.model';
 import { PaginationMeta } from '../../../core/models/api.model';
 import { AdminService } from '../../../core/services/admin.service';
+import { MasterDataService } from '../../../core/services/master-data.service';
 
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { PaginationComponent } from '../../../shared/components/pagination/pagination.component';
@@ -25,6 +26,7 @@ export class LogisticPartnerComponent implements OnInit {
   searchQuery = '';
   currentPage = 1;
   pageSize = 10;
+  gpsVendors = signal<GpsVendor[]>([]);
   
   selectedIds = signal<Set<number>>(new Set());
   isDeletingSelected = signal(false);
@@ -36,17 +38,31 @@ export class LogisticPartnerComponent implements OnInit {
   isSaving = false;
 
   private service = inject(AdminService);
+  private masterDataService = inject(MasterDataService);
   private fb = inject(FormBuilder);
 
   constructor() {
     this.form = this.fb.group({
       code: [''],
-      name: ['']
+      name: [''],
+      gpsVendorIds: [[]]
     });
   }
 
   ngOnInit(): void {
     this.loadData();
+    this.loadGpsVendors();
+  }
+
+  loadGpsVendors(): void {
+    this.masterDataService.getGpsVendors('', 1, 100).subscribe({
+      next: (res) => {
+        if (res.status === 'success') {
+          this.gpsVendors.set(res.data);
+        }
+      },
+      error: (err) => console.error('Failed to load GPS Vendors', err)
+    });
   }
 
   loadData(): void {
@@ -132,50 +148,70 @@ export class LogisticPartnerComponent implements OnInit {
     }
   }
 
+  getSyncStatusBadgeClass(status?: string): string {
+    if (!status) return 'badge-ghost';
+    const s = status.toLowerCase();
+    if (s === 'success') return 'badge-success text-success-content';
+    if (s === 'failed' || s === 'error') return 'badge-error text-error-content';
+    return 'badge-ghost';
+  }
+
   openModal(item?: LogisticPartner): void {
     if (item) {
       this.isEditMode = true;
       this.editingId = item.id;
-      this.form.patchValue({ code: item.code, name: item.name });
+      this.form.patchValue({
+        code: item.code,
+        name: item.name,
+        gpsVendorIds: item.gpsVendorIds || []
+      });
     } else {
       this.isEditMode = false;
       this.editingId = null;
-      this.form.reset();
+      this.form.reset({ gpsVendorIds: [] });
     }
     this.crudModal.nativeElement.showModal();
   }
 
   closeModal(): void {
     this.crudModal.nativeElement.close();
+    this.form.reset({ gpsVendorIds: [] });
+  }
+
+  getVendorNames(ids?: number[]): string {
+    if (!ids || ids.length === 0) return 'None';
+    const vendors = this.gpsVendors();
+    return ids
+      .map(id => vendors.find(v => v.id === id)?.name || `Unknown (${id})`)
+      .join(', ');
   }
 
   save(): void {
     if (this.form.invalid) return;
     this.isSaving = true;
-    const val = this.form.value;
+    const v = this.form.value;
 
     if (this.isEditMode && this.editingId) {
-      this.service.updateLogisticPartner(this.editingId, val.code, val.name).subscribe({
+      this.service.updateLogisticPartner(this.editingId, v.code, v.name, v.gpsVendorIds).subscribe({
         next: () => {
           this.isSaving = false;
           this.closeModal();
           this.loadData();
         },
         error: (err) => {
-          console.error(err);
+          console.error('Update failed', err);
           this.isSaving = false;
         }
       });
     } else {
-      this.service.createLogisticPartner(val.code, val.name).subscribe({
+      this.service.createLogisticPartner(v.code, v.name, v.gpsVendorIds).subscribe({
         next: () => {
           this.isSaving = false;
           this.closeModal();
-          this.currentPage = 1;
           this.loadData();
         },
         error: (err) => {
-          console.error(err);
+          console.error('Create failed', err);
           this.isSaving = false;
         }
       });

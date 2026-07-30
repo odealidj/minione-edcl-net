@@ -14,8 +14,19 @@ export interface LogisticPartner {
   id: number;
   code: string;
   name: string;
+  gpsVendorIds?: number[];
   createdBy: string;
   createdOnUtc: string;
+}
+
+export interface GpsVendor {
+  id: number;
+  code: string;
+  name: string;
+  providerType: number;
+  apiUrl?: string;
+  apiUsername?: string;
+  apiToken?: string;
 }
 
 export interface Route {
@@ -56,6 +67,8 @@ export interface Truck {
   logisticPartnerId?: number | null;
   logisticPartnerName?: string | null;
   isActive?: boolean;
+  isSimulated?: boolean;
+  gpsVehicleId?: string | null;
   createdBy: string;
   createdOnUtc: string;
 }

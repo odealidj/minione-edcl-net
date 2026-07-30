@@ -58,6 +58,9 @@ internal sealed class TruckConfiguration : IEntityTypeConfiguration<Truck>
 
         builder.Property(t => t.LogisticPartnerId).IsRequired();
 
+        builder.Property(t => t.GpsVehicleId).HasMaxLength(100);
+        builder.Property(t => t.IsSimulated).HasDefaultValue(false);
+
         ConfigureAuditColumns(builder);
 
         builder.HasIndex(t => t.PlateNumber).IsUnique().HasDatabaseName("UQ_trucks_plate_number");
@@ -231,6 +234,127 @@ internal sealed class RoutePriceConfiguration : IEntityTypeConfiguration<RoutePr
     {
         builder.Property(e => e.CreatedAt).HasColumnName("created_at")
             .HasColumnType("datetime2(7)").HasDefaultValueSql("GETUTCDATE()").IsRequired();
+        builder.Property(e => e.CreatedBy).HasColumnName("created_by").HasMaxLength(100).IsRequired();
+        builder.Property(e => e.UpdatedAt).HasColumnName("updated_at").HasColumnType("datetime2(7)");
+        builder.Property(e => e.UpdatedBy).HasColumnName("updated_by").HasMaxLength(100);
+        builder.Property(e => e.IsDeleted).HasColumnName("is_deleted").HasDefaultValue(false);
+        builder.Property(e => e.DeletedAt).HasColumnName("deleted_at").HasColumnType("datetime2(7)");
+        builder.Property(e => e.DeletedBy).HasColumnName("deleted_by").HasMaxLength(100);
+        builder.Property(e => e.RowVersion).HasColumnName("row_version").IsRowVersion();
+        builder.Property(e => e.TraceId).HasColumnName("trace_id").HasMaxLength(64);
+        builder.HasQueryFilter(e => !e.IsDeleted);
+    }
+}
+
+internal sealed class TruckLocationConfiguration : IEntityTypeConfiguration<TruckLocation>
+{
+    public void Configure(EntityTypeBuilder<TruckLocation> builder)
+    {
+        builder.ToTable("truck_locations");
+        builder.HasKey(tl => tl.Id);
+        builder.Property(tl => tl.Id).UseIdentityColumn();
+
+        builder.Property(tl => tl.TruckId).IsRequired();
+        builder.Property(tl => tl.Latitude).HasColumnType("float").IsRequired();
+        builder.Property(tl => tl.Longitude).HasColumnType("float").IsRequired();
+        builder.Property(tl => tl.Speed).HasColumnType("float");
+        builder.Property(tl => tl.Heading).HasColumnType("float");
+        builder.Property(tl => tl.Timestamp).HasColumnType("datetime2(7)").IsRequired();
+        builder.Property(tl => tl.ProviderName).HasMaxLength(100);
+
+        ConfigureAuditColumns(builder);
+
+        builder.HasIndex(tl => tl.TruckId).HasDatabaseName("IX_truck_locations_truck_id");
+        builder.HasIndex(tl => tl.Timestamp).HasDatabaseName("IX_truck_locations_timestamp");
+
+        builder.HasOne(tl => tl.Truck)
+            .WithMany()
+            .HasForeignKey(tl => tl.TruckId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+
+    private static void ConfigureAuditColumns<T>(EntityTypeBuilder<T> builder)
+        where T : AuditableEntity
+    {
+        builder.Property(e => e.CreatedAt).HasColumnName("created_at")
+            .HasColumnType("datetime2(7)").HasDefaultValueSql("GETUTCDATE()").IsRequired();
+        builder.Property(e => e.CreatedBy).HasColumnName("created_by").HasMaxLength(100).IsRequired();
+        builder.Property(e => e.UpdatedAt).HasColumnName("updated_at").HasColumnType("datetime2(7)");
+        builder.Property(e => e.UpdatedBy).HasColumnName("updated_by").HasMaxLength(100);
+        builder.Property(e => e.IsDeleted).HasColumnName("is_deleted").HasDefaultValue(false);
+        builder.Property(e => e.DeletedAt).HasColumnName("deleted_at").HasColumnType("datetime2(7)");
+        builder.Property(e => e.DeletedBy).HasColumnName("deleted_by").HasMaxLength(100);
+        builder.Property(e => e.RowVersion).HasColumnName("row_version").IsRowVersion();
+        builder.Property(e => e.TraceId).HasColumnName("trace_id").HasMaxLength(64);
+        builder.HasQueryFilter(e => !e.IsDeleted);
+    }
+}
+
+internal sealed class GpsVendorConfiguration : IEntityTypeConfiguration<GpsVendor>
+{
+    public void Configure(EntityTypeBuilder<GpsVendor> builder)
+    {
+        builder.ToTable("gps_vendors");
+        builder.HasKey(t => t.Id);
+        builder.Property(t => t.Id).UseIdentityColumn();
+        
+        builder.Property(t => t.Code).HasMaxLength(20).IsRequired();
+        builder.Property(t => t.Name).HasMaxLength(150).IsRequired();
+        builder.Property(t => t.ProviderType).HasConversion<int>().IsRequired();
+        
+        builder.Property(t => t.ApiUrl).HasMaxLength(500);
+        builder.Property(t => t.ApiUsername).HasMaxLength(200);
+        builder.Property(t => t.ApiPassword).HasMaxLength(200);
+        builder.Property(t => t.ApiToken).HasMaxLength(1000);
+
+        builder.HasIndex(t => t.Code).IsUnique().HasDatabaseName("UQ_gps_vendors_code");
+
+        ConfigureAuditColumns(builder);
+    }
+
+    private static void ConfigureAuditColumns<T>(EntityTypeBuilder<T> builder) where T : AuditableEntity
+    {
+        builder.Property(e => e.CreatedAt).HasColumnName("created_at").HasColumnType("datetime2(7)").HasDefaultValueSql("GETUTCDATE()").IsRequired();
+        builder.Property(e => e.CreatedBy).HasColumnName("created_by").HasMaxLength(100).IsRequired();
+        builder.Property(e => e.UpdatedAt).HasColumnName("updated_at").HasColumnType("datetime2(7)");
+        builder.Property(e => e.UpdatedBy).HasColumnName("updated_by").HasMaxLength(100);
+        builder.Property(e => e.IsDeleted).HasColumnName("is_deleted").HasDefaultValue(false);
+        builder.Property(e => e.DeletedAt).HasColumnName("deleted_at").HasColumnType("datetime2(7)");
+        builder.Property(e => e.DeletedBy).HasColumnName("deleted_by").HasMaxLength(100);
+        builder.Property(e => e.RowVersion).HasColumnName("row_version").IsRowVersion();
+        builder.Property(e => e.TraceId).HasColumnName("trace_id").HasMaxLength(64);
+        builder.HasQueryFilter(e => !e.IsDeleted);
+    }
+}
+
+internal sealed class LogisticPartnerGpsVendorConfiguration : IEntityTypeConfiguration<LogisticPartnerGpsVendor>
+{
+    public void Configure(EntityTypeBuilder<LogisticPartnerGpsVendor> builder)
+    {
+        builder.ToTable("logistic_partner_gps_vendors");
+        
+        builder.HasKey(t => new { t.LogisticPartnerId, t.GpsVendorId });
+
+        builder.Property(t => t.LastGpsSyncAt).HasColumnType("datetime2(7)");
+        builder.Property(t => t.LastGpsSyncStatus).HasMaxLength(50);
+        builder.Property(t => t.LastGpsSyncMessage).HasMaxLength(2000);
+
+        builder.HasOne(t => t.LogisticPartner)
+            .WithMany(lp => lp.GpsVendorMappings)
+            .HasForeignKey(t => t.LogisticPartnerId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(t => t.GpsVendor)
+            .WithMany(gv => gv.LogisticPartnerMappings)
+            .HasForeignKey(t => t.GpsVendorId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        ConfigureAuditColumns(builder);
+    }
+
+    private static void ConfigureAuditColumns<T>(EntityTypeBuilder<T> builder) where T : AuditableEntity
+    {
+        builder.Property(e => e.CreatedAt).HasColumnName("created_at").HasColumnType("datetime2(7)").HasDefaultValueSql("GETUTCDATE()").IsRequired();
         builder.Property(e => e.CreatedBy).HasColumnName("created_by").HasMaxLength(100).IsRequired();
         builder.Property(e => e.UpdatedAt).HasColumnName("updated_at").HasColumnType("datetime2(7)");
         builder.Property(e => e.UpdatedBy).HasColumnName("updated_by").HasMaxLength(100);

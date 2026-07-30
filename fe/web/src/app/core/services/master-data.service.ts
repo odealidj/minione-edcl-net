@@ -3,7 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ApiResponse } from '../models/api.model';
-import { Driver, Supplier, Truck, LogisticPartner, Route } from '../models/master.model';
+import { Driver, Supplier, Truck, LogisticPartner, Route, GpsVendor } from '../models/master.model';
 
 @Injectable({
   providedIn: 'root'
@@ -16,6 +16,29 @@ export class MasterDataService {
     let params = new HttpParams().set('page', page).set('pageSize', pageSize);
     if (search) params = params.set('search', search);
     return this.http.get<ApiResponse<LogisticPartner[]>>(`${environment.apiUrl}/master/logistic-partners`, { params });
+  }
+
+  // GpsVendors
+  getGpsVendors(search?: string, page: number = 1, pageSize: number = 100): Observable<ApiResponse<GpsVendor[]>> {
+    let params = new HttpParams().set('page', page).set('pageSize', pageSize);
+    if (search) params = params.set('search', search);
+    return this.http.get<ApiResponse<GpsVendor[]>>(`${environment.apiUrl}/master/gps-vendors`, { params });
+  }
+
+  testGpsConnection(providerType: number, apiUrl?: string, apiUsername?: string, apiPassword?: string, apiToken?: string): Observable<ApiResponse<boolean>> {
+    return this.http.post<ApiResponse<boolean>>(`${environment.apiUrl}/master/gps-vendors/test-connection`, { providerType, apiUrl, apiUsername, apiPassword, apiToken });
+  }
+
+  createGpsVendor(code: string, name: string, providerType: number, apiUrl?: string, apiUsername?: string, apiPassword?: string, apiToken?: string): Observable<ApiResponse<string>> {
+    return this.http.post<ApiResponse<string>>(`${environment.apiUrl}/master/gps-vendors`, { code, name, providerType, apiUrl, apiUsername, apiPassword, apiToken });
+  }
+
+  updateGpsVendor(id: number, code: string, name: string, providerType: number, apiUrl?: string, apiUsername?: string, apiPassword?: string, apiToken?: string): Observable<ApiResponse<any>> {
+    return this.http.put<ApiResponse<any>>(`${environment.apiUrl}/master/gps-vendors/${id}`, { id, code, name, providerType, apiUrl, apiUsername, apiPassword, apiToken });
+  }
+
+  deleteGpsVendor(id: number): Observable<ApiResponse<any>> {
+    return this.http.delete<ApiResponse<any>>(`${environment.apiUrl}/master/gps-vendors/${id}`);
   }
 
   // Routes
@@ -70,12 +93,12 @@ export class MasterDataService {
     return this.http.get<ApiResponse<Truck[]>>(`${environment.apiUrl}/master/trucks`, { params });
   }
 
-  createTruck(plateNumber: string, vehicleType: string, logisticPartnerId: number): Observable<ApiResponse<string>> {
-    return this.http.post<ApiResponse<string>>(`${environment.apiUrl}/master/trucks`, { plateNumber, vehicleType, logisticPartnerId });
+  createTruck(plateNumber: string, vehicleType: string, logisticPartnerId: number, isSimulated: boolean = false, gpsVehicleId: string | null = null): Observable<ApiResponse<string>> {
+    return this.http.post<ApiResponse<string>>(`${environment.apiUrl}/master/trucks`, { plateNumber, vehicleType, logisticPartnerId, isSimulated, gpsVehicleId });
   }
 
-  updateTruck(id: number, plateNumber: string, vehicleType: string | null, logisticPartnerId: number): Observable<ApiResponse<any>> {
-    return this.http.put<ApiResponse<any>>(`${environment.apiUrl}/master/trucks/${id}`, { id, plateNumber, vehicleType, logisticPartnerId });
+  updateTruck(id: number, plateNumber: string, vehicleType: string, logisticPartnerId: number, isSimulated: boolean = false, gpsVehicleId: string | null = null): Observable<ApiResponse<any>> {
+    return this.http.put<ApiResponse<any>>(`${environment.apiUrl}/master/trucks/${id}`, { id, plateNumber, vehicleType, logisticPartnerId, isSimulated, gpsVehicleId });
   }
 
   deleteTruck(id: number): Observable<ApiResponse<any>> {

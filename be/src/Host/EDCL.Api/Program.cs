@@ -60,9 +60,11 @@ try
     {
         // Input formatters (Accept header negotiation)
         opts.InputFormatters.Add(new MessagePackInputFormatter());
-        // Output formatters
         opts.OutputFormatters.Add(new MessagePackOutputFormatter());
     });
+    
+    // ── SignalR ───────────────────────────────────────────────────────────────
+    builder.Services.AddSignalR();
 
     // ── Messaging / MassTransit (RabbitMQ) ────────────────────────────────────
     builder.Services.AddMassTransit(x =>
@@ -70,6 +72,7 @@ try
         // Register Consumers from Modules
         x.AddConsumers(typeof(EDCL.Module.Cargo.CargoModuleRegistration).Assembly);
         x.AddConsumers(typeof(EDCL.Module.Notification.NotificationModuleRegistration).Assembly);
+        x.AddConsumer<EDCL.Api.Consumers.TrackingEventConsumer>();
 
         x.UsingRabbitMq((context, cfg) =>
         {
@@ -161,6 +164,7 @@ try
     app.UseAuthorization();
 
     app.MapControllers();
+    app.MapHub<EDCL.Api.Hubs.TrackingHub>("/hubs/tracking");
     app.UseHangfireDashboard("/hangfire");
     
     app.MapHealthChecks("/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions

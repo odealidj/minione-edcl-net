@@ -17,6 +17,7 @@
             </label>
           </th>
           <th>Plate</th><th>Vehicle Type</th><th>Logistic Partner</th>
+          <th>Is Simulated</th><th>GPS Vehicle ID</th>
           <th class="w-24 text-center">Actions</th>
         </tr>
       </thead>
@@ -34,6 +35,14 @@
                 </label>
               </td>
               <td>{{ item.plateNumber }}</td><td>{{ item.vehicleType }}</td><td>{{ item.logisticPartnerName || '-' }}</td>
+              <td>
+                @if (item.isSimulated) {
+                  <span class="badge badge-success badge-sm">Yes</span>
+                } @else {
+                  <span class="badge badge-ghost badge-sm">No</span>
+                }
+              </td>
+              <td>{{ item.gpsVehicleId || '-' }}</td>
               <td class="text-center">
                 <div class="join">
                   <button class="btn btn-sm btn-ghost join-item text-info" (click)="openModal(item)">Edit</button>
@@ -77,6 +86,16 @@
               <option [ngValue]="t.id">{{ t.name }}</option>
             }
           </select>
+        </div>
+        <div class="form-control mb-4">
+          <label class="label cursor-pointer justify-start gap-4">
+            <span class="label-text">Is Simulated</span>
+            <input type="checkbox" formControlName="isSimulated" class="toggle toggle-primary" />
+          </label>
+        </div>
+        <div class="form-control mb-4">
+          <label class="label"><span class="label-text">GPS Vehicle ID</span></label>
+          <input type="text" formControlName="gpsVehicleId" class="input input-bordered w-full" placeholder="Enter GPS Vehicle ID (Optional)" />
         </div>
       </div>
       <div class="modal-action mt-6">

@@ -65,6 +65,7 @@ class Program
                     break;
                 case "all":
                     await SeedLogisticPartnerAsync();
+                    await SeedGpsVendorAsync();
                     await SeedSupplierAsync();
                     await SeedRouteAsync();
                     await SeedDriverAsync();
@@ -76,6 +77,7 @@ class Program
                     await ResetRouteAsync();
                     await ResetSupplierAsync();
                     await ResetLogisticPartnerAsync();
+                    await ResetGpsVendorAsync();
                     await ResetNotificationAsync();
                     break;
                 case "supplier":
@@ -86,9 +88,11 @@ class Program
                     break;
                 case "logistic-partner":
                     await SeedLogisticPartnerAsync();
+                    await SeedGpsVendorAsync();
                     break;
                 case "reset-logistic-partner":
                     await ResetLogisticPartnerAsync();
+                    await ResetGpsVendorAsync();
                     break;
                 case "route":
                     await SeedRouteAsync();
@@ -747,9 +751,9 @@ class Program
         if (lpId == null)
         {
             lpId = await connEdcl.QuerySingleAsync<long>(@"
-                INSERT INTO edcl.driver.logistic_partners (Code, Name, created_at, created_by, is_deleted) 
+                INSERT INTO edcl.driver.logistic_partners (Code, Name, IsGpsIntegrationActive, GpsProviderType, created_at, created_by, is_deleted) 
                 OUTPUT INSERTED.Id 
-                VALUES ('HKR', 'Hikari Logistics', GETUTCDATE(), 'System', 0)");
+                VALUES ('HKR', 'Hikari Logistics', 1, 1, GETUTCDATE(), 'System', 0)");
             Console.WriteLine($"Inserted Logistic Partner ID: {lpId}");
         }
 
@@ -784,9 +788,9 @@ class Program
         if (truckId == null)
         {
             truckId = await connEdcl.QuerySingleAsync<long>(@"
-                INSERT INTO edcl.driver.trucks (LogisticPartnerId, PlateNumber, VehicleType, IsActive, created_at, created_by, is_deleted) 
+                INSERT INTO edcl.driver.trucks (LogisticPartnerId, PlateNumber, VehicleType, GpsVehicleId, IsActive, created_at, created_by, is_deleted) 
                 OUTPUT INSERTED.Id 
-                VALUES (@LpId, 'B 9607 PXT', 'Wingbox', 1, GETUTCDATE(), 'System', 0)",
+                VALUES (@LpId, 'B 9607 PXT', 'Wingbox', 'TRK-B9607PXT', 1, GETUTCDATE(), 'System', 0)",
                 new { LpId = lpId });
             Console.WriteLine($"Inserted Truck ID: {truckId}");
         }
@@ -844,6 +848,70 @@ class Program
         }
 
         Console.WriteLine($"Logistic Partner seeding completed successfully. {count} new records inserted.");
+    }
+
+    private static async Task SeedGpsVendorAsync()
+    {
+        using var conn = new SqlConnection(EdclConnectionString);
+        await conn.OpenAsync();
+
+        Console.WriteLine("Seeding GPS Vendors...");
+        var vendors = new[]
+        {
+            new { Code = "PUNINAR", Name = "Puninar GPS", ProviderType = 4 }, // Puninar = 4 in enum
+            new { Code = "MULIATRACK", Name = "Muliatrack GPS", ProviderType = 3 }, // Muliatrack = 3
+            new { Code = "JITRA", Name = "Jitra GPS", ProviderType = 2 }, // Jitra = 2
+            new { Code = "INOVATRACK", Name = "Inovatrack GPS", ProviderType = 1 } // Innovatrack = 1
+        };
+
+        foreach (var vendor in vendors)
+        {
+            var exists = await conn.ExecuteScalarAsync<bool>(
+                "SELECT CAST(CASE WHEN COUNT(1) > 0 THEN 1 ELSE 0 END AS BIT) FROM edcl.driver.gps_vendors WHERE Code = @Code",
+                new { Code = vendor.Code });
+
+            if (!exists)
+            {
+                await conn.ExecuteAsync(@"
+                    INSERT INTO edcl.driver.gps_vendors (Code, Name, ProviderType, ApiUrl, ApiUsername, ApiPassword, ApiToken, created_at, created_by, is_deleted)
+                    VALUES (@Code, @Name, @ProviderType, 'https://dummy.api', 'user', 'pass', 'token', GETUTCDATE(), 'System', 0)",
+                    vendor);
+            }
+        }
+
+        // Add mapping for PYL and NYK to PUNINAR
+        var puninarId = await conn.ExecuteScalarAsync<long>("SELECT Id FROM edcl.driver.gps_vendors WHERE Code = 'PUNINAR'");
+        var partnerCodes = new[] { "PYL", "NYK" };
+        foreach (var code in partnerCodes)
+        {
+            var lpId = await conn.ExecuteScalarAsync<long?>("SELECT Id FROM edcl.driver.logistic_partners WHERE Code = @Code", new { Code = code });
+            if (lpId.HasValue)
+            {
+                var mappingExists = await conn.ExecuteScalarAsync<bool>(
+                    "SELECT CAST(CASE WHEN COUNT(1) > 0 THEN 1 ELSE 0 END AS BIT) FROM edcl.driver.logistic_partner_gps_vendors WHERE LogisticPartnerId = @LpId AND GpsVendorId = @VendorId",
+                    new { LpId = lpId.Value, VendorId = puninarId });
+
+                if (!mappingExists)
+                {
+                    await conn.ExecuteAsync(@"
+                        INSERT INTO edcl.driver.logistic_partner_gps_vendors (LogisticPartnerId, GpsVendorId, created_at, created_by, is_deleted)
+                        VALUES (@LpId, @VendorId, GETUTCDATE(), 'System', 0)",
+                        new { LpId = lpId.Value, VendorId = puninarId });
+                }
+            }
+        }
+
+        Console.WriteLine("GPS Vendor seeding completed successfully.");
+    }
+
+    private static async Task ResetGpsVendorAsync()
+    {
+        using var conn = new SqlConnection(EdclConnectionString);
+        await conn.OpenAsync();
+        Console.WriteLine("Resetting GPS Vendors...");
+        await conn.ExecuteAsync("DELETE FROM edcl.driver.logistic_partner_gps_vendors");
+        await conn.ExecuteAsync("DELETE FROM edcl.driver.gps_vendors");
+        Console.WriteLine("GPS Vendors reset successfully.");
     }
 
     private static async Task ResetLogisticPartnerAsync()
@@ -996,10 +1064,10 @@ class Program
             else
             {
                 truckId = await conn.ExecuteScalarAsync<long>(@"
-                    INSERT INTO edcl.driver.trucks (PlateNumber, LogisticPartnerId, IsActive, created_at, created_by, is_deleted)
+                    INSERT INTO edcl.driver.trucks (PlateNumber, LogisticPartnerId, GpsVehicleId, IsActive, created_at, created_by, is_deleted)
                     OUTPUT INSERTED.Id
-                    VALUES (@PlateNumber, @LpId, 1, GETUTCDATE(), 'System', 0)",
-                    new { PlateNumber = truck.PlateNumber, LpId = driverInfo.LogisticPartnerId });
+                    VALUES (@PlateNumber, @LpId, @GpsVehicleId, 1, GETUTCDATE(), 'System', 0)",
+                    new { PlateNumber = truck.PlateNumber, LpId = driverInfo.LogisticPartnerId, GpsVehicleId = "TRK-" + truck.PlateNumber.Replace(" ", "") });
                 
                 existingTrucks.Add(truck.PlateNumber);
                 truckCount++;

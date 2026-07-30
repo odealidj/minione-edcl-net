@@ -1,0 +1,129 @@
+<div class="container mx-auto space-y-4">
+  <app-page-header title="GPS Vendors" buttonText="Add New" (actionClick)="openModal()">
+  </app-page-header>
+
+  <app-card>
+    <app-search-bar placeholder="Search by Code or Name..." (search)="onSearch($event)"></app-search-bar>
+    <table class="table w-full">
+      <thead>
+        <tr class="bg-base-200/50 text-base-content/50 uppercase text-xs">
+          <th>Code</th>
+          <th>Name</th>
+          <th>Provider Type</th>
+          <th>API URL</th>
+          <th>Username</th>
+          <th class="w-24 text-center">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @if (isLoading()) {
+          <tr><td colspan="6" class="text-center py-8"><span class="loading loading-spinner loading-lg text-primary"></span></td></tr>
+        } @else if (items().length === 0) {
+          <tr><td colspan="6" class="text-center py-8 text-base-content/50">No data found.</td></tr>
+        } @else {
+          @for (item of items(); track item.id) {
+            <tr class="hover:bg-base-200/50 transition-colors">
+              <td class="font-medium">{{ item.code }}</td>
+              <td>{{ item.name }}</td>
+              <td>
+                @switch (item.providerType) {
+                  @case (1) { <span class="badge badge-info badge-sm">Innovatrack</span> }
+                  @case (2) { <span class="badge badge-secondary badge-sm">Jitra</span> }
+                  @case (3) { <span class="badge badge-accent badge-sm">Muliatrack</span> }
+                  @case (4) { <span class="badge badge-primary badge-sm">Puninar</span> }
+                  @default { <span class="badge badge-ghost badge-sm">Unknown</span> }
+                }
+              </td>
+              <td class="text-xs text-base-content/70 truncate max-w-[200px]" [title]="item.apiUrl || '-'">{{ item.apiUrl || '-' }}</td>
+              <td>{{ item.apiUsername || '-' }}</td>
+              <td class="text-center">
+                <div class="join">
+                  <button class="btn btn-sm btn-ghost join-item text-info" (click)="openModal(item)">Edit</button>
+                  <button class="btn btn-sm btn-ghost join-item text-error" (click)="deleteItem(item.id)">Delete</button>
+                </div>
+              </td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </app-card>
+
+  <app-pagination 
+    [meta]="meta()" 
+    [currentItemsCount]="items().length" 
+    (pageChange)="changePage($event)"
+    (pageSizeChange)="changePageSize($event)">
+  </app-pagination>
+</div>
+
+<!-- Modal -->
+<dialog #crudModal class="modal">
+  <div class="modal-box max-w-2xl">
+    <h3 class="font-bold text-lg mb-4">{{ isEditMode ? 'Edit' : 'Add' }} GPS Vendor</h3>
+    <form [formGroup]="form" (ngSubmit)="save()">
+      <div class="grid grid-cols-2 gap-4">
+        
+        <div class="form-control col-span-1">
+          <label class="label"><span class="label-text">Code *</span></label>
+          <input type="text" formControlName="code" class="input input-bordered w-full" placeholder="e.g. PUNINAR" />
+        </div>
+
+        <div class="form-control col-span-1">
+          <label class="label"><span class="label-text">Name *</span></label>
+          <input type="text" formControlName="name" class="input input-bordered w-full" placeholder="e.g. Puninar GPS" />
+        </div>
+
+        <div class="form-control col-span-2">
+          <label class="label"><span class="label-text">Provider Type *</span></label>
+          <select formControlName="providerType" class="select select-bordered w-full">
+            <option [ngValue]="1">Innovatrack</option>
+            <option [ngValue]="2">Jitra</option>
+            <option [ngValue]="3">Muliatrack</option>
+            <option [ngValue]="4">Puninar</option>
+          </select>
+        </div>
+
+        <div class="form-control col-span-2">
+          <label class="label"><span class="label-text">API URL</span></label>
+          <input type="text" formControlName="apiUrl" class="input input-bordered w-full" placeholder="https://..." />
+        </div>
+
+        <div class="form-control col-span-1">
+          <label class="label"><span class="label-text">API Username</span></label>
+          <input type="text" formControlName="apiUsername" class="input input-bordered w-full" />
+        </div>
+
+        <div class="form-control col-span-1">
+          <label class="label"><span class="label-text">API Password</span></label>
+          <input type="password" formControlName="apiPassword" class="input input-bordered w-full" placeholder="Leave blank to keep existing" />
+        </div>
+
+        <div class="form-control col-span-2">
+          <label class="label"><span class="label-text">API Token</span></label>
+          <input type="text" formControlName="apiToken" class="input input-bordered w-full" />
+        </div>
+
+      </div>
+
+      <div class="modal-action flex justify-between">
+        <div>
+          <button type="button" class="btn btn-outline btn-info" (click)="testConnection()" [disabled]="isTestingConnection() || isSaving">
+            @if (isTestingConnection()) { <span class="loading loading-spinner loading-sm"></span> }
+            Test Connection
+          </button>
+        </div>
+        <div class="flex gap-2">
+          <button type="button" class="btn" (click)="closeModal()" [disabled]="isSaving || isTestingConnection()">Cancel</button>
+          <button type="submit" class="btn btn-primary" [disabled]="isSaving || isTestingConnection()">
+            @if (isSaving) { <span class="loading loading-spinner loading-sm"></span> }
+            Save
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+  <form method="dialog" class="modal-backdrop">
+    <button (click)="closeModal()">close</button>
+  </form>
+</dialog>

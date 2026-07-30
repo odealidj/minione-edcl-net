@@ -4,4 +4,4 @@ using MediatR;
 
 namespace EDCL.Module.Driver.Application.Commands.UpdateLogisticPartner;
 
-public sealed record UpdateLogisticPartnerCommand(long Id, string Code, string Name) : IRequest<Result>;
+public sealed record UpdateLogisticPartnerCommand(long Id, string Code, string Name, System.Collections.Generic.List<long> GpsVendorIds) : IRequest<Result>;

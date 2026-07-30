@@ -34,7 +34,9 @@ internal sealed class GetAvailableTrucksQueryHandler(DriverDbContext dbContext)
             VehicleType: t.VehicleType,
             LogisticPartnerId: t.LogisticPartnerId,
             LogisticPartnerName: t.LogisticPartner?.Name,
-            IsActive: t.IsActive
+            IsActive: t.IsActive,
+            IsSimulated: t.IsSimulated,
+            GpsVehicleId: t.GpsVehicleId
         )).ToList();
 
         return Result<IReadOnlyList<TruckDto>>.Success(dtos);

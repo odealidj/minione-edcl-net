@@ -27,6 +27,9 @@
     <Project Path="src/Shared/EDCL.Shared.Infrastructure/EDCL.Shared.Infrastructure.csproj" />
     <Project Path="src/Shared/EDCL.Shared.Kernel/EDCL.Shared.Kernel.csproj" />
   </Folder>
+  <Folder Name="/src/Workers/">
+    <Project Path="src/Workers/EDCL.Worker.GpsTracker/EDCL.Worker.GpsTracker.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/EDCL.IntegrationTests/EDCL.IntegrationTests.csproj" />
     <Project Path="tests/EDCL.UnitTests/EDCL.UnitTests.csproj" />

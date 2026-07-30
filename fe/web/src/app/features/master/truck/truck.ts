@@ -43,7 +43,9 @@ export class TruckComponent implements OnInit {
     this.form = this.fb.group({
       plateNumber: ['', Validators.required],
       vehicleType: ['', Validators.required],
-      logisticPartnerId: [null, Validators.required]
+      logisticPartnerId: [null, Validators.required],
+      isSimulated: [false],
+      gpsVehicleId: ['']
     });
   }
 
@@ -149,12 +151,17 @@ export class TruckComponent implements OnInit {
   openModal(item?: Truck): void {
     if (item) {
       this.isEditMode = true;
-      this.editingId = item.id;
-      this.form.patchValue({ plateNumber: item.plateNumber, vehicleType: item.vehicleType, logisticPartnerId: item.logisticPartnerId });
+      this.form.patchValue({ 
+        plateNumber: item.plateNumber, 
+        vehicleType: item.vehicleType, 
+        logisticPartnerId: item.logisticPartnerId,
+        isSimulated: item.isSimulated || false,
+        gpsVehicleId: item.gpsVehicleId || ''
+      });
     } else {
       this.isEditMode = false;
       this.editingId = null;
-      this.form.reset();
+      this.form.reset({ isSimulated: false, gpsVehicleId: '' });
     }
     this.crudModal.nativeElement.showModal();
   }
@@ -169,12 +176,12 @@ export class TruckComponent implements OnInit {
     const val = this.form.value;
 
     if (this.isEditMode && this.editingId) {
-      this.service.updateTruck(this.editingId, val.plateNumber, val.vehicleType, val.logisticPartnerId).subscribe({
+      this.service.updateTruck(this.editingId, val.plateNumber, val.vehicleType, val.logisticPartnerId, val.isSimulated, val.gpsVehicleId).subscribe({
         next: () => { this.isSaving = false; this.closeModal(); this.loadData(); },
         error: (err) => { console.error(err); this.isSaving = false; }
       });
     } else {
-      this.service.createTruck(val.plateNumber, val.vehicleType, val.logisticPartnerId).subscribe({
+      this.service.createTruck(val.plateNumber, val.vehicleType, val.logisticPartnerId, val.isSimulated, val.gpsVehicleId).subscribe({
         next: () => { this.isSaving = false; this.closeModal(); this.loadData(); },
         error: (err) => { console.error(err); this.isSaving = false; }
       });

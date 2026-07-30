@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>dotnet-EDCL.Worker.GpsTracker-2412e048-e12c-4f55-9592-d7a311f79506</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MassTransit.RabbitMQ" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Modules\Driver\EDCL.Module.Driver\EDCL.Module.Driver.csproj" />
+    <ProjectReference Include="..\..\Modules\Cargo\EDCL.Module.Cargo\EDCL.Module.Cargo.csproj" />
+    <ProjectReference Include="..\..\Shared\EDCL.Shared.Kernel\EDCL.Shared.Kernel.csproj" />
+    <ProjectReference Include="..\..\Modules\Job\EDCL.Module.Job\EDCL.Module.Job.csproj" />
+  </ItemGroup>
+</Project>

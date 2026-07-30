@@ -4,4 +4,4 @@ using MediatR;
 
 namespace EDCL.Module.Driver.Application.Commands.CreateLogisticPartner;
 
-public sealed record CreateLogisticPartnerCommand(string Code, string Name) : IRequest<Result<long>>;
+public sealed record CreateLogisticPartnerCommand(string Code, string Name, System.Collections.Generic.List<long> GpsVendorIds) : IRequest<Result<long>>;

@@ -44,6 +44,7 @@ export class Sidebar implements OnInit, OnDestroy {
   
   masterItems = [
     { title: 'LogisticPartner', route: '/master/logisticPartner' },
+    { title: 'GPS Vendor', route: '/master/gps-vendor' },
     { title: 'Route', route: '/master/route' },
     { title: 'Driver', route: '/master/driver' },
     { title: 'Truck', route: '/master/truck' },

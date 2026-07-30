@@ -14,26 +14,40 @@ public sealed class Truck : AuditableEntity
     public long LogisticPartnerId { get; private set; }
     public bool IsActive { get; private set; } = true;
 
+    // GPS & Simulator Configuration
+    public string? GpsVehicleId { get; private set; }
+    public bool IsSimulated { get; private set; } = false;
+
     // Navigation
     public LogisticPartner? LogisticPartner { get; private set; }
     public ICollection<TruckDriverAssignment> Assignments { get; private set; } = [];
 
     private Truck() { } // EF Core
 
-    public static Truck Create(string plateNumber, long logisticPartnerId, string? vehicleType = null)
+    public static Truck Create(string plateNumber, long logisticPartnerId, string? vehicleType = null, bool isSimulated = false, string? gpsVehicleId = null)
         => new()
         {
             PlateNumber = plateNumber,
             LogisticPartnerId = logisticPartnerId,
             VehicleType = vehicleType,
+            IsSimulated = isSimulated,
+            GpsVehicleId = gpsVehicleId,
             IsActive = true
         };
 
-    public void Update(string plateNumber, long logisticPartnerId, string? vehicleType)
+    public void Update(string plateNumber, long logisticPartnerId, string? vehicleType, bool isSimulated = false, string? gpsVehicleId = null)
     {
         PlateNumber = plateNumber;
         LogisticPartnerId = logisticPartnerId;
         VehicleType = vehicleType;
+        IsSimulated = isSimulated;
+        GpsVehicleId = gpsVehicleId;
+    }
+
+    public void ConfigureGps(string? gpsVehicleId, bool isSimulated)
+    {
+        GpsVehicleId = gpsVehicleId;
+        IsSimulated = isSimulated;
     }
 
     public Result AssignDriver(long driverId)

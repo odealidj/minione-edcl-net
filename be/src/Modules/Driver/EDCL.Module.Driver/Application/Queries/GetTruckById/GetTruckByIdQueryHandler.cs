@@ -21,6 +21,6 @@ internal sealed class GetTruckByIdQueryHandler(DriverDbContext dbContext)
             
         if (x is null) return Result<TruckDto>.Failure(Error.NotFound("Truck.NotFound", "Truck not found."));
 
-        return Result<TruckDto>.Success(new TruckDto(x.Id, x.PlateNumber, x.VehicleType, x.LogisticPartnerId, x.LogisticPartner?.Name, x.IsActive));
+        return Result<TruckDto>.Success(new TruckDto(x.Id, x.PlateNumber, x.VehicleType, x.LogisticPartnerId, x.LogisticPartner?.Name, x.IsActive, x.IsSimulated, x.GpsVehicleId));
     }
 }

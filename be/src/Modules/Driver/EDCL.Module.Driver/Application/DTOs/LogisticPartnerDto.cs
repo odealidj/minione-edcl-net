@@ -1,3 +1,7 @@
 namespace EDCL.Module.Driver.Application.DTOs;
 
-public sealed record LogisticPartnerDto(long Id, string Code, string Name);
+public sealed record LogisticPartnerDto(
+    long Id, 
+    string Code, 
+    string Name, 
+    List<long> GpsVendorIds);

@@ -4,4 +4,4 @@ using MediatR;
 
 namespace EDCL.Module.Driver.Application.Commands.UpdateTruck;
 
-public sealed record UpdateTruckCommand(long Id, long LogisticPartnerId, string PlateNumber, string? VehicleType) : IRequest<Result>;
+public sealed record UpdateTruckCommand(long Id, string PlateNumber, string? VehicleType, long LogisticPartnerId, bool IsSimulated = false, string? GpsVehicleId = null) : IRequest<Result>;

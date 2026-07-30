@@ -18,7 +18,7 @@ internal sealed class UpdateTruckCommandHandler(DriverDbContext dbContext)
             
         if (entity is null) return Result.Failure(Error.NotFound("Truck.NotFound", "Truck not found."));
 
-        entity.Update(request.PlateNumber, request.LogisticPartnerId, request.VehicleType);
+        entity.Update(request.PlateNumber, request.LogisticPartnerId, request.VehicleType, request.IsSimulated, request.GpsVehicleId);
         await dbContext.SaveChangesAsync(cancellationToken);
         return Result.Success();
     }

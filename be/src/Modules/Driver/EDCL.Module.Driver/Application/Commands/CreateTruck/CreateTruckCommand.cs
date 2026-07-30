@@ -4,4 +4,4 @@ using MediatR;
 
 namespace EDCL.Module.Driver.Application.Commands.CreateTruck;
 
-public sealed record CreateTruckCommand(long LogisticPartnerId, string PlateNumber, string? VehicleType) : IRequest<Result<long>>;
+public sealed record CreateTruckCommand(string PlateNumber, string? VehicleType, long LogisticPartnerId, bool IsSimulated = false, string? GpsVehicleId = null) : IRequest<Result<long>>;

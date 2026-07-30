@@ -4,13 +4,14 @@ import { RouterLink } from '@angular/router';
 import { Chart, registerables } from 'chart.js';
 import { DashboardService, DashboardSummaryResponse, LateDepartureAlertDto } from '../../core/services/dashboard.service';
 import { FormsModule } from '@angular/forms';
+import { TrackingMapComponent } from './tracking-map/tracking-map';
 
 Chart.register(...registerables);
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterLink, FormsModule],
+  imports: [CommonModule, RouterLink, FormsModule, TrackingMapComponent],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css'
 })

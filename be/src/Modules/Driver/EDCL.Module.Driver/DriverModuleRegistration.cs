@@ -26,8 +26,10 @@ public static class DriverModuleRegistration
         // These replace the DummySupplierPort and DummyTruckPort in JobModuleRegistration
         services.AddScoped<ISupplierPort, SupplierPortAdapter>();
         services.AddScoped<ITruckPort, TruckPortAdapter>();
-        // ── CQRS (MediatR) ────────────────────────────────────────────────
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(DriverModuleRegistration).Assembly));
+
+        // ── HTTP Client ───────────────────────────────────────────────────
+        services.AddHttpClient();
 
         return services;
     }

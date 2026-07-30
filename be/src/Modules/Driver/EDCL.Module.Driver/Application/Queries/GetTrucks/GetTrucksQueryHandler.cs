@@ -35,7 +35,7 @@ internal sealed class GetTrucksQueryHandler(DriverDbContext dbContext)
             .Take(request.PageSize)
             .ToListAsync(cancellationToken);
 
-        var dtos = items.Select(x => new TruckDto(x.Id, x.PlateNumber, x.VehicleType, x.LogisticPartnerId, x.LogisticPartner?.Name, x.IsActive)).ToList();
+        var dtos = items.Select(x => new TruckDto(x.Id, x.PlateNumber, x.VehicleType, x.LogisticPartnerId, x.LogisticPartner?.Name, x.IsActive, x.IsSimulated, x.GpsVehicleId)).ToList();
         var totalPages = request.PageSize > 0 ? (int)Math.Ceiling((double)totalCount / request.PageSize) : 0;
 
         return Result<GetTrucksResponse>.Success(new GetTrucksResponse(dtos, totalCount, request.PageNumber, request.PageSize, totalPages));

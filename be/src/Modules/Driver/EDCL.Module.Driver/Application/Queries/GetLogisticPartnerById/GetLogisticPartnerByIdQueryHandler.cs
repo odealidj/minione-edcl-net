@@ -15,11 +15,16 @@ internal sealed class GetLogisticPartnerByIdQueryHandler(DriverDbContext dbConte
     public async Task<Result<LogisticPartnerDto>> Handle(GetLogisticPartnerByIdQuery request, CancellationToken cancellationToken)
     {
         var x = await dbContext.LogisticPartners
-            .AsNoTracking()
-            .FirstOrDefaultAsync(y => y.Id == request.Id && !y.IsDeleted, cancellationToken);
+            .Include(lp => lp.GpsVendorMappings)
+            .FirstOrDefaultAsync(lp => lp.Id == request.Id && !lp.IsDeleted, cancellationToken);
             
         if (x is null) return Result<LogisticPartnerDto>.Failure(Error.NotFound("LogisticPartner.NotFound", "LogisticPartner not found."));
 
-        return Result<LogisticPartnerDto>.Success(new LogisticPartnerDto(x.Id, x.Code, x.Name));
+        return Result<LogisticPartnerDto>.Success(new LogisticPartnerDto(
+            x.Id,
+            x.Code,
+            x.Name,
+            x.GpsVendorMappings.Select(m => m.GpsVendorId).ToList()
+        ));
     }
 }
