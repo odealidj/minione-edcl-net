@@ -29,7 +29,6 @@ export class GpsVendorComponent implements OnInit {
   form: FormGroup;
   isEditMode = false;
   editingId: number | null = null;
-  editingId: number | null = null;
   isSaving = false;
   testingId = signal<number | null>(null);
 
@@ -161,13 +160,21 @@ export class GpsVendorComponent implements OnInit {
     }
   }
 
-  testConnection(): void {
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
-      return;
-    }
-
-    this.isSaving = true;
-    const val = this.form.value;
+  testConnection(item: GpsVendor): void {
+    if (this.testingId() === item.id) return;
+    
+    this.testingId.set(item.id);
+    this.service.testGpsConnection(item.id).subscribe({
+      next: (res) => {
+        this.testingId.set(null);
+        // Refresh data to get updated status and last checked time
+        this.loadData();
+      },
+      error: (err) => {
+        this.testingId.set(null);
+        alert('GPS connection test failed.');
+        this.loadData();
+      }
+    });
   }
 }
