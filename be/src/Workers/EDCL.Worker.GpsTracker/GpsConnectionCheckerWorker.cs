@@ -75,10 +75,10 @@ public sealed class GpsConnectionCheckerWorker(
                         break;
 
                     case 2: // Jitra
-                        if (string.IsNullOrWhiteSpace(vendor.ApiUsername))
+                        if (string.IsNullOrWhiteSpace(vendor.ApiToken))
                             break;
 
-                        var authString = $"{vendor.ApiUsername}:";
+                        var authString = $"{vendor.ApiToken}:";
                         var base64Auth = Convert.ToBase64String(Encoding.UTF8.GetBytes(authString));
                         var jitraRequest = new HttpRequestMessage(HttpMethod.Get, vendor.ApiUrl);
                         jitraRequest.Headers.Authorization = new AuthenticationHeaderValue("Basic", base64Auth);

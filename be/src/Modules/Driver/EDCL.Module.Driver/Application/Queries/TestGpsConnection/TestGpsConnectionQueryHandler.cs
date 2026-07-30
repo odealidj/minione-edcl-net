@@ -50,13 +50,13 @@ public class TestGpsConnectionQueryHandler(IHttpClientFactory httpClientFactory,
                     break;
 
                 case 2: // Jitra
-                    if (string.IsNullOrWhiteSpace(vendor.ApiUsername))
+                    if (string.IsNullOrWhiteSpace(vendor.ApiToken))
                     {
-                        errorMessage = "Jitra requires Username for Basic Auth.";
+                        errorMessage = "Jitra requires Token (used as Basic Auth username).";
                         break;
                     }
 
-                    var authString = $"{vendor.ApiUsername}:";
+                    var authString = $"{vendor.ApiToken}:";
                     var base64Auth = Convert.ToBase64String(Encoding.UTF8.GetBytes(authString));
                     
                     var jitraRequest = new HttpRequestMessage(HttpMethod.Get, vendor.ApiUrl);

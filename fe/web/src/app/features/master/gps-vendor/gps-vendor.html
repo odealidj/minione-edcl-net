@@ -109,20 +109,24 @@
           <input type="text" formControlName="apiUrl" class="input input-bordered w-full" placeholder="https://..." />
         </div>
 
-        <div class="form-control col-span-1">
-          <label class="label"><span class="label-text">API Username</span></label>
-          <input type="text" formControlName="apiUsername" class="input input-bordered w-full" />
-        </div>
+        @if (form.get('providerType')?.value === 1 || form.get('providerType')?.value === 3) {
+          <div class="form-control col-span-1">
+            <label class="label"><span class="label-text">API Username</span></label>
+            <input type="text" formControlName="apiUsername" class="input input-bordered w-full" />
+          </div>
 
-        <div class="form-control col-span-1">
-          <label class="label"><span class="label-text">API Password</span></label>
-          <input type="password" formControlName="apiPassword" class="input input-bordered w-full" placeholder="Leave blank to keep existing" />
-        </div>
+          <div class="form-control col-span-1">
+            <label class="label"><span class="label-text">API Password</span></label>
+            <input type="password" formControlName="apiPassword" class="input input-bordered w-full" placeholder="Leave blank to keep existing" />
+          </div>
+        }
 
-        <div class="form-control col-span-2">
-          <label class="label"><span class="label-text">API Token</span></label>
-          <input type="text" formControlName="apiToken" class="input input-bordered w-full" />
-        </div>
+        @if (form.get('providerType')?.value === 2 || form.get('providerType')?.value === 4) {
+          <div class="form-control col-span-2">
+            <label class="label"><span class="label-text">API Token</span></label>
+            <input type="text" formControlName="apiToken" class="input input-bordered w-full" />
+          </div>
+        }
 
       </div>
 
