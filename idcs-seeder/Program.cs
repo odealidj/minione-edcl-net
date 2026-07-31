@@ -7,8 +7,8 @@ namespace EDCL.IdcsSeeder;
 
 class Program
 {
-    private const string ConnectionString = "Server=127.0.0.1,1466;Database=IDCS;User Id=sa;Password=IdcsPassword123!;TrustServerCertificate=True;";
-    private const string EdclConnectionString = "Server=127.0.0.1,1444;Database=edcl;User Id=sa;Password=EdclMini_123!;TrustServerCertificate=True;";
+    private const string ConnectionString = "Server=127.0.0.1,1466;Database=IDCS;User Id=sa;Password=IdcsPassword123!;TrustServerCertificate=True;Encrypt=False;";
+    private const string EdclConnectionString = "Server=127.0.0.1,1444;Database=edcl;User Id=sa;Password=EdclMini_123!;TrustServerCertificate=True;Encrypt=False;";
 
     static async Task Main(string[] args)
     {
@@ -860,7 +860,7 @@ class Program
         {
             new { Code = "PUNINAR", Name = "Puninar GPS", ProviderType = 4, ApiUrl = "https://tnt-micro.puninarlogistics.com/api/tracking-tmmin", ApiUsername = (string?)null, ApiPassword = (string?)null, ApiToken = (string?)"180f0d0b5f255b58b950a3090fd19f2fe13afcb1" },
             new { Code = "MULIATRACK", Name = "Muliatrack GPS", ProviderType = 3, ApiUrl = "https://app1.muliatrack.com/wspubtoyota/service.asmx/GetPositions", ApiUsername = (string?)"sgltmmin", ApiPassword = (string?)"sgltmmin", ApiToken = (string?)null },
-            new { Code = "JITRA", Name = "Jitra GPS", ProviderType = 2, ApiUrl = "https://public-api.jitra.co/v1/positions", ApiUsername = (string?)null, ApiPassword = (string?)null, ApiToken = (string?)"T1RKR00wSXpSRU14TVRaRU9UY3hRVGd6UWpVMU9EZzBSRGt6UVRGRU1qTT06" },
+            new { Code = "JITRA", Name = "Jitra GPS", ProviderType = 2, ApiUrl = "https://public-api.jitra.co/v1/positions", ApiUsername = (string?)null, ApiPassword = (string?)null, ApiToken = (string?)"OTJGM0IzREMxMTZEOTcxQTgzQjU1ODg0RDkzQTFEMjM=" },
             new { Code = "INOVATRACK", Name = "Inovatrack GPS", ProviderType = 1, ApiUrl = "https://api.inovatrack.com/api/VehicleSummary/GetAll", ApiUsername = (string?)"TMMIN2", ApiPassword = (string?)"IMJh2TOn13asvYs4", ApiToken = (string?)null }
         };
 
@@ -894,11 +894,11 @@ class Program
 
         // Add mapping for MULIATRACK
         var muliatrackId = await conn.ExecuteScalarAsync<long>("SELECT Id FROM edcl.driver.gps_vendors WHERE Code = 'MULIATRACK'");
-        await EnsureGpsMappingAsync(conn, muliatrackId, new[] { "ALS", "YAI" });
+        await EnsureGpsMappingAsync(conn, muliatrackId, new[] { "ALS", "DNX", "TTN" });
 
         // Add mapping for JITRA
         var jitraId = await conn.ExecuteScalarAsync<long>("SELECT Id FROM edcl.driver.gps_vendors WHERE Code = 'JITRA'");
-        await EnsureGpsMappingAsync(conn, jitraId, new[] { "NPC", "KPI" });
+        await EnsureGpsMappingAsync(conn, jitraId, new[] { "SGL", "NSI", "HKR" });
 
         // Add mapping for INOVATRACK
         var inovatrackId = await conn.ExecuteScalarAsync<long>("SELECT Id FROM edcl.driver.gps_vendors WHERE Code = 'INOVATRACK'");
