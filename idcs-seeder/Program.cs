@@ -858,10 +858,10 @@ class Program
         Console.WriteLine("Seeding GPS Vendors...");
         var vendors = new[]
         {
-            new { Code = "PUNINAR", Name = "Puninar GPS", ProviderType = 4 }, // Puninar = 4 in enum
-            new { Code = "MULIATRACK", Name = "Muliatrack GPS", ProviderType = 3 }, // Muliatrack = 3
-            new { Code = "JITRA", Name = "Jitra GPS", ProviderType = 2 }, // Jitra = 2
-            new { Code = "INOVATRACK", Name = "Inovatrack GPS", ProviderType = 1 } // Innovatrack = 1
+            new { Code = "PUNINAR", Name = "Puninar GPS", ProviderType = 4, ApiUrl = "https://tnt-micro.puninarlogistics.com/api/tracking-tmmin", ApiUsername = (string?)null, ApiPassword = (string?)null, ApiToken = (string?)"180f0d0b5f255b58b950a3090fd19f2fe13afcb1" },
+            new { Code = "MULIATRACK", Name = "Muliatrack GPS", ProviderType = 3, ApiUrl = "https://app1.muliatrack.com/wspubtoyota/service.asmx/GetPositions", ApiUsername = (string?)"sgltmmin", ApiPassword = (string?)"sgltmmin", ApiToken = (string?)null },
+            new { Code = "JITRA", Name = "Jitra GPS", ProviderType = 2, ApiUrl = "https://public-api.jitra.co/v1/positions", ApiUsername = (string?)null, ApiPassword = (string?)null, ApiToken = (string?)"T1RKR00wSXpSRU14TVRaRU9UY3hRVGd6UWpVMU9EZzBSRGt6UVRGRU1qTT06" },
+            new { Code = "INOVATRACK", Name = "Inovatrack GPS", ProviderType = 1, ApiUrl = "https://api.inovatrack.com/api/VehicleSummary/GetAll", ApiUsername = (string?)"TMMIN2", ApiPassword = (string?)"IMJh2TOn13asvYs4", ApiToken = (string?)null }
         };
 
         foreach (var vendor in vendors)
@@ -874,14 +874,39 @@ class Program
             {
                 await conn.ExecuteAsync(@"
                     INSERT INTO edcl.driver.gps_vendors (Code, Name, ProviderType, ApiUrl, ApiUsername, ApiPassword, ApiToken, created_at, created_by, is_deleted)
-                    VALUES (@Code, @Name, @ProviderType, 'https://dummy.api', 'user', 'pass', 'token', GETUTCDATE(), 'System', 0)",
+                    VALUES (@Code, @Name, @ProviderType, @ApiUrl, @ApiUsername, @ApiPassword, @ApiToken, GETUTCDATE(), 'System', 0)",
+                    vendor);
+            }
+            else
+            {
+                // Update existing dummy records if any
+                await conn.ExecuteAsync(@"
+                    UPDATE edcl.driver.gps_vendors 
+                    SET ApiUrl = @ApiUrl, ApiUsername = @ApiUsername, ApiPassword = @ApiPassword, ApiToken = @ApiToken
+                    WHERE Code = @Code",
                     vendor);
             }
         }
 
-        // Add mapping for PYL and NYK to PUNINAR
+        // Add mapping for PUNINAR
         var puninarId = await conn.ExecuteScalarAsync<long>("SELECT Id FROM edcl.driver.gps_vendors WHERE Code = 'PUNINAR'");
-        var partnerCodes = new[] { "PYL", "NYK" };
+        await EnsureGpsMappingAsync(conn, puninarId, new[] { "PYL", "NYK" });
+
+        // Add mapping for MULIATRACK
+        var muliatrackId = await conn.ExecuteScalarAsync<long>("SELECT Id FROM edcl.driver.gps_vendors WHERE Code = 'MULIATRACK'");
+        await EnsureGpsMappingAsync(conn, muliatrackId, new[] { "ALS", "YAI" });
+
+        // Add mapping for JITRA
+        var jitraId = await conn.ExecuteScalarAsync<long>("SELECT Id FROM edcl.driver.gps_vendors WHERE Code = 'JITRA'");
+        await EnsureGpsMappingAsync(conn, jitraId, new[] { "NPC", "KPI" });
+
+        // Add mapping for INOVATRACK
+        var inovatrackId = await conn.ExecuteScalarAsync<long>("SELECT Id FROM edcl.driver.gps_vendors WHERE Code = 'INOVATRACK'");
+        await EnsureGpsMappingAsync(conn, inovatrackId, new[] { "TOL", "ACG" });
+    }
+
+    private static async Task EnsureGpsMappingAsync(SqlConnection conn, long vendorId, string[] partnerCodes)
+    {
         foreach (var code in partnerCodes)
         {
             var lpId = await conn.ExecuteScalarAsync<long?>("SELECT Id FROM edcl.driver.logistic_partners WHERE Code = @Code", new { Code = code });
@@ -889,14 +914,14 @@ class Program
             {
                 var mappingExists = await conn.ExecuteScalarAsync<bool>(
                     "SELECT CAST(CASE WHEN COUNT(1) > 0 THEN 1 ELSE 0 END AS BIT) FROM edcl.driver.logistic_partner_gps_vendors WHERE LogisticPartnerId = @LpId AND GpsVendorId = @VendorId",
-                    new { LpId = lpId.Value, VendorId = puninarId });
+                    new { LpId = lpId.Value, VendorId = vendorId });
 
                 if (!mappingExists)
                 {
                     await conn.ExecuteAsync(@"
                         INSERT INTO edcl.driver.logistic_partner_gps_vendors (LogisticPartnerId, GpsVendorId, created_at, created_by, is_deleted)
                         VALUES (@LpId, @VendorId, GETUTCDATE(), 'System', 0)",
-                        new { LpId = lpId.Value, VendorId = puninarId });
+                        new { LpId = lpId.Value, VendorId = vendorId });
                 }
             }
         }
