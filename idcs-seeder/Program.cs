@@ -902,7 +902,7 @@ class Program
 
         // Add mapping for INOVATRACK
         var inovatrackId = await conn.ExecuteScalarAsync<long>("SELECT Id FROM edcl.driver.gps_vendors WHERE Code = 'INOVATRACK'");
-        await EnsureGpsMappingAsync(conn, inovatrackId, new[] { "TOL", "ACG" });
+        await EnsureGpsMappingAsync(conn, inovatrackId, new[] { "AJL", "TTL", "SYN" });
     }
 
     private static async Task EnsureGpsMappingAsync(SqlConnection conn, long vendorId, string[] partnerCodes)
