@@ -32,10 +32,16 @@ export class LogisticPartnerComponent implements OnInit {
   isDeletingSelected = signal(false);
 
   @ViewChild('crudModal') crudModal!: ElementRef<HTMLDialogElement>;
+  @ViewChild('assignModal') assignModal!: ElementRef<HTMLDialogElement>;
+  
   form: FormGroup;
   isEditMode = false;
   editingId: number | null = null;
   isSaving = false;
+  
+  assigningItem = signal<LogisticPartner | null>(null);
+  assignGpsVendorIds = signal<Set<number>>(new Set());
+  isAssignSaving = signal(false);
 
   private service = inject(AdminService);
   private masterDataService = inject(MasterDataService);
@@ -44,8 +50,7 @@ export class LogisticPartnerComponent implements OnInit {
   constructor() {
     this.form = this.fb.group({
       code: [''],
-      name: [''],
-      gpsVendorIds: [[]]
+      name: ['']
     });
   }
 
@@ -162,28 +167,65 @@ export class LogisticPartnerComponent implements OnInit {
       this.editingId = item.id;
       this.form.patchValue({
         code: item.code,
-        name: item.name,
-        gpsVendorIds: item.gpsVendorIds || []
+        name: item.name
       });
     } else {
       this.isEditMode = false;
       this.editingId = null;
-      this.form.reset({ gpsVendorIds: [] });
+      this.form.reset();
     }
     this.crudModal.nativeElement.showModal();
   }
 
   closeModal(): void {
     this.crudModal.nativeElement.close();
-    this.form.reset({ gpsVendorIds: [] });
+    this.form.reset();
   }
 
-  getVendorNames(ids?: number[]): string {
-    if (!ids || ids.length === 0) return 'None';
-    const vendors = this.gpsVendors();
-    return ids
-      .map(id => vendors.find(v => v.id === id)?.name || `Unknown (${id})`)
-      .join(', ');
+  getVendorNames(vendorIds?: number[]): string {
+    if (!vendorIds || vendorIds.length === 0) return '-';
+    const names = vendorIds.map(id => this.gpsVendors().find(v => v.id === id)?.name).filter(Boolean);
+    return names.join(', ');
+  }
+
+  openAssignModal(item: LogisticPartner): void {
+    this.assigningItem.set(item);
+    this.assignGpsVendorIds.set(new Set(item.gpsVendorIds || []));
+    this.assignModal.nativeElement.showModal();
+  }
+
+  closeAssignModal(): void {
+    this.assignModal.nativeElement.close();
+    this.assigningItem.set(null);
+  }
+
+  toggleGpsVendor(vendorId: number, event: any): void {
+    const isChecked = event.target.checked;
+    const current = new Set(this.assignGpsVendorIds());
+    if (isChecked) {
+      current.add(vendorId);
+    } else {
+      current.delete(vendorId);
+    }
+    this.assignGpsVendorIds.set(current);
+  }
+
+  saveAssign(): void {
+    const item = this.assigningItem();
+    if (!item) return;
+
+    this.isAssignSaving.set(true);
+    this.service.updateLogisticPartner(item.id, item.code, item.name, Array.from(this.assignGpsVendorIds())).subscribe({
+      next: () => {
+        this.isAssignSaving.set(false);
+        this.closeAssignModal();
+        this.loadData();
+      },
+      error: (err) => {
+        console.error('Assign failed', err);
+        this.isAssignSaving.set(false);
+      }
+    });
   }
 
   save(): void {
@@ -192,7 +234,7 @@ export class LogisticPartnerComponent implements OnInit {
     const v = this.form.value;
 
     if (this.isEditMode && this.editingId) {
-      this.service.updateLogisticPartner(this.editingId, v.code, v.name, v.gpsVendorIds).subscribe({
+      this.service.updateLogisticPartner(this.editingId, v.code, v.name, this.items().find(x => x.id === this.editingId)?.gpsVendorIds || []).subscribe({
         next: () => {
           this.isSaving = false;
           this.closeModal();
@@ -204,7 +246,7 @@ export class LogisticPartnerComponent implements OnInit {
         }
       });
     } else {
-      this.service.createLogisticPartner(v.code, v.name, v.gpsVendorIds).subscribe({
+      this.service.createLogisticPartner(v.code, v.name, []).subscribe({
         next: () => {
           this.isSaving = false;
           this.closeModal();
