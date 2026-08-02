@@ -3,4 +3,4 @@ using MediatR;
 
 namespace EDCL.Module.Driver.Application.Commands.CreateRoute;
 
-public sealed record CreateRouteCommand(string RouteCode, string CycleCode) : IRequest<Result<long>>;
+public sealed record CreateRouteCommand(string RouteCode, string CycleCode, long LogisticPartnerId) : IRequest<Result<long>>;

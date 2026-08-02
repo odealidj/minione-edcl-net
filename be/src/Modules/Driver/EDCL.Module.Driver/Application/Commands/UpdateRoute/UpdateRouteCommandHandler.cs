@@ -18,7 +18,7 @@ internal sealed class UpdateRouteCommandHandler(DriverDbContext dbContext)
             
         if (entity is null) return Result.Failure(Error.NotFound("Route.NotFound", "Route not found."));
 
-        entity.Update(request.RouteCode, request.CycleCode);
+        entity.Update(request.RouteCode, request.CycleCode, request.LogisticPartnerId);
         await dbContext.SaveChangesAsync(cancellationToken);
         return Result.Success();
     }

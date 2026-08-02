@@ -174,10 +174,16 @@ internal sealed class RouteConfiguration : IEntityTypeConfiguration<EDCL.Module.
 
         builder.Property(r => r.RouteCode).HasMaxLength(50).IsRequired();
         builder.Property(r => r.CycleCode).HasMaxLength(10).IsRequired();
+        builder.Property(r => r.LogisticPartnerId).IsRequired();
 
         ConfigureAuditColumns(builder);
 
         builder.HasIndex(r => new { r.RouteCode, r.CycleCode }).IsUnique().HasDatabaseName("UQ_routes_route_cycle");
+
+        builder.HasOne(r => r.LogisticPartner)
+            .WithMany()
+            .HasForeignKey(r => r.LogisticPartnerId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 
     private static void ConfigureAuditColumns<T>(EntityTypeBuilder<T> builder)

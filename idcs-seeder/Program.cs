@@ -964,18 +964,28 @@ class Program
         await conn.OpenAsync();
 
         int count = 0;
-        foreach (var (routeCode, cycleCode) in RouteData.Data)
+        foreach (var (routeCode, cycleCode, logisticPartnerCode) in RouteData.Data)
         {
             var exists = await conn.ExecuteScalarAsync<bool>(
                 "SELECT CAST(CASE WHEN COUNT(1) > 0 THEN 1 ELSE 0 END AS BIT) FROM edcl.driver.routes WHERE RouteCode = @RouteCode AND CycleCode = @CycleCode",
                 new { RouteCode = routeCode, CycleCode = cycleCode });
 
             if (exists) continue;
+            
+            var lpId = await conn.ExecuteScalarAsync<long?>(
+                "SELECT Id FROM edcl.driver.logistic_partners WHERE Code = @Code",
+                new { Code = logisticPartnerCode });
+                
+            if (lpId == null)
+            {
+                Console.WriteLine($"Warning: Logistic Partner {logisticPartnerCode} not found for Route {routeCode}. Skipping.");
+                continue;
+            }
 
             await conn.ExecuteAsync(@"
-                INSERT INTO edcl.driver.routes (RouteCode, CycleCode, created_at, created_by, is_deleted)
-                VALUES (@RouteCode, @CycleCode, GETUTCDATE(), 'System', 0)",
-                new { RouteCode = routeCode, CycleCode = cycleCode });
+                INSERT INTO edcl.driver.routes (RouteCode, CycleCode, LogisticPartnerId, created_at, created_by, is_deleted)
+                VALUES (@RouteCode, @CycleCode, @LpId, GETUTCDATE(), 'System', 0)",
+                new { RouteCode = routeCode, CycleCode = cycleCode, LpId = lpId });
 
             count++;
         }

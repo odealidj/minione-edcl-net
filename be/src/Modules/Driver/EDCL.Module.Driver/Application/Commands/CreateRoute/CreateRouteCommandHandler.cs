@@ -12,7 +12,7 @@ internal sealed class CreateRouteCommandHandler(DriverDbContext dbContext)
 {
     public async Task<Result<long>> Handle(CreateRouteCommand request, CancellationToken cancellationToken)
     {
-        var entity = EDCL.Module.Driver.Domain.Entities.Route.Create(request.RouteCode, request.CycleCode);
+        var entity = EDCL.Module.Driver.Domain.Entities.Route.Create(request.RouteCode, request.CycleCode, request.LogisticPartnerId);
         dbContext.Routes.Add(entity);
         await dbContext.SaveChangesAsync(cancellationToken);
         return Result<long>.Success(entity.Id);

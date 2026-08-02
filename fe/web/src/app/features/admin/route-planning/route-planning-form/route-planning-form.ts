@@ -45,12 +45,9 @@ export class RoutePlanningFormComponent implements OnInit {
   selectedTruckName: string = '';
   truckDropdownOpen: boolean = false;
 
-  // Auto-fill tracking
-  isDriverAutoFilled: boolean = false;
-  isTruckAutoFilled: boolean = false;
-
   routes: Route[] = [];
   filteredRoutes: Route[] = [];
+  selectedRoute: Route | null = null;
   selectedRouteName: string = '';
   routeDropdownOpen: boolean = false;
 
@@ -409,15 +406,22 @@ export class RoutePlanningFormComponent implements OnInit {
     }
   }
 
+  private getDriversByRoute(): Driver[] {
+    if (this.selectedRoute && this.selectedRoute.logisticPartnerId) {
+      return this.drivers.filter(d => d.logisticPartnerId === this.selectedRoute?.logisticPartnerId);
+    }
+    return this.drivers;
+  }
+
   onDriverFocus() {
     this.driverDropdownOpen = true;
-    this.filteredDrivers = this.getDriversByTruck();
+    this.filteredDrivers = this.getDriversByRoute();
   }
 
   onDriverSearch(event: Event) {
     this.driverDropdownOpen = true;
     const term = (event.target as HTMLInputElement).value.toLowerCase();
-    const baseDrivers = this.getDriversByTruck();
+    const baseDrivers = this.getDriversByRoute();
     
     if (!term) {
       this.filteredDrivers = [...baseDrivers];
@@ -428,19 +432,7 @@ export class RoutePlanningFormComponent implements OnInit {
     }
   }
 
-  private getDriversByTruck(): Driver[] {
-    const currentTruckId = this.form.get('truckId')?.value;
-    if (currentTruckId) {
-      const truck = this.trucks.find(t => t.id === currentTruckId);
-      if (truck && truck.logisticPartnerId) {
-        return this.drivers.filter(d => d.logisticPartnerId === truck.logisticPartnerId);
-      }
-    }
-    return this.drivers;
-  }
-
   onDriverBlur() {
-    // Delay slightly so that mousedown on options can fire before the dropdown is removed
     setTimeout(() => {
       this.driverDropdownOpen = false;
       this.cdr.detectChanges();
@@ -451,32 +443,28 @@ export class RoutePlanningFormComponent implements OnInit {
     if (driver) {
       this.form.patchValue({ driverId: driver.id });
       this.selectedDriverName = `${driver.name} (${driver.nik})`;
-      this.isDriverAutoFilled = false; // Manually selected
-
-      // Auto-fill Truck
-      const currentTruck = this.form.get('truckId')?.value;
-      if (!currentTruck || this.isTruckAutoFilled) {
-        const assignment = this.truckAssignments.find(a => a.driverId === driver.id);
-        if (assignment) {
-          const truck = this.trucks.find(t => t.id === assignment.truckId);
-          if (truck) {
-            this.form.patchValue({ truckId: truck.id });
-            this.selectedTruckName = `${truck.plateNumber} (${truck.vehicleType || '-'})`;
-            this.isTruckAutoFilled = true; // Mark as auto-filled
-          }
-        } else if (this.isTruckAutoFilled) {
-          // If previous was auto-filled but new driver has no truck, clear it
-          this.form.patchValue({ truckId: null });
-          this.selectedTruckName = '';
-          this.isTruckAutoFilled = false;
-        }
-      }
     } else {
       this.form.patchValue({ driverId: null });
       this.selectedDriverName = '';
-      this.isDriverAutoFilled = false;
     }
     this.driverDropdownOpen = false;
+
+    // Reset Truck to enforce sequential selection
+    this.form.patchValue({ truckId: null });
+    this.selectedTruckName = '';
+  }
+
+  private getTrucksByDriver(): Truck[] {
+    const currentDriverId = this.form.get('driverId')?.value;
+    if (currentDriverId) {
+      const driver = this.drivers.find(d => d.id === currentDriverId);
+      if (driver && driver.logisticPartnerId) {
+        return this.trucks.filter(t => t.logisticPartnerId === driver.logisticPartnerId);
+      }
+    } else if (this.selectedRoute && this.selectedRoute.logisticPartnerId) {
+      return this.trucks.filter(t => t.logisticPartnerId === this.selectedRoute?.logisticPartnerId);
+    }
+    return this.trucks;
   }
 
   onTruckFocus() {
@@ -498,17 +486,6 @@ export class RoutePlanningFormComponent implements OnInit {
     }
   }
 
-  private getTrucksByDriver(): Truck[] {
-    const currentDriverId = this.form.get('driverId')?.value;
-    if (currentDriverId) {
-      const driver = this.drivers.find(d => d.id === currentDriverId);
-      if (driver && driver.logisticPartnerId) {
-        return this.trucks.filter(t => t.logisticPartnerId === driver.logisticPartnerId);
-      }
-    }
-    return this.trucks;
-  }
-
   onTruckBlur() {
     setTimeout(() => {
       this.truckDropdownOpen = false;
@@ -520,30 +497,9 @@ export class RoutePlanningFormComponent implements OnInit {
     if (truck) {
       this.form.patchValue({ truckId: truck.id });
       this.selectedTruckName = `${truck.plateNumber} (${truck.vehicleType || '-'})`;
-      this.isTruckAutoFilled = false; // Manually selected
-
-      // Auto-fill Driver
-      const currentDriver = this.form.get('driverId')?.value;
-      if (!currentDriver || this.isDriverAutoFilled) {
-        const assignment = this.truckAssignments.find(a => a.truckId === truck.id);
-        if (assignment) {
-          const driver = this.drivers.find(d => d.id === assignment.driverId);
-          if (driver) {
-            this.form.patchValue({ driverId: driver.id });
-            this.selectedDriverName = `${driver.name} (${driver.nik})`;
-            this.isDriverAutoFilled = true; // Mark as auto-filled
-          }
-        } else if (this.isDriverAutoFilled) {
-          // If previous was auto-filled but new truck has no driver, clear it
-          this.form.patchValue({ driverId: null });
-          this.selectedDriverName = '';
-          this.isDriverAutoFilled = false;
-        }
-      }
     } else {
       this.form.patchValue({ truckId: null });
       this.selectedTruckName = '';
-      this.isTruckAutoFilled = false;
     }
     this.truckDropdownOpen = false;
   }
@@ -569,6 +525,7 @@ export class RoutePlanningFormComponent implements OnInit {
   }
 
   selectRoute(route: Route | null) {
+    this.selectedRoute = route;
     if (route) {
       this.form.patchValue({ routeCode: route.routeCode, cycleCode: route.cycleCode });
       this.selectedRouteName = `${route.routeCode} (${route.cycleCode})`;
@@ -577,6 +534,11 @@ export class RoutePlanningFormComponent implements OnInit {
       this.selectedRouteName = '';
     }
     this.routeDropdownOpen = false;
+
+    // Reset Driver and Truck to enforce sequential selection
+    this.form.patchValue({ driverId: null, truckId: null });
+    this.selectedDriverName = '';
+    this.selectedTruckName = '';
   }
 
   loadOrder(id: number) {

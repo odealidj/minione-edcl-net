@@ -35,6 +35,8 @@ export interface Route {
   id: number;
   routeCode: string;
   cycleCode: string;
+  logisticPartnerId?: number;
+  logisticPartnerName?: string;
 }
 
 // Master Data Models

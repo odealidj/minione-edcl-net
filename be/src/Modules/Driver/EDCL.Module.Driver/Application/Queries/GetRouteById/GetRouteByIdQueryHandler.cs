@@ -14,11 +14,12 @@ internal sealed class GetRouteByIdQueryHandler(DriverDbContext dbContext)
     public async Task<Result<RouteDto>> Handle(GetRouteByIdQuery request, CancellationToken cancellationToken)
     {
         var x = await dbContext.Routes
+            .Include(r => r.LogisticPartner)
             .AsNoTracking()
             .FirstOrDefaultAsync(y => y.Id == request.Id && !y.IsDeleted, cancellationToken);
             
         if (x is null) return Result<RouteDto>.Failure(Error.NotFound("Route.NotFound", "Route not found."));
 
-        return Result<RouteDto>.Success(new RouteDto(x.Id, x.RouteCode, x.CycleCode));
+        return Result<RouteDto>.Success(new RouteDto(x.Id, x.RouteCode, x.CycleCode, x.LogisticPartnerId, x.LogisticPartner.Name));
     }
 }

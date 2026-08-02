@@ -54,7 +54,9 @@
           <div class="relative w-full">
             <input type="text" 
                    class="input input-bordered w-full" 
-                   placeholder="Search and select driver..." 
+                   [class.bg-gray-100]="!form.get('routeCode')?.value"
+                   [disabled]="!form.get('routeCode')?.value"
+                   [placeholder]="form.get('routeCode')?.value ? 'Search and select driver...' : 'Select Route first...'" 
                    [value]="selectedDriverName" 
                    (focus)="onDriverFocus()"
                    (blur)="onDriverBlur()"
@@ -73,7 +75,9 @@
           <div class="relative w-full">
             <input type="text" 
                    class="input input-bordered w-full" 
-                   placeholder="Search and select truck..." 
+                   [class.bg-gray-100]="!form.get('driverId')?.value"
+                   [disabled]="!form.get('driverId')?.value"
+                   [placeholder]="form.get('driverId')?.value ? 'Search and select truck...' : 'Select Driver first...'" 
                    [value]="selectedTruckName" 
                    (focus)="onTruckFocus()"
                    (blur)="onTruckBlur()"

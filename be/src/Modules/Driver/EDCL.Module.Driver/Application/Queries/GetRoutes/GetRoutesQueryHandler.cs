@@ -15,7 +15,7 @@ internal sealed class GetRoutesQueryHandler(DriverDbContext dbContext)
 {
     public async Task<Result<GetRoutesResponse>> Handle(GetRoutesQuery request, CancellationToken cancellationToken)
     {
-        var query = dbContext.Routes.Where(x => !x.IsDeleted);
+        var query = dbContext.Routes.Include(r => r.LogisticPartner).Where(x => !x.IsDeleted);
         
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
@@ -33,7 +33,7 @@ internal sealed class GetRoutesQueryHandler(DriverDbContext dbContext)
             .Take(request.PageSize)
             .ToListAsync(cancellationToken);
 
-        var dtos = items.Select(x => new RouteDto(x.Id, x.RouteCode, x.CycleCode)).ToList();
+        var dtos = items.Select(x => new RouteDto(x.Id, x.RouteCode, x.CycleCode, x.LogisticPartnerId, x.LogisticPartner.Name)).ToList();
         var totalPages = request.PageSize > 0 ? (int)Math.Ceiling((double)totalCount / request.PageSize) : 0;
 
         return Result<GetRoutesResponse>.Success(new GetRoutesResponse(dtos, totalCount, request.PageNumber, request.PageSize, totalPages));
