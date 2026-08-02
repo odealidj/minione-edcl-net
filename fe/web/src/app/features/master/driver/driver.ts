@@ -196,4 +196,10 @@ export class DriverComponent implements OnInit {
       });
     }
   }
+
+  getLogisticPartnerName(id?: number | null): string {
+    if (!id) return '-';
+    const lp = this.logisticPartners().find(x => x.id === id);
+    return lp ? lp.name : '-';
+  }
 }

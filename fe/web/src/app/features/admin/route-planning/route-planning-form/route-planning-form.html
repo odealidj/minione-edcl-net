@@ -56,7 +56,7 @@
                    class="input input-bordered w-full" 
                    placeholder="Search and select driver..." 
                    [value]="selectedDriverName" 
-                   (focus)="driverDropdownOpen = true"
+                   (focus)="onDriverFocus()"
                    (blur)="onDriverBlur()"
                    (input)="onDriverSearch($event)" />
             <ul *ngIf="driverDropdownOpen" class="absolute z-50 menu p-2 shadow-lg bg-base-100 rounded-box w-full max-h-48 overflow-y-auto mt-1 flex-nowrap border border-gray-200">
@@ -75,7 +75,7 @@
                    class="input input-bordered w-full" 
                    placeholder="Search and select truck..." 
                    [value]="selectedTruckName" 
-                   (focus)="truckDropdownOpen = true"
+                   (focus)="onTruckFocus()"
                    (blur)="onTruckBlur()"
                    (input)="onTruckSearch($event)" />
             <ul *ngIf="truckDropdownOpen" class="absolute z-50 menu p-2 shadow-lg bg-base-100 rounded-box w-full max-h-48 overflow-y-auto mt-1 flex-nowrap border border-gray-200">

@@ -33,7 +33,7 @@
                   <input type="checkbox" class="checkbox checkbox-sm checkbox-primary rounded" (change)="toggleSelection(item.id)" [checked]="isSelected(item.id)">
                 </label>
               </td>
-              <td>{{ item.name }}</td><td>{{ item.nik }}</td><td>{{ item.phoneNumber }}</td><td>{{ item.logisticPartnerName || '-' }}</td>
+              <td>{{ item.name }}</td><td>{{ item.nik }}</td><td>{{ item.phoneNumber }}</td><td>{{ getLogisticPartnerName(item.logisticPartnerId) }}</td>
               <td class="text-center">
                 <span class="badge" [ngClass]="item.isActive !== false ? 'badge-success' : 'badge-neutral'">{{ item.isActive !== false ? 'Active' : 'Inactive' }}</span>
               </td>

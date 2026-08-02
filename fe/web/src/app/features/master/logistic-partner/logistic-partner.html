@@ -19,7 +19,7 @@
           <th>Code</th>
           <th>Name</th>
           <th>GPS Vendors</th>
-          <th class="w-24 text-center">Actions</th>
+          <th class="w-1 whitespace-nowrap text-center">Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -37,8 +37,8 @@
               </td>
               <td>{{ item.code }}</td>
               <td>{{ item.name }}</td>
-              <td class="text-xs text-base-content/80">{{ getVendorNames(item.gpsVendorIds) }}</td>
-              <td class="text-center">
+              <td class="text-xs text-base-content/80 truncate max-w-xs" [title]="getVendorNames(item.gpsVendorIds)">{{ getVendorNames(item.gpsVendorIds) }}</td>
+              <td class="w-1 whitespace-nowrap text-center">
                 <div class="join">
                   <button class="btn btn-sm btn-ghost join-item text-primary" (click)="openAssignModal(item)">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 mr-1">

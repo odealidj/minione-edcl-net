@@ -34,6 +34,7 @@ export class RoutePlanningFormComponent implements OnInit {
   allSuppliers: Supplier[] = []; // Store all to map names properly if needed
   drivers: Driver[] = [];
   trucks: Truck[] = [];
+  truckAssignments: any[] = [];
 
   // Custom Dropdown State
   filteredDrivers: Driver[] = [];
@@ -43,6 +44,10 @@ export class RoutePlanningFormComponent implements OnInit {
   filteredTrucks: Truck[] = [];
   selectedTruckName: string = '';
   truckDropdownOpen: boolean = false;
+
+  // Auto-fill tracking
+  isDriverAutoFilled: boolean = false;
+  isTruckAutoFilled: boolean = false;
 
   routes: Route[] = [];
   filteredRoutes: Route[] = [];
@@ -348,6 +353,9 @@ export class RoutePlanningFormComponent implements OnInit {
         if (r) this.selectedRouteName = `${r.routeCode} (${r.cycleCode})`;
       }
     });
+    this.masterService.getTruckAssignments('', 1, 1000).subscribe(res => {
+      this.truckAssignments = res.data;
+    });
   }
 
   // Supplier Dropdown Methods (Per Stop)
@@ -401,17 +409,34 @@ export class RoutePlanningFormComponent implements OnInit {
     }
   }
 
-  // Driver Dropdown Methods
+  onDriverFocus() {
+    this.driverDropdownOpen = true;
+    this.filteredDrivers = this.getDriversByTruck();
+  }
+
   onDriverSearch(event: Event) {
     this.driverDropdownOpen = true;
     const term = (event.target as HTMLInputElement).value.toLowerCase();
+    const baseDrivers = this.getDriversByTruck();
+    
     if (!term) {
-      this.filteredDrivers = [...this.drivers];
+      this.filteredDrivers = [...baseDrivers];
     } else {
-      this.filteredDrivers = this.drivers.filter(d => 
+      this.filteredDrivers = baseDrivers.filter(d => 
         d.name.toLowerCase().includes(term) || d.nik.toLowerCase().includes(term)
       );
     }
+  }
+
+  private getDriversByTruck(): Driver[] {
+    const currentTruckId = this.form.get('truckId')?.value;
+    if (currentTruckId) {
+      const truck = this.trucks.find(t => t.id === currentTruckId);
+      if (truck && truck.logisticPartnerId) {
+        return this.drivers.filter(d => d.logisticPartnerId === truck.logisticPartnerId);
+      }
+    }
+    return this.drivers;
   }
 
   onDriverBlur() {
@@ -426,24 +451,62 @@ export class RoutePlanningFormComponent implements OnInit {
     if (driver) {
       this.form.patchValue({ driverId: driver.id });
       this.selectedDriverName = `${driver.name} (${driver.nik})`;
+      this.isDriverAutoFilled = false; // Manually selected
+
+      // Auto-fill Truck
+      const currentTruck = this.form.get('truckId')?.value;
+      if (!currentTruck || this.isTruckAutoFilled) {
+        const assignment = this.truckAssignments.find(a => a.driverId === driver.id);
+        if (assignment) {
+          const truck = this.trucks.find(t => t.id === assignment.truckId);
+          if (truck) {
+            this.form.patchValue({ truckId: truck.id });
+            this.selectedTruckName = `${truck.plateNumber} (${truck.vehicleType || '-'})`;
+            this.isTruckAutoFilled = true; // Mark as auto-filled
+          }
+        } else if (this.isTruckAutoFilled) {
+          // If previous was auto-filled but new driver has no truck, clear it
+          this.form.patchValue({ truckId: null });
+          this.selectedTruckName = '';
+          this.isTruckAutoFilled = false;
+        }
+      }
     } else {
       this.form.patchValue({ driverId: null });
       this.selectedDriverName = '';
+      this.isDriverAutoFilled = false;
     }
     this.driverDropdownOpen = false;
   }
 
-  // Truck Dropdown Methods
+  onTruckFocus() {
+    this.truckDropdownOpen = true;
+    this.filteredTrucks = this.getTrucksByDriver();
+  }
+
   onTruckSearch(event: Event) {
     this.truckDropdownOpen = true;
     const term = (event.target as HTMLInputElement).value.toLowerCase();
+    const baseTrucks = this.getTrucksByDriver();
+
     if (!term) {
-      this.filteredTrucks = [...this.trucks];
+      this.filteredTrucks = [...baseTrucks];
     } else {
-      this.filteredTrucks = this.trucks.filter(t => 
+      this.filteredTrucks = baseTrucks.filter(t => 
         t.plateNumber.toLowerCase().includes(term) || (t.vehicleType && t.vehicleType.toLowerCase().includes(term))
       );
     }
+  }
+
+  private getTrucksByDriver(): Truck[] {
+    const currentDriverId = this.form.get('driverId')?.value;
+    if (currentDriverId) {
+      const driver = this.drivers.find(d => d.id === currentDriverId);
+      if (driver && driver.logisticPartnerId) {
+        return this.trucks.filter(t => t.logisticPartnerId === driver.logisticPartnerId);
+      }
+    }
+    return this.trucks;
   }
 
   onTruckBlur() {
@@ -457,9 +520,30 @@ export class RoutePlanningFormComponent implements OnInit {
     if (truck) {
       this.form.patchValue({ truckId: truck.id });
       this.selectedTruckName = `${truck.plateNumber} (${truck.vehicleType || '-'})`;
+      this.isTruckAutoFilled = false; // Manually selected
+
+      // Auto-fill Driver
+      const currentDriver = this.form.get('driverId')?.value;
+      if (!currentDriver || this.isDriverAutoFilled) {
+        const assignment = this.truckAssignments.find(a => a.truckId === truck.id);
+        if (assignment) {
+          const driver = this.drivers.find(d => d.id === assignment.driverId);
+          if (driver) {
+            this.form.patchValue({ driverId: driver.id });
+            this.selectedDriverName = `${driver.name} (${driver.nik})`;
+            this.isDriverAutoFilled = true; // Mark as auto-filled
+          }
+        } else if (this.isDriverAutoFilled) {
+          // If previous was auto-filled but new truck has no driver, clear it
+          this.form.patchValue({ driverId: null });
+          this.selectedDriverName = '';
+          this.isDriverAutoFilled = false;
+        }
+      }
     } else {
       this.form.patchValue({ truckId: null });
       this.selectedTruckName = '';
+      this.isTruckAutoFilled = false;
     }
     this.truckDropdownOpen = false;
   }
