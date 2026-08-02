@@ -10,7 +10,15 @@ down:
 
 # Hanya menjalankan infrastruktur utama (SQL Server, Redis, RabbitMQ, Debezium)
 infra-up:
-	docker-compose up -d --wait sqlserver redis rabbitmq debezium-server
+	docker-compose up -d sqlserver redis rabbitmq debezium-server
+	@echo "Waiting for infrastructure to become healthy..."
+	@while docker-compose ps | grep -qi "starting"; do \
+		sleep 2; \
+	done
+	@if docker-compose ps | grep -qi "exited"; then \
+		echo "ERROR: One or more containers failed to start or crashed."; \
+		exit 1; \
+	fi
 	@echo "Infrastructure is running and healthy."
 
 # Mematikan hanya infrastruktur utama
