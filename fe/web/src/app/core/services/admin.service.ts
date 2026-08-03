@@ -48,12 +48,12 @@ export class AdminService {
     return this.http.get<ApiResponse<any>>(`${environment.apiUrl}/master/routes`, { params });
   }
 
-  createRoute(routeCode: string, cycleCode: string): Observable<ApiResponse<string>> {
-    return this.http.post<ApiResponse<string>>(`${environment.apiUrl}/master/routes`, { routeCode, cycleCode });
+  createRoute(routeCode: string, cycleCode: string, logisticPartnerId: number | null): Observable<ApiResponse<string>> {
+    return this.http.post<ApiResponse<string>>(`${environment.apiUrl}/master/routes`, { routeCode, cycleCode, logisticPartnerId });
   }
 
-  updateRoute(id: number, routeCode: string, cycleCode: string): Observable<ApiResponse<any>> {
-    return this.http.put<ApiResponse<any>>(`${environment.apiUrl}/master/routes/${id}`, { id, routeCode, cycleCode });
+  updateRoute(id: number, routeCode: string, cycleCode: string, logisticPartnerId: number | null): Observable<ApiResponse<any>> {
+    return this.http.put<ApiResponse<any>>(`${environment.apiUrl}/master/routes/${id}`, { id, routeCode, cycleCode, logisticPartnerId });
   }
 
   deleteRoute(id: number): Observable<ApiResponse<any>> {

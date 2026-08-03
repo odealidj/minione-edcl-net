@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -10,6 +10,9 @@ namespace EDCL.Infrastructure.Persistence.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            // Clear existing routes to prevent FK conflicts when adding LogisticPartnerId
+            migrationBuilder.Sql("DELETE FROM [driver].[routes];");
+
             migrationBuilder.AddColumn<long>(
                 name: "LogisticPartnerId",
                 schema: "driver",

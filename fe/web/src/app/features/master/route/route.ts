@@ -2,7 +2,7 @@ import { Component, OnInit, inject, ViewChild, ElementRef, signal } from '@angul
 import { CommonModule } from '@angular/common';
 import { forkJoin } from 'rxjs';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
-import { Route } from '../../../core/models/master.model';
+import { Route, LogisticPartner } from '../../../core/models/master.model';
 import { PaginationMeta } from '../../../core/models/api.model';
 import { AdminService } from '../../../core/services/admin.service';
 
@@ -20,6 +20,7 @@ import { CardComponent } from '../../../shared/components/card/card.component';
 })
 export class RouteComponent implements OnInit {
   items = signal<Route[]>([]);
+  partners = signal<LogisticPartner[]>([]);
   meta = signal<PaginationMeta | null>(null);
   isLoading = signal(true);
   searchQuery = '';
@@ -41,12 +42,25 @@ export class RouteComponent implements OnInit {
   constructor() {
     this.form = this.fb.group({
       routeCode: [''],
-      cycleCode: ['']
+      cycleCode: [''],
+      logisticPartnerId: [null]
     });
   }
 
   ngOnInit(): void {
     this.loadData();
+    this.loadPartners();
+  }
+
+  loadPartners(): void {
+    this.service.getLogisticPartners('', 1, 100).subscribe({
+      next: (res) => {
+        if (res.status === 'success') {
+          this.partners.set(res.data);
+        }
+      },
+      error: (err) => console.error('Failed to load partners', err)
+    });
   }
 
   loadData(): void {
@@ -136,7 +150,11 @@ export class RouteComponent implements OnInit {
     if (item) {
       this.isEditMode = true;
       this.editingId = item.id;
-      this.form.patchValue({ routeCode: item.routeCode, cycleCode: item.cycleCode });
+      this.form.patchValue({ 
+        routeCode: item.routeCode, 
+        cycleCode: item.cycleCode,
+        logisticPartnerId: item.logisticPartnerId || null
+      });
     } else {
       this.isEditMode = false;
       this.editingId = null;
@@ -155,7 +173,7 @@ export class RouteComponent implements OnInit {
     const val = this.form.value;
 
     if (this.isEditMode && this.editingId) {
-      this.service.updateRoute(this.editingId, val.routeCode, val.cycleCode).subscribe({
+      this.service.updateRoute(this.editingId, val.routeCode, val.cycleCode, val.logisticPartnerId).subscribe({
         next: () => {
           this.isSaving = false;
           this.closeModal();
@@ -167,7 +185,7 @@ export class RouteComponent implements OnInit {
         }
       });
     } else {
-      this.service.createRoute(val.routeCode, val.cycleCode).subscribe({
+      this.service.createRoute(val.routeCode, val.cycleCode, val.logisticPartnerId).subscribe({
         next: () => {
           this.isSaving = false;
           this.closeModal();
