@@ -63,6 +63,7 @@ class Program
                     break;
                 case "one-master":
                     await SeedOneMasterAsync();
+                    await SeedGpsVendorAsync();
                     break;
                 case "all":
                     await SeedLogisticPartnerAsync();
