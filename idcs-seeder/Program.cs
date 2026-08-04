@@ -30,10 +30,11 @@ class Program
                     Console.WriteLine("Database and tables initialized. CDC Enabled.");
                     break;
                 case "transaction":
-                    await SeedManifestAsync();
+                    var manifestNo = await SeedManifestAsync();
                     await SeedSkidAsync();
                     await SeedPartAsync();
                     await SeedKanbanAsync();
+                    await SeedLiveTrackingPickupOrderAsync(manifestNo);
                     break;
                 case "manifest":
                     await SeedManifestAsync();
@@ -360,7 +361,7 @@ class Program
 
     // ─────────────────────────────────────────────────────────────────────────
 
-    private static async Task SeedManifestAsync()
+    private static async Task<string> SeedManifestAsync()
     {
         var rnd = new Random();
         using var conn = new SqlConnection(ConnectionString);
@@ -391,6 +392,8 @@ class Program
                   SupplierPlant = supplier.Plant, Sequence = seq, PickDate = pickDate });
 
         Console.WriteLine($"Inserted Manifest: {manifestNo} (Supplier: {supplier.Code}/{supplier.Name}, Plant: {supplier.Plant}) with ID {id}");
+        
+        return manifestNo;
     }
 
     private static async Task SeedBulkAsync()
@@ -1244,5 +1247,48 @@ class Program
         await idcsConn.ExecuteAsync(sqlDelete, new { ManifestDel = manifestDel, ManifestDelC = manifestDelC });
 
         Console.WriteLine($"\n✅ Trigger finished! Check EDCL Ingestion Worker logs. It should insert them into ingestion.manifest_problems with explicit reasons.");
+    }
+
+    private static async Task SeedLiveTrackingPickupOrderAsync(string manifestNo)
+    {
+        Console.WriteLine($"⚠️  Creating Live Tracking Pickup Order for Manifest: {manifestNo} in EDCL...");
+        
+        using var edclConn = new SqlConnection(EdclConnectionString);
+        await edclConn.OpenAsync();
+
+        // Ensure we have a driver and truck to assign to.
+        var driverId = await edclConn.ExecuteScalarAsync<long?>("SELECT TOP 1 Id FROM edcl.auth.drivers WHERE IsActive = 1");
+        var truckId = await edclConn.ExecuteScalarAsync<long?>("SELECT TOP 1 Id FROM edcl.driver.trucks WHERE IsActive = 1");
+        
+        if (driverId == null || truckId == null)
+        {
+            Console.WriteLine("❌ Cannot create Live Tracking PO: No active driver or truck found. Please run 'make seed-one-master' first.");
+            return;
+        }
+
+        var supplierId = await edclConn.ExecuteScalarAsync<long?>("SELECT TOP 1 Id FROM edcl.driver.suppliers WHERE IsActive = 1");
+        if (supplierId == null) supplierId = 1;
+
+        var poNo = "PO-LIVE-" + new Random().Next(1000, 9999);
+
+        var sqlSeedEdcl = @"
+            DECLARE @PoProgId BIGINT;
+            DECLARE @DetProgId BIGINT;
+
+            INSERT INTO edcl.job.pickup_orders (delivery_no, pickup_date, route_code, cycle_code, estimated_departure_time, Status, DriverId, TruckId, CreatedAt, CreatedBy, IsDeleted)
+            VALUES (@PoNo, GETUTCDATE(), 'R-TEST', 'C1', '08:00:00', 'ON_PROGRESS', @DriverId, @TruckId, GETUTCDATE(), 'Seeder', 0);
+            SET @PoProgId = SCOPE_IDENTITY();
+
+            INSERT INTO edcl.job.pickup_order_details (PickupOrderId, SupplierId, Sequence, Status, CreatedAt, CreatedBy, IsDeleted)
+            VALUES (@PoProgId, @SupplierId, 1, 'PENDING', GETUTCDATE(), 'Seeder', 0);
+            SET @DetProgId = SCOPE_IDENTITY();
+
+            INSERT INTO edcl.job.pickup_order_manifests (PickupOrderDetailId, ManifestNo, TotalKanban, TotalSkid, ScannedKanban, Status, CreatedAt, CreatedBy, IsDeleted)
+            VALUES (@DetProgId, @ManifestNo, 1, 1, 0, 'PENDING', GETUTCDATE(), 'Seeder', 0);
+        ";
+
+        await edclConn.ExecuteAsync(sqlSeedEdcl, new { PoNo = poNo, DriverId = driverId, TruckId = truckId, SupplierId = supplierId, ManifestNo = manifestNo });
+        
+        Console.WriteLine($"✅ Successfully created Live Tracking Pickup Order ({poNo}) for DriverId: {driverId}, TruckId: {truckId}.");
     }
 }
