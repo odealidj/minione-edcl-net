@@ -754,9 +754,9 @@ class Program
         if (lpId == null)
         {
             lpId = await connEdcl.QuerySingleAsync<long>(@"
-                INSERT INTO edcl.driver.logistic_partners (Code, Name, IsGpsIntegrationActive, GpsProviderType, created_at, created_by, is_deleted) 
+                INSERT INTO edcl.driver.logistic_partners (Code, Name, created_at, created_by, is_deleted) 
                 OUTPUT INSERTED.Id 
-                VALUES ('HKR', 'Hikari Logistics', 1, 1, GETUTCDATE(), 'System', 0)");
+                VALUES ('HKR', 'Hikari Logistics', GETUTCDATE(), 'System', 0)");
             Console.WriteLine($"Inserted Logistic Partner ID: {lpId}");
         }
 
@@ -781,8 +781,9 @@ class Program
             "SELECT CAST(CASE WHEN COUNT(1) > 0 THEN 1 ELSE 0 END AS BIT) FROM edcl.driver.routes WHERE RouteCode = 'R01' AND CycleCode = 'C1'");
         if (!routeExists) {
             await connEdcl.ExecuteAsync(@"
-                INSERT INTO edcl.driver.routes (RouteCode, CycleCode, created_at, created_by, is_deleted)
-                VALUES ('R01', 'C1', GETUTCDATE(), 'System', 0)");
+                INSERT INTO edcl.driver.routes (RouteCode, CycleCode, LogisticPartnerId, created_at, created_by, is_deleted)
+                VALUES ('R01', 'C1', @LpId, GETUTCDATE(), 'System', 0)",
+                new { LpId = lpId });
         }
 
         Console.WriteLine("Seeding Truck...");
