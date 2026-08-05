@@ -1,4 +1,4 @@
-import { Component, ElementRef, OnDestroy, OnInit, ViewChild, effect, inject } from '@angular/core';
+import { Component, ElementRef, OnDestroy, OnInit, ViewChild, effect, inject, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import * as L from 'leaflet';
 import { SignalrService } from '../../../core/services/signalr.service';
@@ -24,7 +24,8 @@ L.Marker.prototype.options.icon = DefaultIcon;
   standalone: true,
   imports: [CommonModule],
   templateUrl: './tracking-map.html',
-  styleUrls: ['./tracking-map.css']
+  styleUrls: ['./tracking-map.css'],
+  encapsulation: ViewEncapsulation.None
 })
 export class TrackingMapComponent implements OnInit, OnDestroy {
   @ViewChild('mapContainer', { static: true }) mapContainer!: ElementRef;
