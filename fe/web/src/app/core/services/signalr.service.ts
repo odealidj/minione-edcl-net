@@ -10,6 +10,9 @@ export interface TruckLocationUpdate {
   heading: number;
   timestamp: string;
   providerName: string;
+  isConnected: boolean;
+  plateNumber?: string;
+  deliveryNo?: string;
 }
 
 @Injectable({
@@ -24,9 +27,10 @@ export class SignalrService {
   constructor() { }
 
   public startConnection = () => {
+    const baseUrl = environment.apiUrl.replace('/api/v1/web', '');
     this.hubConnection = new signalR.HubConnectionBuilder()
       // Use the gateway or API URL
-      .withUrl(`${environment.apiUrl}/hubs/tracking`)
+      .withUrl(`${baseUrl}/hubs/tracking`)
       .withAutomaticReconnect()
       .build();
 
@@ -42,6 +46,11 @@ export class SignalrService {
     this.hubConnection.on('ReceiveLocation', (data: TruckLocationUpdate) => {
       // Create a new map to trigger signal update
       const newMap = new Map(this.truckLocations());
+      const existing = newMap.get(data.truckId);
+      if (existing) {
+        data.plateNumber = existing.plateNumber;
+        data.deliveryNo = existing.deliveryNo;
+      }
       newMap.set(data.truckId, data);
       this.truckLocations.set(newMap);
     });

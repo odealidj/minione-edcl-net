@@ -1,7 +1,8 @@
 import { Component, ElementRef, OnDestroy, OnInit, ViewChild, effect, inject, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import * as L from 'leaflet';
-import { SignalrService } from '../../../core/services/signalr.service';
+import { SignalrService, TruckLocationUpdate } from '../../../core/services/signalr.service';
+import { DashboardService } from '../../../core/services/dashboard.service';
 
 // Fix leaflet default icon issue
 const iconRetinaUrl = 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png';
@@ -34,13 +35,16 @@ export class TrackingMapComponent implements OnInit, OnDestroy {
   private markers: Map<number, L.Marker> = new Map();
   
   private signalrService = inject(SignalrService);
+  private dashboardService = inject(DashboardService);
 
   // Custom truck icon
-  private truckIcon = L.icon({
-    iconUrl: 'https://cdn-icons-png.flaticon.com/512/3209/3209995.png', // A simple truck icon
+  private truckIcon = L.divIcon({
+    html: '<div style="font-size: 28px; line-height: 1; text-shadow: 2px 2px 4px rgba(0,0,0,0.4); text-align: center;">🚚</div>',
+    className: 'custom-truck-icon',
     iconSize: [32, 32],
     iconAnchor: [16, 16],
-    popupAnchor: [0, -16]
+    popupAnchor: [0, -16],
+    tooltipAnchor: [16, -16]
   });
 
   constructor() {
@@ -51,30 +55,29 @@ export class TrackingMapComponent implements OnInit, OnDestroy {
       locations.forEach((location, truckId) => {
         const latLng: L.LatLngTuple = [location.latitude, location.longitude];
         
+        const content = `
+          <div class="text-sm font-sans p-1">
+            <strong class="block text-indigo-700 mb-1 border-b pb-1">Truck ID: ${truckId}</strong>
+            ${!location.isConnected ? '<span class="text-white bg-red-500 rounded px-1 py-0.5 text-xs font-bold mb-1 inline-block">Tidak terkoneksi dengan GPS Vendor</span>' : ''}
+            <span class="text-gray-800 font-semibold block mt-1">Plate: ${location.plateNumber || '-'}</span>
+            <span class="text-gray-800 font-semibold block mb-1">Delivery: ${location.deliveryNo || 'Tidak ada (Idle)'}</span>
+            <span class="text-gray-600 block">Speed: ${location.speed.toFixed(1)} km/h</span>
+            <span class="text-gray-500 block text-xs mt-1">Provider: ${location.providerName}</span>
+          </div>
+        `;
+
         if (this.markers.has(truckId)) {
           // Update existing marker
           const marker = this.markers.get(truckId)!;
           marker.setLatLng(latLng);
           
-          // Optionally update popup content
-          const popupContent = `
-            <div class="text-sm font-sans">
-              <strong class="block text-indigo-700 mb-1">Truck ID: ${truckId}</strong>
-              <span class="text-gray-600 block">Speed: ${location.speed.toFixed(1)} km/h</span>
-              <span class="text-gray-600 block text-xs mt-1">Provider: ${location.providerName}</span>
-            </div>
-          `;
-          marker.getPopup()?.setContent(popupContent);
+          marker.getPopup()?.setContent(content);
+          marker.getTooltip()?.setContent(content);
         } else {
           // Create new marker
           const marker = L.marker(latLng, { icon: this.truckIcon }).addTo(this.map);
-          marker.bindPopup(`
-            <div class="text-sm font-sans">
-              <strong class="block text-indigo-700 mb-1">Truck ID: ${truckId}</strong>
-              <span class="text-gray-600 block">Speed: ${location.speed.toFixed(1)} km/h</span>
-              <span class="text-gray-600 block text-xs mt-1">Provider: ${location.providerName}</span>
-            </div>
-          `);
+          marker.bindPopup(content);
+          marker.bindTooltip(content, { direction: 'top', offset: [0, -16] });
           this.markers.set(truckId, marker);
           
           // Pan map to the first truck we see if it's the only one
@@ -90,6 +93,17 @@ export class TrackingMapComponent implements OnInit, OnDestroy {
     this.initMap();
     this.signalrService.startConnection();
     this.signalrService.addLocationListener();
+
+    // Fetch initial latest locations
+    this.dashboardService.getLiveFleets().subscribe(res => {
+      if (res.status === 'success' && res.data) {
+        const initialMap = new Map<number, TruckLocationUpdate>();
+        res.data.forEach((loc: any) => {
+          initialMap.set(loc.truckId, loc);
+        });
+        this.signalrService.truckLocations.set(initialMap);
+      }
+    });
   }
 
   ngOnDestroy() {

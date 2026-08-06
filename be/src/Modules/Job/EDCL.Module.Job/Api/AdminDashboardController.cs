@@ -22,4 +22,15 @@ public class AdminDashboardController(IMediator mediator) : ControllerBase
             ? Ok(ApiResponse<AdminGetDashboardSummaryResponse>.Success(result.Value, traceId))
             : BadRequest(ApiResponse<object>.Fail(result.Error.Message, traceId, 400));
     }
+
+    [HttpGet("live-fleets")]
+    [ProducesResponseType(typeof(ApiResponse<List<EDCL.Module.Job.Application.Queries.AdminGetLiveFleetTracking.TruckLocationDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetLiveFleets(CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new EDCL.Module.Job.Application.Queries.AdminGetLiveFleetTracking.AdminGetLiveFleetTrackingQuery(), cancellationToken);
+        var traceId = HttpContext.TraceIdentifier;
+        return result.IsSuccess
+            ? Ok(ApiResponse<List<EDCL.Module.Job.Application.Queries.AdminGetLiveFleetTracking.TruckLocationDto>>.Success(result.Value, traceId))
+            : BadRequest(ApiResponse<object>.Fail(result.Error.Message, traceId, 400));
+    }
 }

@@ -3,6 +3,9 @@ using EDCL.Worker.GpsTracker;
 using EDCL.Worker.GpsTracker.Adapters;
 using EDCL.Worker.GpsTracker.Consumers;
 using EDCL.Worker.GpsTracker.Services;
+using EDCL.Worker.GpsTracker.Jobs;
+using EDCL.Module.Driver.Application.Jobs;
+using Hangfire;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using EDCL.Shared.Infrastructure.Persistence;
@@ -47,9 +50,31 @@ builder.Services.AddMassTransit(x =>
     });
 });
 
-builder.Services.AddHostedService<RealGpsPollingWorker>();
+// Configure Hangfire
+builder.Services.AddHangfire(configuration => configuration
+    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+    .UseSimpleAssemblyNameTypeSerializer()
+    .UseRecommendedSerializerSettings()
+    .UseSqlServerStorage(connectionString));
+
+builder.Services.AddHangfireServer();
+
+builder.Services.AddScoped<IGpsSyncOrchestratorJob, GpsSyncOrchestratorJob>();
+builder.Services.AddScoped<IGpsSyncJob, GpsSyncJob>();
+
 builder.Services.AddHostedService<RouteSimulatorWorker>();
 builder.Services.AddHostedService<GpsConnectionCheckerWorker>();
 
 var host = builder.Build();
+
+// Register Hangfire Recurring Jobs
+using (var scope = host.Services.CreateScope())
+{
+    var recurringJobManager = scope.ServiceProvider.GetRequiredService<IRecurringJobManager>();
+    recurringJobManager.AddOrUpdate<IGpsSyncOrchestratorJob>(
+        "gps-orchestrator", 
+        job => job.ExecuteAsync(CancellationToken.None), 
+        "* * * * *");
+}
+
 host.Run();

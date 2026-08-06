@@ -107,7 +107,11 @@ try
     // ── CORS ────────────────────────────────────────────────────────────────
     builder.Services.AddCors(opts =>
     {
-        opts.AddPolicy("AllowAll", b => b.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+        opts.AddPolicy("AllowAll", b => b
+            .SetIsOriginAllowed(_ => true)
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials());
     });
 
     // ── OpenAPI / Scalar / Swagger ────────────────────────────────────────────
@@ -125,7 +129,7 @@ try
         .UseRecommendedSerializerSettings()
         .UseSqlServerStorage(hangfireConn));
 
-    builder.Services.AddHangfireServer();
+    // Server is removed from API, background jobs should only be executed by Workers.
 
     // ── Health Checks ─────────────────────────────────────────────────────────
     var defaultConn = builder.Configuration.GetConnectionString("DefaultConnection") ?? "";

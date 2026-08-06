@@ -92,6 +92,9 @@ seed-bulk:
 seed-out-of-order:
 	dotnet run --project idcs-seeder -- out-of-order
 
+seed-transaction:
+	dotnet run --project idcs-seeder -- transaction
+
 seed-race-condition:
 	dotnet run --project idcs-seeder -- race-condition
 

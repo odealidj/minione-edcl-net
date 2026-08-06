@@ -790,12 +790,17 @@ class Program
         Console.WriteLine("Seeding Truck...");
         var truckId = await connEdcl.ExecuteScalarAsync<long?>(
             "SELECT Id FROM edcl.driver.trucks WHERE PlateNumber = 'B 9607 PXT'");
+        if (truckId != null)
+        {
+            await connEdcl.ExecuteAsync("UPDATE edcl.driver.trucks SET IsSimulated = 1 WHERE Id = @Id", new { Id = truckId.Value });
+            Console.WriteLine($"Updated existing Truck B 9607 PXT to IsSimulated = 1");
+        }
         if (truckId == null)
         {
             truckId = await connEdcl.QuerySingleAsync<long>(@"
-                INSERT INTO edcl.driver.trucks (LogisticPartnerId, PlateNumber, VehicleType, GpsVehicleId, IsActive, created_at, created_by, is_deleted) 
+                INSERT INTO edcl.driver.trucks (LogisticPartnerId, PlateNumber, VehicleType, GpsVehicleId, IsSimulated, IsActive, created_at, created_by, is_deleted) 
                 OUTPUT INSERTED.Id 
-                VALUES (@LpId, 'B 9607 PXT', 'Wingbox', 'TRK-B9607PXT', 1, GETUTCDATE(), 'System', 0)",
+                VALUES (@LpId, 'B 9607 PXT', 'Wingbox', 'TRK-B9607PXT', 1, 1, GETUTCDATE(), 'System', 0)",
                 new { LpId = lpId });
             Console.WriteLine($"Inserted Truck ID: {truckId}");
         }
@@ -1100,13 +1105,14 @@ class Program
                     new { PlateNumber = truck.PlateNumber });
                 if (existingId == null) continue;
                 truckId = existingId.Value;
+                await conn.ExecuteAsync("UPDATE edcl.driver.trucks SET IsSimulated = 1 WHERE Id = @Id", new { Id = truckId });
             }
             else
             {
                 truckId = await conn.ExecuteScalarAsync<long>(@"
-                    INSERT INTO edcl.driver.trucks (PlateNumber, LogisticPartnerId, GpsVehicleId, IsActive, created_at, created_by, is_deleted)
+                    INSERT INTO edcl.driver.trucks (PlateNumber, LogisticPartnerId, GpsVehicleId, IsSimulated, IsActive, created_at, created_by, is_deleted)
                     OUTPUT INSERTED.Id
-                    VALUES (@PlateNumber, @LpId, @GpsVehicleId, 1, GETUTCDATE(), 'System', 0)",
+                    VALUES (@PlateNumber, @LpId, @GpsVehicleId, 1, 1, GETUTCDATE(), 'System', 0)",
                     new { PlateNumber = truck.PlateNumber, LpId = driverInfo.LogisticPartnerId, GpsVehicleId = "TRK-" + truck.PlateNumber.Replace(" ", "") });
                 
                 existingTrucks.Add(truck.PlateNumber);
@@ -1287,10 +1293,26 @@ class Program
 
             INSERT INTO edcl.job.pickup_order_manifests (PickupOrderDetailId, ManifestNo, TotalKanban, TotalSkid, ScannedKanban, Status, CreatedAt, CreatedBy, IsDeleted)
             VALUES (@DetProgId, @ManifestNo, 1, 1, 0, 'PENDING', GETUTCDATE(), 'Seeder', 0);
+
+            -- Insert Mock Live Tracking Data (JITRA style)
+            INSERT INTO edcl.job.live_tracking_fleets (PickupOrderId, TruckId, DriverId, Latitude, Longitude, Speed, Heading, Odometer, Address, EngineStatus, RecordedAt, Provider, RawData, CreatedAt, CreatedBy, IsDeleted)
+            VALUES (@PoProgId, @TruckId, @DriverId, -6.327392, 107.162465, 34.0, 112.0, 199620.5, 'Jl. Kp. Bangkuang No.57', 1, GETUTCDATE(), 'JITRA', '{""id"": ""350317178629519""}', GETUTCDATE(), 'Seeder', 0);
+
+            -- Insert Mock Live Tracking Data (INOVATRACK style)
+            INSERT INTO edcl.job.live_tracking_fleets (PickupOrderId, TruckId, DriverId, Latitude, Longitude, Speed, Heading, Odometer, Address, EngineStatus, RecordedAt, Provider, RawData, CreatedAt, CreatedBy, IsDeleted)
+            VALUES (@PoProgId, @TruckId, @DriverId, -6.17162, 106.9201088, 6.0, 271.0, 359605.6, 'Jalan Pegangsaan Dua', 0, DATEADD(minute, -10, GETUTCDATE()), 'INOVATRACK', '{""vehicle_id"": 95407094}', GETUTCDATE(), 'Seeder', 0);
+
+            -- Insert Mock Live Tracking Data (MULIATRACK style)
+            INSERT INTO edcl.job.live_tracking_fleets (PickupOrderId, TruckId, DriverId, Latitude, Longitude, Speed, Heading, Odometer, Address, EngineStatus, RecordedAt, Provider, RawData, CreatedAt, CreatedBy, IsDeleted)
+            VALUES (@PoProgId, @TruckId, @DriverId, -6.37775, 107.268, 0.0, 0.0, 160434.0, 'Margakaya', 0, DATEADD(minute, -5, GETUTCDATE()), 'MULIATRACK', '{""PositionId"": ""16012316""}', GETUTCDATE(), 'Seeder', 0);
+
+            -- Insert Mock Live Tracking Data (PUNINAR style)
+            INSERT INTO edcl.job.live_tracking_fleets (PickupOrderId, TruckId, DriverId, Latitude, Longitude, Speed, Heading, Odometer, Address, EngineStatus, RecordedAt, Provider, RawData, CreatedAt, CreatedBy, IsDeleted)
+            VALUES (@PoProgId, @TruckId, @DriverId, -6.1284332, 106.947584, 0.0, 0.0, NULL, 'Kawasan Industri dan Peti Kemas', 0, DATEADD(minute, -15, GETUTCDATE()), 'PUNINAR', '{""nopol"": ""B 9710 TXS""}', GETUTCDATE(), 'Seeder', 0);
         ";
 
         await edclConn.ExecuteAsync(sqlSeedEdcl, new { PoNo = poNo, DriverId = driverId, TruckId = truckId, SupplierId = supplierId, ManifestNo = manifestNo });
         
-        Console.WriteLine($"✅ Successfully created Live Tracking Pickup Order ({poNo}) for DriverId: {driverId}, TruckId: {truckId}.");
+        Console.WriteLine($"✅ Successfully created Live Tracking Pickup Order ({poNo}) for DriverId: {driverId}, TruckId: {truckId} with Mock GPS Fleet data.");
     }
 }

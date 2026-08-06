@@ -18,6 +18,7 @@ public sealed class LogisticPartnerGpsVendor : AuditableEntity
     public DateTime? LastGpsSyncAt { get; private set; }
     public string? LastGpsSyncStatus { get; private set; }
     public string? LastGpsSyncMessage { get; private set; }
+    public DateTime? NextGpsSyncAt { get; private set; }
 
     private LogisticPartnerGpsVendor() { }
 
@@ -33,5 +34,10 @@ public sealed class LogisticPartnerGpsVendor : AuditableEntity
         LastGpsSyncAt = syncAt;
         LastGpsSyncStatus = status;
         LastGpsSyncMessage = message;
+    }
+
+    public void SetNextSyncTime(DateTime nextSyncAt)
+    {
+        NextGpsSyncAt = nextSyncAt;
     }
 }

@@ -53,4 +53,8 @@ export class DashboardService {
     }
     return this.http.get<ApiResponse<DashboardSummaryResponse>>(`${this.apiUrl}/summary`, { params });
   }
+
+  getLiveFleets(): Observable<ApiResponse<any[]>> {
+    return this.http.get<ApiResponse<any[]>>(`${this.apiUrl}/live-fleets`);
+  }
 }

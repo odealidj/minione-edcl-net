@@ -17,6 +17,7 @@ public sealed class JobDbContext(
     public DbSet<PickupOrderDetail> PickupOrderDetails => Set<PickupOrderDetail>();
     public DbSet<PickupOrderManifest> PickupOrderManifests => Set<PickupOrderManifest>();
     public DbSet<PickupOrderKanban> PickupOrderKanbans => Set<PickupOrderKanban>();
+    public DbSet<LiveTrackingFleet> LiveTrackingFleets => Set<LiveTrackingFleet>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         => optionsBuilder.AddInterceptors(auditInterceptor);

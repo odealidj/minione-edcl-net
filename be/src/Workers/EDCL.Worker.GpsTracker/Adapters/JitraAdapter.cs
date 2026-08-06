@@ -13,7 +13,7 @@ public sealed class JitraAdapter(HttpClient httpClient, ILogger<JitraAdapter> lo
     {
         var result = new List<NormalizedGpsPoint>();
 
-        if (string.IsNullOrWhiteSpace(config.ApiUrl) || string.IsNullOrWhiteSpace(config.ApiUsername))
+        if (string.IsNullOrWhiteSpace(config.ApiUrl) || string.IsNullOrWhiteSpace(config.ApiToken))
         {
             logger.LogWarning("Jitra configuration is incomplete for GpsVendor {Code}", config.Code);
             return result;
@@ -24,7 +24,7 @@ public sealed class JitraAdapter(HttpClient httpClient, ILogger<JitraAdapter> lo
             var request = new HttpRequestMessage(HttpMethod.Get, config.ApiUrl);
             
             // JITRA uses Basic Auth where username is the token/key
-            var authValue = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes($"{config.ApiUsername}:{config.ApiPassword ?? string.Empty}"));
+            var authValue = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes($"{config.ApiToken}:{config.ApiPassword ?? string.Empty}"));
             request.Headers.Authorization = new AuthenticationHeaderValue("Basic", authValue);
 
             var response = await httpClient.SendAsync(request, cancellationToken);
