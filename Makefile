@@ -33,6 +33,7 @@ help:
 	@echo "  make seed-out-of-order           - Simulate out-of-order scenario"
 	@echo "  make seed-race-condition         - Simulate race condition scenario"
 	@echo "  make seed-edcl-master            - Seed EDCL core master data"
+	@echo "  make seed-reset-simulation       - Reset the simulation state (e.g. after force complete)"
 
 # --- Seeder Commands ---
 seed-logistic-partner:
@@ -100,6 +101,9 @@ seed-race-condition:
 
 seed-edcl-master:
 	dotnet run --project idcs-seeder -- edcl-master
+
+seed-reset-simulation:
+	dotnet run --project idcs-seeder -- reset-pickup
 
 seed-reset-idcs:
 	dotnet run --project idcs-seeder -- reset

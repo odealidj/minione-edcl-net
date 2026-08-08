@@ -641,7 +641,7 @@ class Program
         using (var idcsConn = new SqlConnection(ConnectionString))
         {
             await idcsConn.OpenAsync();
-
+            await idcsConn.ExecuteAsync("DELETE FROM edcl_delivery_status");
             await idcsConn.ExecuteAsync("DELETE FROM manifest_kanbans");
             await idcsConn.ExecuteAsync("DELETE FROM manifest_parts");
             await idcsConn.ExecuteAsync("DELETE FROM manifest_skids");
@@ -651,6 +651,7 @@ class Program
             try { await idcsConn.ExecuteAsync("DBCC CHECKIDENT ('manifest_parts', RESEED, 0)"); } catch {}
             try { await idcsConn.ExecuteAsync("DBCC CHECKIDENT ('manifest_skids', RESEED, 0)"); } catch {}
             try { await idcsConn.ExecuteAsync("DBCC CHECKIDENT ('manifests', RESEED, 0)"); } catch {}
+            try { await idcsConn.ExecuteAsync("DBCC CHECKIDENT ('edcl_delivery_status', RESEED, 0)"); } catch {}
         }
         Console.WriteLine("[IDCS] Done.");
 
@@ -731,6 +732,18 @@ class Program
         using var connIdcs = new SqlConnection(ConnectionString);
         await connEdcl.OpenAsync();
         await connIdcs.OpenAsync();
+
+        // 0. Clear IDCS Force Complete Delivery Status
+        try
+        {
+            var rowsIdcs = await connIdcs.ExecuteAsync("DELETE FROM edcl_delivery_status");
+            await connIdcs.ExecuteAsync("DBCC CHECKIDENT ('edcl_delivery_status', RESEED, 0)");
+            Console.WriteLine($"✅ Cleared {rowsIdcs} IDCS Delivery Status records.");
+        }
+        catch (SqlException ex)
+        {
+            Console.WriteLine($"❌ Failed to delete IDCS Delivery Status: {ex.Message}");
+        }
 
         // 1. Delete all pickup order transaction tables in EDCL
         try
