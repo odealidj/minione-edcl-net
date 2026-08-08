@@ -61,6 +61,12 @@ class Program
                 case "reset-pickup":
                     await ResetPickupAsync();
                     await ResetDataAsync();
+                    await ResetTruckAsync();
+                    await ResetDriverAsync();
+                    await ResetRouteAsync();
+                    await ResetSupplierAsync();
+                    await ResetGpsVendorAsync();
+                    await ResetLogisticPartnerAsync();
                     await ResetNotificationAsync();
                     break;
                 case "bulk":
