@@ -11,3 +11,8 @@ docs/contoh/
 brain/
 /firebase
 google-services.json
+idcs-seeder/Program.cs.orig
+idcs-seeder/Program.cs.rej
+patch_program.patch
+temp_check/
+test_db.cs
