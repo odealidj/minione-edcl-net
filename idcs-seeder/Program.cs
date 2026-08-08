@@ -60,6 +60,7 @@ class Program
                     break;
                 case "reset-pickup":
                     await ResetPickupAsync();
+                    await ResetDataAsync();
                     await ResetNotificationAsync();
                     break;
                 case "bulk":
