@@ -23,6 +23,9 @@ public class Worker : BackgroundService
     private bool _sessionMetricsDirty = false;
     private Dictionary<string, int> _sessionEventBreakdown = new();
     private readonly object _metricsLock = new object();
+    // Reset mode: setelah external reset (delete sync_sessions), blokir pembuatan session baru
+    // selama 120 detik agar CDC events dari proses reset tidak membuat ghost session.
+    private DateTime _resetModeExpiresAt = DateTime.MinValue;
     // ---------------------
 
     public Worker(ILogger<Worker> logger, IConfiguration configuration)
@@ -776,6 +779,14 @@ public class Worker : BackgroundService
     {
         if (_currentSessionId.HasValue) return;
 
+        // Jika sedang dalam reset mode, jangan buat session baru.
+        // Ini mencegah CDC events dari proses reset memicu ghost session.
+        if (DateTime.UtcNow < _resetModeExpiresAt)
+        {
+            _logger.LogDebug("EnsureSessionExistsAsync: skipped (reset mode active until {Until})", _resetModeExpiresAt);
+            return;
+        }
+
         using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
 
@@ -843,9 +854,10 @@ public class Worker : BackgroundService
         if (affected == 0)
         {
             // Session tidak ditemukan di DB — kemungkinan besar sudah dihapus oleh proses reset.
-            // Jangan buat session baru secara otomatis karena akan menimbulkan data "hantu" setelah reset.
-            // Cukup reset _currentSessionId agar session baru dimulai secara natural saat pesan CDC berikutnya masuk.
-            _logger.LogWarning($"SyncSession {sessionId} not found in DB. Assuming it was reset externally. Clearing in-memory session state.");
+            // Aktifkan reset mode selama 120 detik: blokir pembuatan session baru agar CDC
+            // events dari proses reset (delete manifests, suppliers, dll.) tidak membuat ghost session.
+            _logger.LogWarning($"SyncSession {sessionId} not found in DB. Activating reset mode for 120 seconds.");
+            _resetModeExpiresAt = DateTime.UtcNow.AddSeconds(120);
             lock (_metricsLock)
             {
                 if (_currentSessionId == sessionId)

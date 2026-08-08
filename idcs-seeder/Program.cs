@@ -643,8 +643,22 @@ class Program
     {
         Console.WriteLine("⚠️  Starting data reset for IDCS & EDCL...");
 
-        // ── IDCS ────────────────────────────────────────────────────────────────
-        Console.WriteLine("[IDCS] Clearing IDCS tables...");
+        // ── STEP 1: Hapus sync_sessions DULU ────────────────────────────────────
+        // Tujuannya agar Worker.Ingestion mendeteksi session hilang dalam 2 detik,
+        // lalu mengaktifkan reset mode (120 detik). Dengan begitu, CDC events dari
+        // delete IDCS di step berikutnya tidak membuat ghost session.
+        Console.WriteLine("[EDCL] Step 1: Deleting sync_sessions first to activate Worker reset mode...");
+        using (var edclConn = new SqlConnection(EdclConnectionString))
+        {
+            await edclConn.OpenAsync();
+            await edclConn.ExecuteAsync("DELETE FROM edcl.ingestion.sync_sessions");
+            try { await edclConn.ExecuteAsync("DBCC CHECKIDENT ('edcl.ingestion.sync_sessions', RESEED, 0)"); } catch {}
+        }
+        Console.WriteLine("[EDCL] sync_sessions cleared. Waiting 4s for Worker timer to activate reset mode...");
+        await Task.Delay(4000); // Worker periodic timer runs every 2s, give 4s to be safe
+
+        // ── STEP 2: Delete IDCS tables (CDC akan terpicu, tapi Worker dalam reset mode) ──
+        Console.WriteLine("[IDCS] Step 2: Clearing IDCS manifest tables...");
         using (var idcsConn = new SqlConnection(ConnectionString))
         {
             await idcsConn.OpenAsync();
@@ -665,7 +679,7 @@ class Program
         Console.WriteLine("Waiting 5 seconds for CDC Debezium to capture deletes...");
         await Task.Delay(5000);
 
-        // ── RabbitMQ ────────────────────────────────────────────────────────────
+        // ── STEP 3: Purge RabbitMQ queues ───────────────────────────────────────
         Console.WriteLine("[RabbitMQ] Purging edcl_ingestion queues from leftover messages...");
         try
         {
@@ -693,24 +707,22 @@ class Program
             Console.WriteLine($"[RabbitMQ] Warning: {ex.Message}");
         }
 
-        // ── EDCL ingestion ──────────────────────────────────────────────────────
-        Console.WriteLine("[EDCL] Deleting ingestion.ManifestKanbans, ManifestParts, ManifestSkids, Manifests, SyncSessions, IngestionErrors...");
+        // ── STEP 4: Delete remaining EDCL ingestion tables ──────────────────────
+        Console.WriteLine("[EDCL] Step 4: Deleting remaining EDCL ingestion tables...");
         using (var edclConn = new SqlConnection(EdclConnectionString))
         {
+            await edclConn.OpenAsync();
             // Delete in FK-safe order (children first)
             await edclConn.ExecuteAsync("DELETE FROM edcl.ingestion.manifest_kanbans");
             await edclConn.ExecuteAsync("DELETE FROM edcl.ingestion.manifest_parts");
             await edclConn.ExecuteAsync("DELETE FROM edcl.ingestion.manifest_skids");
             await edclConn.ExecuteAsync("DELETE FROM edcl.ingestion.manifests");
-            // Also clean up ingestion tracking tables
-            await edclConn.ExecuteAsync("DELETE FROM edcl.ingestion.sync_sessions");
             await edclConn.ExecuteAsync("DELETE FROM edcl.ingestion.ingestion_errors");
             // Reset identity seeds
             await edclConn.ExecuteAsync("DBCC CHECKIDENT ('edcl.ingestion.manifest_kanbans', RESEED, 0)");
             await edclConn.ExecuteAsync("DBCC CHECKIDENT ('edcl.ingestion.manifest_parts',    RESEED, 0)");
             await edclConn.ExecuteAsync("DBCC CHECKIDENT ('edcl.ingestion.manifest_skids',    RESEED, 0)");
             await edclConn.ExecuteAsync("DBCC CHECKIDENT ('edcl.ingestion.manifests',          RESEED, 0)");
-            await edclConn.ExecuteAsync("DBCC CHECKIDENT ('edcl.ingestion.sync_sessions',      RESEED, 0)");
             await edclConn.ExecuteAsync("DBCC CHECKIDENT ('edcl.ingestion.ingestion_errors',   RESEED, 0)");
         }
         Console.WriteLine("[EDCL] Done.");
