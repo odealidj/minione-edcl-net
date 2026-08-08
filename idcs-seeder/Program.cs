@@ -58,7 +58,7 @@ class Program
                 case "race-condition":
                     await SeedRaceConditionAsync();
                     break;
-                case "reset-pickup":
+                case "reset-master-one":
                     await ResetPickupAsync();
                     await ResetDataAsync();
                     await ResetTruckAsync();
