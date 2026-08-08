@@ -6,8 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace EDCL.Module.Cargo.Api;
 
 [ApiController]
-[Route("api/v1/admin/cargo/idcs-deliveries")]
-[Authorize(Roles = "ADMIN")]
+[Route("api/v1/web/admin/cargo/idcs-deliveries")]
+[AllowAnonymous]
 public class IdcsDeliveryController(IMediator mediator) : ControllerBase
 {
     [HttpGet]

@@ -1,7 +1,8 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CargoService } from '../../../core/services/cargo.service';
 import { SearchBarComponent } from '../../../shared/components/search-bar/search-bar.component';
+import { finalize, tap } from 'rxjs/operators';
 
 @Component({
   selector: 'app-idcs-delivery',
@@ -11,6 +12,7 @@ import { SearchBarComponent } from '../../../shared/components/search-bar/search
 })
 export class IdcsDeliveryComponent implements OnInit {
   private cargoService = inject(CargoService);
+  private cdr = inject(ChangeDetectorRef);
 
   deliveries: any[] = [];
   isLoading = false;
@@ -29,16 +31,26 @@ export class IdcsDeliveryComponent implements OnInit {
 
   loadData() {
     this.isLoading = true;
+    console.log('Sending request to getIdcsDeliveries');
     this.cargoService.getIdcsDeliveries(this.searchQuery, this.currentPage, this.pageSize)
+      .pipe(
+        tap(res => console.log('Response received in tap:', res)),
+        finalize(() => {
+          console.log('Observable finalized');
+          this.isLoading = false;
+          this.cdr.detectChanges();
+        })
+      )
       .subscribe({
         next: (res) => {
-          this.deliveries = res.data;
+          this.deliveries = res.data || [];
           if (res.pagination) {
             this.currentPage = res.pagination.page;
             this.totalRecords = res.pagination.total_items;
             this.totalPages = res.pagination.total_pages;
           }
           this.isLoading = false;
+          this.cdr.detectChanges();
         },
         error: () => {
           this.isLoading = false;

@@ -104,6 +104,23 @@ public class AdminPickupOrdersController(IMediator mediator) : ControllerBase
             err => BadRequest(ApiResponse<object>.Fail(err.Message, traceId, 400))
         );
     }
+
+    /// <summary>
+    /// Forces completion of a job, ignoring geofence and driver checks.
+    /// </summary>
+    [HttpPost("{id}/complete")]
+    public async Task<IActionResult> ForceCompleteJob(long id, [FromBody] AdminCompleteJobRequest request, CancellationToken cancellationToken)
+    {
+        var command = new EDCL.Module.Job.Application.Commands.AdminCompleteJob.AdminCompleteJobCommand(id, request.Reason);
+        var result = await mediator.Send(command, cancellationToken);
+        var traceId = HttpContext.TraceIdentifier;
+        return result.IsSuccess
+            ? Ok(ApiResponse<bool>.Success(result.Value, traceId, 200, "Forced completion successful"))
+            : BadRequest(ApiResponse<object>.Fail(result.Error.Message, traceId, 400));
+    }
 }
 
+public sealed record AdminCompleteJobRequest(string Reason);
+
 public sealed record AssignJobRequest(long DriverId, long? TruckId = null);
+

@@ -11,6 +11,7 @@ export interface SyncSession {
   totalProcessed: number;
   successCount: number;
   failedCount: number;
+  eventBreakdown?: string;
   status: string;
 }
 
@@ -30,6 +31,7 @@ export interface IngestionMetricsEvent {
   TotalProcessed: number;
   SuccessCount: number;
   FailedCount: number;
+  EventBreakdown?: string;
   Status: string;
 }
 

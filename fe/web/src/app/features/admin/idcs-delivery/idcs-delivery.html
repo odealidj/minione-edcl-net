@@ -20,7 +20,6 @@
         <thead class="bg-slate-50/50 text-slate-500 border-b border-slate-200 uppercase text-xs">
           <tr>
             <th class="px-6 py-4 font-medium">ID</th>
-            <th class="px-6 py-4 font-medium">Manifest ID</th>
             <th class="px-6 py-4 font-medium">Manifest No</th>
             <th class="px-6 py-4 font-medium">Status</th>
             <th class="px-6 py-4 font-medium">Delivered At</th>
@@ -29,14 +28,13 @@
         </thead>
         <tbody class="divide-y divide-slate-100">
           <tr *ngIf="isLoading">
-            <td colspan="6" class="px-6 py-8 text-center text-slate-400">Loading data...</td>
+            <td colspan="5" class="px-6 py-8 text-center text-slate-400">Loading data...</td>
           </tr>
           <tr *ngIf="!isLoading && deliveries.length === 0">
-            <td colspan="6" class="px-6 py-8 text-center text-slate-400">No records found.</td>
+            <td colspan="5" class="px-6 py-8 text-center text-slate-400">No records found.</td>
           </tr>
           <tr *ngFor="let item of deliveries" class="hover:bg-slate-50/50 transition-colors">
             <td class="px-6 py-4 font-medium text-slate-700">{{ item.id }}</td>
-            <td class="px-6 py-4 text-slate-500">{{ item.manifestId || '-' }}</td>
             <td class="px-6 py-4 font-medium text-blue-600">{{ item.manifestNo }}</td>
             <td class="px-6 py-4">
               <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium"

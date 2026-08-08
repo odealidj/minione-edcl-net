@@ -62,7 +62,7 @@ public class AdminGetLiveFleetTrackingQueryHandler(JobDbContext context) : IRequ
                 LEFT JOIN driver.logistic_partner_gps_vendors mapping ON t.LogisticPartnerId = mapping.LogisticPartnerId
                 WHERE t.is_deleted = 0
             ) result
-            WHERE rn = 1
+            WHERE rn = 1 AND DeliveryNo IS NOT NULL
         ";
 
         var latestLocations = await connection.QueryAsync<TruckLocationDto>(query);

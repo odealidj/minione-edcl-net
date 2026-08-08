@@ -58,4 +58,8 @@ export class RoutePlanningService {
     const bffUrl = `${environment.apiUrl}/bff/manifests/${encodeURIComponent(manifestNo)}/detail`;
     return this.http.get<ApiResponse<BffManifestDetail>>(bffUrl);
   }
+
+  forceCompletePickupOrder(id: number, reason: string): Observable<ApiResponse<boolean>> {
+    return this.http.post<ApiResponse<boolean>>(`${this.apiUrl}/${id}/complete`, { reason });
+  }
 }

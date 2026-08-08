@@ -72,16 +72,17 @@
             <th>Est. Departure</th>
             <th>Driver</th>
             <th>Status</th>
+            <th class="text-right">Action</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngIf="loading">
-            <td colspan="7" class="text-center py-8">
+            <td colspan="8" class="text-center py-8">
               <span class="loading loading-spinner loading-md text-primary"></span>
             </td>
           </tr>
           <tr *ngIf="!loading && orders.length === 0">
-            <td colspan="7" class="text-center py-8 text-gray-500">No active delivery found</td>
+            <td colspan="8" class="text-center py-8 text-gray-500">No active delivery found</td>
           </tr>
           <ng-container *ngFor="let order of orders">
             <!-- Level 1: Route Plan Row -->
@@ -116,11 +117,18 @@
                   'badge-success': order.status === 'COMPLETED'
                 }">{{order.status}}</span>
               </td>
+              <td class="text-right">
+                <button class="btn btn-xs btn-error btn-outline" 
+                        *ngIf="order.status !== 'COMPLETED'" 
+                        (click)="openForceCompleteModal(order.id)">
+                  Force Complete
+                </button>
+              </td>
             </tr>
 
             <!-- Level 2 & 3: Expanded Detail Row (Suppliers + Manifests) -->
             <tr *ngIf="expandedRows.has(order.id)">
-              <td class="p-0 bg-indigo-50/40 border-b border-indigo-100" colspan="7">
+              <td class="p-0 bg-indigo-50/40 border-b border-indigo-100" colspan="8">
                 <div class="pl-12 pr-4 py-3">
                   <!-- Loading indicator for details -->
                   <div *ngIf="loadingDetails.has(order.id)" class="flex items-center gap-2 py-4 text-gray-400 text-sm">
@@ -446,4 +454,32 @@
       <button class="btn" (click)="closeManifestModal()">Close</button>
     </div>
   </div>
+</dialog>
+
+<!-- Force Complete Modal -->
+<dialog id="force_complete_modal" class="modal">
+  <div class="modal-box">
+    <h3 class="font-bold text-lg text-error">Force Complete Job</h3>
+    <p class="py-4">Are you sure you want to manually force complete this delivery job? This will bypass geofencing and driver checks, and cannot be undone.</p>
+    
+    <div class="form-control w-full">
+      <label class="label">
+        <span class="label-text font-semibold">Reason for manual completion</span>
+      </label>
+      <textarea class="textarea textarea-bordered h-24 focus:ring-1 focus:ring-error" 
+                placeholder="Ex: Driver phone battery died, job was completed."
+                [(ngModel)]="completeReason"></textarea>
+    </div>
+
+    <div class="modal-action">
+      <button class="btn btn-ghost" (click)="closeForceCompleteModal()" [disabled]="completingOrder">Cancel</button>
+      <button class="btn btn-error" (click)="confirmForceComplete()" [disabled]="completingOrder || !completeReason.trim()">
+        <span *ngIf="completingOrder" class="loading loading-spinner loading-xs mr-2"></span>
+        Force Complete
+      </button>
+    </div>
+  </div>
+  <form method="dialog" class="modal-backdrop">
+    <button (click)="closeForceCompleteModal()">close</button>
+  </form>
 </dialog>

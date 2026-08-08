@@ -92,4 +92,17 @@ export class SyncMonitoring implements OnInit, OnDestroy {
     const progress = (metrics.SuccessCount + metrics.FailedCount) / metrics.TotalProcessed * 100;
     return `${Math.min(progress, 100)}%`;
   }
+
+  parseEventBreakdown(breakdownJson?: string): { event: string, count: number }[] {
+    if (!breakdownJson) return [];
+    try {
+      const parsed = JSON.parse(breakdownJson);
+      return Object.keys(parsed).map(key => ({
+        event: key,
+        count: parsed[key]
+      }));
+    } catch (e) {
+      return [];
+    }
+  }
 }

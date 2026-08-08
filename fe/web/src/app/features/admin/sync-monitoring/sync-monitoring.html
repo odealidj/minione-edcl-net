@@ -39,6 +39,16 @@
         <div class="text-sm text-gray-500 mb-1">Activity Indicator</div>
         <progress class="progress progress-primary w-full"></progress>
       </div>
+
+      <!-- Event Breakdown (Real-time) -->
+      <div class="mt-4" *ngIf="parseEventBreakdown(currentMetrics()!.EventBreakdown).length > 0">
+        <div class="text-sm font-semibold text-gray-700 mb-2">Event Breakdown</div>
+        <div class="flex flex-wrap gap-2">
+          <div *ngFor="let item of parseEventBreakdown(currentMetrics()!.EventBreakdown)" class="badge badge-outline">
+            {{ item.event }}: <span class="font-bold ml-1">{{ item.count }}</span>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -54,19 +64,45 @@
   </div>
 
   <!-- Dashboard Tab Content -->
-  <div *ngIf="activeTab() === 'dashboard'" class="bg-base-100 p-6 rounded-box shadow-sm border">
-    <h3 class="text-lg font-semibold mb-4">Recent Sessions</h3>
-    <div class="overflow-x-auto">
+  <div *ngIf="activeTab() === 'dashboard'" class="flex flex-col gap-6">
+    <!-- Live Status Indicator -->
+    <div class="flex items-center gap-2 mb-2">
+      <div class="h-3 w-3 rounded-full" [ngClass]="currentMetrics() ? 'bg-green-500 animate-pulse' : 'bg-gray-400'"></div>
+      <span class="text-sm font-medium text-gray-700">
+        {{ currentMetrics() ? 'Worker Connected & Listening' : 'Worker Offline / No Active Session' }}
+      </span>
+    </div>
+
+    <!-- DLQ Preview (Max 3) -->
+    <div *ngIf="errors().length > 0" class="bg-red-50 p-4 rounded-box border border-red-200">
+      <div class="flex justify-between items-center mb-3">
+        <h3 class="text-sm font-semibold text-red-700 flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+          Recent DLQ Errors
+        </h3>
+        <button class="btn btn-xs btn-outline btn-error" (click)="setTab('dlq')">View All ({{ errors().length }})</button>
+      </div>
+      <div class="space-y-2">
+        <div *ngFor="let err of errors().slice(0, 3)" class="text-xs bg-white p-2 rounded shadow-sm border border-red-100 flex justify-between">
+          <span class="font-mono text-red-600 truncate max-w-sm" [title]="err.errorMessage">{{ err.errorMessage }}</span>
+          <span class="text-gray-400">{{ err.eventType }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-base-100 p-6 rounded-box shadow-sm border">
+      <h3 class="text-lg font-semibold mb-4">Sync Activity Log</h3>
+      <div class="overflow-x-auto">
       <table class="table table-zebra w-full">
         <thead>
           <tr>
             <th>ID</th>
             <th>Date</th>
             <th>Start Time</th>
-            <th>End Time</th>
             <th>Processed</th>
             <th>Success</th>
             <th>Failed</th>
+            <th>Breakdown</th>
             <th>Status</th>
           </tr>
         </thead>
@@ -75,10 +111,16 @@
             <td>{{ session.id }}</td>
             <td>{{ session.sessionDate | date:'mediumDate' }}</td>
             <td>{{ session.startTime | date:'mediumTime' }}</td>
-            <td>{{ session.endTime ? (session.endTime | date:'mediumTime') : '-' }}</td>
             <td>{{ session.totalProcessed }}</td>
             <td class="text-green-600 font-medium">{{ session.successCount }}</td>
             <td class="text-red-600 font-medium">{{ session.failedCount }}</td>
+            <td>
+              <div class="flex flex-wrap gap-1 max-w-xs">
+                <span *ngFor="let item of parseEventBreakdown(session.eventBreakdown)" class="badge badge-xs badge-outline text-xs">
+                  {{ item.event }}: {{ item.count }}
+                </span>
+              </div>
+            </td>
             <td>
               <span class="badge" 
                 [class.badge-success]="session.status === 'COMPLETED' && session.failedCount === 0"
@@ -95,6 +137,7 @@
         </tbody>
       </table>
     </div>
+  </div>
   </div>
 
   <!-- DLQ Tab Content -->

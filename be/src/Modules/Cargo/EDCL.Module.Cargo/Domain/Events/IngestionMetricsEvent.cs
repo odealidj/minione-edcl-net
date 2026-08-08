@@ -10,5 +10,6 @@ public record IngestionMetricsEvent
     public int TotalProcessed { get; init; }
     public int SuccessCount { get; init; }
     public int FailedCount { get; init; }
+    public string? EventBreakdown { get; init; }
     public string Status { get; init; } = string.Empty;
 }

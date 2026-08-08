@@ -21,6 +21,7 @@ public class Worker : BackgroundService
     private DateTime _sessionStartTime = DateTime.UtcNow;
     private DateTime _lastMessageTime = DateTime.UtcNow;
     private bool _sessionMetricsDirty = false;
+    private Dictionary<string, int> _sessionEventBreakdown = new();
     private readonly object _metricsLock = new object();
     // ---------------------
 
@@ -64,6 +65,29 @@ public class Worker : BackgroundService
                 else if (int.TryParse(retryObj!.ToString(), out int r2)) attempt = r2;
             }
             
+            
+            string eventType = "Unknown";
+            string opType = "u";
+            try
+            {
+                using var doc = JsonDocument.Parse(message);
+                var root = doc.RootElement;
+                if (!root.TryGetProperty("payload", out var payload)) payload = root;
+
+                if (payload.TryGetProperty("source", out var sourceProp) && 
+                    sourceProp.TryGetProperty("table", out var tableProp))
+                {
+                    eventType = tableProp.GetString() ?? "Unknown";
+                }
+                if (payload.TryGetProperty("op", out var opProp))
+                {
+                    opType = opProp.GetString() ?? "u";
+                }
+            }
+            catch { /* Ignore parsing errors */ }
+            
+            string breakdownKey = $"{eventType.ToLower()}_{opType.ToLower()}";
+
             try
             {
                 await ProcessMessageAsync(message);
@@ -75,6 +99,10 @@ public class Worker : BackgroundService
                     _sessionProcessedCount++;
                     _lastMessageTime = DateTime.UtcNow;
                     _sessionMetricsDirty = true;
+                    
+                    if (!_sessionEventBreakdown.ContainsKey(breakdownKey))
+                        _sessionEventBreakdown[breakdownKey] = 0;
+                    _sessionEventBreakdown[breakdownKey]++;
                 }
             }
             catch (Exception ex)
@@ -85,18 +113,7 @@ public class Worker : BackgroundService
                 {
                     _logger.LogError("Message failed after {MaxRetries} attempts. Publishing to DLQ.", maxRetries);
                     
-                    string eventType = "Unknown";
-                    try
-                    {
-                        using var doc = JsonDocument.Parse(message);
-                        if (doc.RootElement.TryGetProperty("source", out var sourceProp) && 
-                            sourceProp.TryGetProperty("table", out var tableProp))
-                        {
-                            eventType = tableProp.GetString() ?? "Unknown";
-                        }
-                    }
-                    catch { /* Ignore parsing errors for DLQ */ }
-
+                    // eventType is already parsed above
                     var faultEvent = new
                     {
                         EventType = eventType,
@@ -126,6 +143,11 @@ public class Worker : BackgroundService
                         _sessionProcessedCount++;
                         _lastMessageTime = DateTime.UtcNow;
                         _sessionMetricsDirty = true;
+                        
+                        string errKey = $"{breakdownKey}_err";
+                        if (!_sessionEventBreakdown.ContainsKey(errKey))
+                            _sessionEventBreakdown[errKey] = 0;
+                        _sessionEventBreakdown[errKey]++;
                     }
                 }
                 else
@@ -180,6 +202,7 @@ public class Worker : BackgroundService
             int currentSuccess = 0;
             int currentFailed = 0;
             int currentProcessed = 0;
+            string currentBreakdownJson = "{}";
 
             lock (_metricsLock)
             {
@@ -200,17 +223,18 @@ public class Worker : BackgroundService
                     currentSuccess = _sessionSuccessCount;
                     currentFailed = _sessionFailedCount;
                     currentProcessed = _sessionProcessedCount;
+                    currentBreakdownJson = JsonSerializer.Serialize(_sessionEventBreakdown);
                 }
             }
 
             if (shouldCompleteSession && sessionIdToUpdate.HasValue)
             {
-                await CompleteSessionAsync(sessionIdToUpdate.Value, currentProcessed, currentSuccess, currentFailed);
+                await CompleteSessionAsync(sessionIdToUpdate.Value, currentProcessed, currentSuccess, currentFailed, currentBreakdownJson);
             }
             else if (shouldUpdateDb && sessionIdToUpdate.HasValue)
             {
-                await UpdateSessionMetricsAsync(sessionIdToUpdate.Value, currentProcessed, currentSuccess, currentFailed);
-                await PublishMetricsEventAsync(channel, sessionIdToUpdate.Value, currentProcessed, currentSuccess, currentFailed, stoppingToken);
+                await UpdateSessionMetricsAsync(sessionIdToUpdate.Value, currentProcessed, currentSuccess, currentFailed, currentBreakdownJson);
+                await PublishMetricsEventAsync(channel, sessionIdToUpdate.Value, currentProcessed, currentSuccess, currentFailed, currentBreakdownJson, stoppingToken);
             }
         }
     }
@@ -405,9 +429,8 @@ public class Worker : BackgroundService
         {
             var opType = GetOperationName(op);
             string reason = lockCheck.Status == "ON_PROGRESS" ? "InTransit" : "Delivered";
-            await LogManifestProblemAsync(connection, opType, after.GetRawText(), $"Rejected CDC {opType}: Manifest is already {reason}.", manifestNo, lockCheck.DeliveryNo, lockCheck.PickupOrderId);
-            _logger.LogWarning($"Rejected CDC {opType} for Manifest {manifestNo} because it is {reason}.");
-            return;
+            await LogManifestProblemAsync(connection, opType, after.GetRawText(), $"Late CDC {opType}: Manifest is already {reason}, but writing to ODS anyway.", manifestNo, lockCheck.DeliveryNo, lockCheck.PickupOrderId);
+            _logger.LogWarning($"Late CDC {opType} for Manifest {manifestNo} because it is {reason}. Writing to ODS anyway.");
         }
 
         if (op == "d")
@@ -434,10 +457,11 @@ public class Worker : BackgroundService
                     PickDate = @PickDate,
                     cycle = @Cycle,
                     status = @Status,
+                    IsAssignedToRoute = @IsAssignedToRoute,
                     UpdatedAt = GETDATE()
             WHEN NOT MATCHED THEN
-                INSERT (Id, ManifestNo, SupplierCode, SupplierName, supplier_plant, Sequence, order_type, PickDate, cycle, status, CreatedAt, CreatedBy, IsDeleted, RowVersion)
-                VALUES (@Id, @ManifestNo, @SupplierCode, @SupplierName, @SupplierPlant, @Sequence, @OrderType, @PickDate, @Cycle, @Status, @CreatedAt, 'System', 0, CAST(0 AS varbinary(8)));
+                INSERT (Id, ManifestNo, SupplierCode, SupplierName, supplier_plant, Sequence, order_type, PickDate, cycle, status, IsAssignedToRoute, CreatedAt, CreatedBy, IsDeleted, RowVersion)
+                VALUES (@Id, @ManifestNo, @SupplierCode, @SupplierName, @SupplierPlant, @Sequence, @OrderType, @PickDate, @Cycle, @Status, @IsAssignedToRoute, @CreatedAt, 'System', 0, CAST(0 AS varbinary(8)));
                 
             SET IDENTITY_INSERT edcl.ingestion.Manifests OFF;";
 
@@ -453,6 +477,7 @@ public class Worker : BackgroundService
             PickDate = pickDate,
             Cycle = cycle,
             Status = status,
+            IsAssignedToRoute = lockCheck.IsLocked,
             CreatedAt = createdAt
         });
         
@@ -708,22 +733,17 @@ public class Worker : BackgroundService
         await connection.OpenAsync();
 
         var sql = @"
-            SET IDENTITY_INSERT edcl.driver.suppliers ON;
-            
             MERGE INTO edcl.driver.suppliers AS target
-            USING (SELECT @Id AS Id) AS source
-            ON target.Id = source.Id
+            USING (SELECT @SupplierCode AS SupplierCode) AS source
+            ON target.SupplierCode = source.SupplierCode
             WHEN MATCHED THEN
                 UPDATE SET 
-                    SupplierCode = @SupplierCode,
                     Name = @SupplierName,
                     Address = @Address,
                     updated_at = GETUTCDATE()
             WHEN NOT MATCHED THEN
-                INSERT (Id, SupplierCode, Name, Address, created_at, created_by, is_deleted)
-                VALUES (@Id, @SupplierCode, @SupplierName, @Address, GETUTCDATE(), 'System', 0);
-                
-            SET IDENTITY_INSERT edcl.driver.suppliers OFF;";
+                INSERT (SupplierCode, Name, Address, created_at, created_by, is_deleted)
+                VALUES (@SupplierCode, @SupplierName, @Address, GETUTCDATE(), 'System', 0);";
 
         await connection.ExecuteAsync(sql, new 
         { 
@@ -762,13 +782,14 @@ public class Worker : BackgroundService
             _sessionSuccessCount = 0;
             _sessionFailedCount = 0;
             _sessionProcessedCount = 0;
+            _sessionEventBreakdown.Clear();
             _sessionMetricsDirty = false;
         }
         
         _logger.LogInformation($"Created new SyncSession ID {id}");
     }
 
-    private async Task CompleteSessionAsync(long sessionId, int processed, int success, int failed)
+    private async Task CompleteSessionAsync(long sessionId, int processed, int success, int failed, string breakdownJson)
     {
         using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
@@ -779,15 +800,16 @@ public class Worker : BackgroundService
                 TotalProcessed = @Processed,
                 SuccessCount = @Success,
                 FailedCount = @Failed,
+                EventBreakdown = @Breakdown,
                 Status = 'COMPLETED',
                 UpdatedAt = GETUTCDATE()
             WHERE Id = @Id;";
 
-        await connection.ExecuteAsync(sql, new { Id = sessionId, Processed = processed, Success = success, Failed = failed });
+        await connection.ExecuteAsync(sql, new { Id = sessionId, Processed = processed, Success = success, Failed = failed, Breakdown = breakdownJson });
         _logger.LogInformation($"Completed SyncSession ID {sessionId}");
     }
 
-    private async Task UpdateSessionMetricsAsync(long sessionId, int processed, int success, int failed)
+    private async Task UpdateSessionMetricsAsync(long sessionId, int processed, int success, int failed, string breakdownJson)
     {
         using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
@@ -797,25 +819,27 @@ public class Worker : BackgroundService
             SET TotalProcessed = @Processed,
                 SuccessCount = @Success,
                 FailedCount = @Failed,
+                EventBreakdown = @Breakdown,
                 UpdatedAt = GETUTCDATE()
             WHERE Id = @Id;";
 
-        var affected = await connection.ExecuteAsync(sql, new { Id = sessionId, Processed = processed, Success = success, Failed = failed });
+        var affected = await connection.ExecuteAsync(sql, new { Id = sessionId, Processed = processed, Success = success, Failed = failed, Breakdown = breakdownJson });
         if (affected == 0)
         {
             _logger.LogWarning($"SyncSession {sessionId} not found in DB. Recreating...");
             var insertSql = @"
                 INSERT INTO edcl.ingestion.sync_sessions 
-                (SessionDate, StartTime, TotalProcessed, SuccessCount, FailedCount, Status, CreatedAt, CreatedBy, IsDeleted, RowVersion)
+                (SessionDate, StartTime, TotalProcessed, SuccessCount, FailedCount, EventBreakdown, Status, CreatedAt, CreatedBy, IsDeleted, RowVersion)
                 OUTPUT INSERTED.Id
-                VALUES (CAST(GETUTCDATE() AS DATE), @StartTime, @Processed, @Success, @Failed, 'IN_PROGRESS', GETUTCDATE(), 'System', 0, CAST(0 AS varbinary(8)));";
+                VALUES (CAST(GETUTCDATE() AS DATE), @StartTime, @Processed, @Success, @Failed, @Breakdown, 'IN_PROGRESS', GETUTCDATE(), 'System', 0, CAST(0 AS varbinary(8)));";
 
             var newId = await connection.ExecuteScalarAsync<long>(insertSql, new 
             { 
                 StartTime = _sessionStartTime, 
                 Processed = processed, 
                 Success = success, 
-                Failed = failed 
+                Failed = failed,
+                Breakdown = breakdownJson
             });
 
             lock (_metricsLock)
@@ -828,7 +852,7 @@ public class Worker : BackgroundService
         }
     }
 
-    private async Task PublishMetricsEventAsync(IChannel channel, long sessionId, int processed, int success, int failed, CancellationToken ct)
+    private async Task PublishMetricsEventAsync(IChannel channel, long sessionId, int processed, int success, int failed, string breakdownJson, CancellationToken ct)
     {
         var metricsEvent = new
         {
@@ -839,6 +863,7 @@ public class Worker : BackgroundService
             TotalProcessed = processed,
             SuccessCount = success,
             FailedCount = failed,
+            EventBreakdown = breakdownJson,
             Status = "IN_PROGRESS"
         };
 

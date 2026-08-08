@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -24,6 +24,7 @@ namespace EDCL.Infrastructure.Persistence.Migrations
                     TotalProcessed = table.Column<int>(type: "int", nullable: false),
                     SuccessCount = table.Column<int>(type: "int", nullable: false),
                     FailedCount = table.Column<int>(type: "int", nullable: false),
+                    EventBreakdown = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Status = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),

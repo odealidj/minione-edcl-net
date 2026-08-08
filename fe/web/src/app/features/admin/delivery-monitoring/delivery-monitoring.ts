@@ -333,4 +333,47 @@ export class DeliveryMonitoringComponent implements OnInit {
       }
     });
   }
+
+  // Force Complete Logic
+  selectedOrderIdToComplete: number | null = null;
+  completeReason: string = '';
+  completingOrder: boolean = false;
+
+  openForceCompleteModal(orderId: number) {
+    this.selectedOrderIdToComplete = orderId;
+    this.completeReason = '';
+    const modal = document.getElementById('force_complete_modal') as HTMLDialogElement;
+    if (modal) modal.showModal();
+    this.cdr.markForCheck();
+  }
+
+  closeForceCompleteModal() {
+    const modal = document.getElementById('force_complete_modal') as HTMLDialogElement;
+    if (modal) modal.close();
+    this.selectedOrderIdToComplete = null;
+    this.completeReason = '';
+    this.cdr.markForCheck();
+  }
+
+  confirmForceComplete() {
+    if (!this.selectedOrderIdToComplete || !this.completeReason.trim()) return;
+
+    this.completingOrder = true;
+    this.cdr.markForCheck();
+
+    this.routeService.forceCompletePickupOrder(this.selectedOrderIdToComplete, this.completeReason).subscribe({
+      next: () => {
+        this.completingOrder = false;
+        this.closeForceCompleteModal();
+        this.refresh();
+      },
+      error: (err) => {
+        console.error('Failed to force complete order', err);
+        alert(err.error?.message || 'Failed to complete order manually');
+        this.completingOrder = false;
+        this.cdr.markForCheck();
+      }
+    });
+  }
 }
+

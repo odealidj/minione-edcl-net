@@ -22,6 +22,10 @@ public sealed class PickupOrder : AuditableEntity
 
     public string? HangfireJobIdH1 { get; private set; }
     public string? HangfireJobIdH30 { get; private set; }
+    public double? CompletedLatitude { get; private set; }
+    public double? CompletedLongitude { get; private set; }
+    public string? CompletionReason { get; private set; }
+    public bool IsManualCompletion { get; private set; }
 
     public ICollection<PickupOrderDetail> Details { get; private set; } = [];
     public ICollection<PickupOrderManifest> Manifests { get; private set; } = [];
@@ -61,6 +65,24 @@ public sealed class PickupOrder : AuditableEntity
             
         Status = PickupOrderStatus.Completed;
         CompletedAt = DateTime.UtcNow;
+    }
+
+    public void ForceComplete(double? lat, double? lon, string reason)
+    {
+        if (Status != PickupOrderStatus.OnProgress)
+            throw new InvalidOperationException($"Cannot force complete job in status '{Status}'.");
+            
+        foreach (var detail in Details.Where(d => d.Status == StopStatus.Pending))
+        {
+            detail.ForceComplete();
+        }
+            
+        Status = PickupOrderStatus.Completed;
+        CompletedAt = DateTime.UtcNow;
+        IsManualCompletion = true;
+        CompletedLatitude = lat;
+        CompletedLongitude = lon;
+        CompletionReason = reason;
     }
 }
 
@@ -102,6 +124,16 @@ public sealed class PickupOrderDetail : AuditableEntity
 
         Status     = StopStatus.PickedUp;
         PickedUpAt = DateTime.UtcNow;
+    }
+
+    public void ForceComplete()
+    {
+        Status = StopStatus.PickedUp;
+        PickedUpAt = DateTime.UtcNow;
+        foreach (var manifest in Manifests.Where(m => m.Status != ManifestStatus.Verified))
+        {
+            manifest.ForceComplete();
+        }
     }
 }
 
@@ -150,6 +182,12 @@ public sealed class PickupOrderManifest : AuditableEntity
         ScannedKanban++;
         if (ScannedKanban >= TotalKanban)
             Status = ManifestStatus.Verified;
+    }
+
+    public void ForceComplete()
+    {
+        ScannedKanban = TotalKanban;
+        Status = ManifestStatus.Verified;
     }
 }
 

@@ -61,6 +61,12 @@ public class PickupOrderConfiguration : IEntityTypeConfiguration<PickupOrder>
         builder.Property(x => x.HangfireJobIdH1).HasMaxLength(100);
         builder.Property(x => x.HangfireJobIdH30).HasMaxLength(100);
 
+        builder.Property(x => x.CompletedLatitude);
+        builder.Property(x => x.CompletedLongitude);
+        builder.Property(x => x.CompletionReason).HasMaxLength(500);
+        builder.Property(x => x.IsManualCompletion).HasDefaultValue(false);
+
+
         builder.HasQueryFilter(x => !x.IsDeleted);
     }
 }
