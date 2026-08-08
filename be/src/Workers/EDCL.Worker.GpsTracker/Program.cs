@@ -42,6 +42,7 @@ builder.Services.AddMassTransit(x =>
 {
     x.AddConsumer<SimulationStartedConsumer>();
     x.AddConsumer<JobStartedConsumer>();
+    x.AddConsumer<SimulationResetIntegrationEventConsumer>();
 
     x.UsingRabbitMq((context, cfg) =>
     {

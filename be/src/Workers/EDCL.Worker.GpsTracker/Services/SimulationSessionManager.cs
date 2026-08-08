@@ -67,6 +67,12 @@ public class SimulationSessionManager(OsrmClient osrmClient, ILogger<SimulationS
         }
     }
 
+    public void ClearSessions()
+    {
+        _activeSessions.Clear();
+        logger.LogInformation("All active simulation sessions have been cleared.");
+    }
+
     public IEnumerable<ActiveSimulationSession> GetActiveSessions()
     {
         return _activeSessions.Values;

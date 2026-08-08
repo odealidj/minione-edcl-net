@@ -826,27 +826,20 @@ public class Worker : BackgroundService
         var affected = await connection.ExecuteAsync(sql, new { Id = sessionId, Processed = processed, Success = success, Failed = failed, Breakdown = breakdownJson });
         if (affected == 0)
         {
-            _logger.LogWarning($"SyncSession {sessionId} not found in DB. Recreating...");
-            var insertSql = @"
-                INSERT INTO edcl.ingestion.sync_sessions 
-                (SessionDate, StartTime, TotalProcessed, SuccessCount, FailedCount, EventBreakdown, Status, CreatedAt, CreatedBy, IsDeleted, RowVersion)
-                OUTPUT INSERTED.Id
-                VALUES (CAST(GETUTCDATE() AS DATE), @StartTime, @Processed, @Success, @Failed, @Breakdown, 'IN_PROGRESS', GETUTCDATE(), 'System', 0, CAST(0 AS varbinary(8)));";
-
-            var newId = await connection.ExecuteScalarAsync<long>(insertSql, new 
-            { 
-                StartTime = _sessionStartTime, 
-                Processed = processed, 
-                Success = success, 
-                Failed = failed,
-                Breakdown = breakdownJson
-            });
-
+            // Session tidak ditemukan di DB — kemungkinan besar sudah dihapus oleh proses reset.
+            // Jangan buat session baru secara otomatis karena akan menimbulkan data "hantu" setelah reset.
+            // Cukup reset _currentSessionId agar session baru dimulai secara natural saat pesan CDC berikutnya masuk.
+            _logger.LogWarning($"SyncSession {sessionId} not found in DB. Assuming it was reset externally. Clearing in-memory session state.");
             lock (_metricsLock)
             {
                 if (_currentSessionId == sessionId)
                 {
-                    _currentSessionId = newId;
+                    _currentSessionId = null;
+                    _sessionSuccessCount = 0;
+                    _sessionFailedCount = 0;
+                    _sessionProcessedCount = 0;
+                    _sessionEventBreakdown.Clear();
+                    _sessionMetricsDirty = false;
                 }
             }
         }

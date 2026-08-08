@@ -1,0 +1,21 @@
+--- idcs-seeder/Program.cs
++++ idcs-seeder/Program.cs
+@@ -1025,6 +1025,18 @@
+         using var connEdcl = new SqlConnection(EdclConnectionString);
+         using var connIdcs = new SqlConnection(ConnectionString);
+         await connEdcl.OpenAsync();
+         await connIdcs.OpenAsync();
+ 
++        // 0. Clear IDCS Force Complete Delivery Status
++        try
++        {
++            var rowsIdcs = await connIdcs.ExecuteAsync("DELETE FROM edcl_delivery_status");
++            await connIdcs.ExecuteAsync("DBCC CHECKIDENT ('edcl_delivery_status', RESEED, 0)");
++            Console.WriteLine($"✅ Cleared {rowsIdcs} IDCS Delivery Status records.");
++        }
++        catch (SqlException ex)
++        {
++            Console.WriteLine($"❌ Failed to delete IDCS Delivery Status: {ex.Message}");
++        }
++
+         // 1. Delete all pickup order transaction tables in EDCL
