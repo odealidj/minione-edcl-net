@@ -51,7 +51,6 @@ public class Worker : BackgroundService
         var consumer = new AsyncEventingBasicConsumer(channel);
         consumer.ReceivedAsync += async (model, ea) =>
         {
-            await EnsureSessionExistsAsync();
             var body = ea.Body.ToArray();
             var message = Encoding.UTF8.GetString(body);
             
@@ -64,7 +63,6 @@ public class Worker : BackgroundService
                 else if (retryObj is byte[] rb && rb.Length == 4) attempt = BitConverter.ToInt32(rb);
                 else if (int.TryParse(retryObj!.ToString(), out int r2)) attempt = r2;
             }
-            
             
             string eventType = "Unknown";
             string opType = "u";
@@ -87,6 +85,24 @@ public class Worker : BackgroundService
             catch { /* Ignore parsing errors */ }
             
             string breakdownKey = $"{eventType.ToLower()}_{opType.ToLower()}";
+
+            // Hanya buat session baru untuk INSERT/UPDATE events.
+            // DELETE events (op == "d") setelah reset tidak boleh memicu session baru —
+            // ini adalah "cleanup artifacts" dari proses make reset-master-one.
+            bool hasActiveSession;
+            lock (_metricsLock) { hasActiveSession = _currentSessionId.HasValue; }
+            
+            if (opType != "d" || hasActiveSession)
+            {
+                await EnsureSessionExistsAsync();
+            }
+            else
+            {
+                // DELETE tanpa sesi aktif: log dan skip (tidak perlu buat sesi baru)
+                _logger.LogDebug("Skipping session creation for DELETE event on table '{Table}' (no active session — likely post-reset cleanup).", eventType);
+                await channel.BasicAckAsync(ea.DeliveryTag, false, stoppingToken);
+                return;
+            }
 
             try
             {
