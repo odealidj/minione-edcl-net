@@ -27,6 +27,7 @@
             <th>Route / Cycle</th>
             <th>Est. Departure</th>
             <th>Driver</th>
+            <th>Notification</th>
             <th class="text-right">Actions</th>
           </tr>
         </thead>
@@ -53,10 +54,32 @@
                 <span *ngIf="order.driverId">{{driversMap.get(order.driverId) || 'Driver #' + order.driverId}}</span>
                 <span *ngIf="!order.driverId" class="text-gray-400 italic">Unassigned</span>
               </td>
+              <td>
+                <!-- FCM Status -->
+                <div class="flex items-center gap-2" *ngIf="order.fcmDeliveryStatus">
+                  <div class="tooltip" [attr.data-tip]="order.fcmErrorMessage || 'Sent successfully'">
+                    <span class="badge badge-sm" 
+                          [ngClass]="{
+                            'badge-success text-white': order.fcmDeliveryStatus === 'SENT',
+                            'badge-error text-white': order.fcmDeliveryStatus === 'FAILED'
+                          }">
+                      <i class="fas" 
+                         [ngClass]="{
+                           'fa-check': order.fcmDeliveryStatus === 'SENT',
+                           'fa-times': order.fcmDeliveryStatus === 'FAILED'
+                         }"></i>
+                    </span>
+                  </div>
+                  <!-- Read Status -->
+                  <div class="tooltip" [attr.data-tip]="order.fcmIsRead ? 'Read' : 'Unread'">
+                    <i class="fas fa-check-double text-xs"
+                       [ngClass]="order.fcmIsRead ? 'text-blue-500' : 'text-gray-300'">
+                    </i>
+                  </div>
+                </div>
+                <span *ngIf="!order.fcmDeliveryStatus" class="text-gray-400 italic text-sm">-</span>
+              </td>
               <td class="text-right">
-                <a class="btn btn-ghost btn-sm text-indigo-600" [routerLink]="['/admin/notifications/logs']" [queryParams]="{ driverId: order.driverId }" title="View Notification Logs">
-                  <i class="fas fa-bell"></i>
-                </a>
                 <a class="btn btn-ghost btn-sm text-blue-600" [routerLink]="['/admin/route-planning', order.id]" [queryParams]="{ mode: 'view' }" title="View">
                   <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />

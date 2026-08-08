@@ -1,7 +1,9 @@
 using System.Data;
 using Dapper;
+using System.Threading.Tasks;
 using Microsoft.Data.SqlClient;
 using RabbitMQ.Client;
+using MassTransit;
 
 namespace EDCL.IdcsSeeder;
 
@@ -34,6 +36,8 @@ class Program
                     await SeedSkidAsync();
                     await SeedPartAsync();
                     await SeedKanbanAsync();
+                    Console.WriteLine("Waiting 3 seconds for CDC Debezium to catch up...");
+                    await Task.Delay(3000);
                     await SeedLiveTrackingPickupOrderAsync(manifestNo);
                     break;
                 case "manifest":
@@ -64,6 +68,13 @@ class Program
                 case "one-master":
                     await SeedOneMasterAsync();
                     await SeedGpsVendorAsync();
+                    var manifestNoOneMaster = await SeedManifestAsync();
+                    await SeedSkidAsync();
+                    await SeedPartAsync();
+                    await SeedKanbanAsync();
+                    Console.WriteLine("Waiting 5 seconds for CDC Debezium to catch up...");
+                    await Task.Delay(5000);
+                    await SeedLiveTrackingPickupOrderAsync(manifestNoOneMaster);
                     break;
                 case "all":
                     await SeedLogisticPartnerAsync();
@@ -117,6 +128,25 @@ class Program
                 case "reset":
                     await ResetDataAsync();
                     await ResetNotificationAsync();
+                    break;
+                case "edcl-master":
+                    // await SeedEdclMasterAsync();
+                    break;
+                case "alter-db":
+                    await using (var conn = new SqlConnection(EdclConnectionString))
+                    {
+                        await conn.ExecuteAsync("ALTER TABLE edcl.ingestion.sync_sessions ADD EventBreakdown NVARCHAR(MAX) NULL;");
+                        Console.WriteLine("Added EventBreakdown to DB");
+                    }
+                    break;
+                case "show-errors":
+                    await using (var conn = new SqlConnection(EdclConnectionString))
+                    {
+                        var problems = await conn.QueryAsync("SELECT TOP 5 Id, ManifestNo, Description FROM edcl.ingestion.manifest_problems ORDER BY Id DESC");
+                        foreach(var p in problems) {
+                            Console.WriteLine($"Problem ID: {p.Id} ManifestNo: {p.ManifestNo} Desc: {p.Description}");
+                        }
+                    }
                     break;
                 case "trigger-reject":
                     await TriggerRejectAsync();
@@ -344,9 +374,7 @@ class Program
 
         try
         {
-            await DisableCdcOnTableAsync(connIdcs, "suppliers");
-            await connIdcs.ExecuteAsync("TRUNCATE TABLE suppliers");
-            await EnableCdcOnTableAsync(connIdcs, "suppliers");
+            await connIdcs.ExecuteAsync("DELETE FROM suppliers");
             
             await connEdcl.ExecuteAsync("DELETE FROM edcl.driver.suppliers");
             await connEdcl.ExecuteAsync("DBCC CHECKIDENT ('edcl.driver.suppliers', RESEED, 0)");
@@ -609,20 +637,20 @@ class Program
         Console.WriteLine("⚠️  Starting data reset for IDCS & EDCL...");
 
         // ── IDCS ────────────────────────────────────────────────────────────────
-        Console.WriteLine("[IDCS] Disabling CDC and Truncating IDCS tables...");
+        Console.WriteLine("[IDCS] Clearing IDCS tables...");
         using (var idcsConn = new SqlConnection(ConnectionString))
         {
             await idcsConn.OpenAsync();
-            var tables = new[] { "manifest_kanbans", "manifest_parts", "manifest_skids", "manifests" };
-            
-            foreach(var t in tables) await DisableCdcOnTableAsync(idcsConn, t);
 
-            await idcsConn.ExecuteAsync("TRUNCATE TABLE manifest_kanbans");
-            await idcsConn.ExecuteAsync("TRUNCATE TABLE manifest_parts");
-            await idcsConn.ExecuteAsync("TRUNCATE TABLE manifest_skids");
-            await idcsConn.ExecuteAsync("TRUNCATE TABLE manifests");
+            await idcsConn.ExecuteAsync("DELETE FROM manifest_kanbans");
+            await idcsConn.ExecuteAsync("DELETE FROM manifest_parts");
+            await idcsConn.ExecuteAsync("DELETE FROM manifest_skids");
+            await idcsConn.ExecuteAsync("DELETE FROM manifests");
             
-            foreach(var t in tables) await EnableCdcOnTableAsync(idcsConn, t);
+            try { await idcsConn.ExecuteAsync("DBCC CHECKIDENT ('manifest_kanbans', RESEED, 0)"); } catch {}
+            try { await idcsConn.ExecuteAsync("DBCC CHECKIDENT ('manifest_parts', RESEED, 0)"); } catch {}
+            try { await idcsConn.ExecuteAsync("DBCC CHECKIDENT ('manifest_skids', RESEED, 0)"); } catch {}
+            try { await idcsConn.ExecuteAsync("DBCC CHECKIDENT ('manifests', RESEED, 0)"); } catch {}
         }
         Console.WriteLine("[IDCS] Done.");
 
@@ -811,11 +839,12 @@ class Program
         if (driverId == null)
         {
             var pinHash = "$2b$12$V4UgAH0Af5i1aIkofUcN9OQ/ZF4TQRmklC1TajvEV6urRg6m7KnmO";
+            var fcmToken = "csy8_nQZSQefDmBgFDQCSZ:APA91bEFVASrib-w1_Ih_FKsR4tVqRXvNJVsAID_NSD-JetlyT_x1e3G9vKAJz6crFm2hB5uOptHnbdut1108FEvYOmRPuEAMEujPUv24F_j--lR75Up1r8";
             driverId = await connEdcl.QuerySingleAsync<long>(@"
-                INSERT INTO edcl.auth.drivers (LogisticPartnerId, Name, Nik, PhoneNumber, PinHash, must_change_pin, IsActive, created_at, created_by, is_deleted) 
+                INSERT INTO edcl.auth.drivers (LogisticPartnerId, Name, Nik, PhoneNumber, PinHash, must_change_pin, FcmToken, IsActive, created_at, created_by, is_deleted) 
                 OUTPUT INSERTED.Id 
-                VALUES (@LpId, 'LISTIONO', '3201012345678901', '081234567890', @PinHash, 1, 1, GETUTCDATE(), 'System', 0)",
-                new { LpId = lpId, PinHash = pinHash });
+                VALUES (@LpId, 'LISTIONO', '3201012345678901', '082111391380', @PinHash, 1, @FcmToken, 1, GETUTCDATE(), 'System', 0)",
+                new { LpId = lpId, PinHash = pinHash, FcmToken = fcmToken });
             Console.WriteLine($"Inserted Driver ID: {driverId}");
         }
 
@@ -1174,7 +1203,7 @@ class Program
 
             -- Create ON_PROGRESS order for UPDATE test
             INSERT INTO edcl.job.pickup_orders (delivery_no, pickup_date, route_code, cycle_code, estimated_departure_time, Status, CreatedAt, CreatedBy, IsDeleted)
-            VALUES ('PO-' + @ManifestProg, GETUTCDATE(), 'R-TEST', 'C1', '08:00:00', 'ON_PROGRESS', GETUTCDATE(), 'Seeder', 0);
+            VALUES ('PO-' + @ManifestProg, GETUTCDATE(), 'R01', 'C1', '08:00:00', 'ON_PROGRESS', GETUTCDATE(), 'Seeder', 0);
             SET @PoProgId = SCOPE_IDENTITY();
 
             INSERT INTO edcl.job.pickup_order_details (PickupOrderId, SupplierId, Sequence, Status, CreatedAt, CreatedBy, IsDeleted)
@@ -1186,7 +1215,7 @@ class Program
 
             -- Create COMPLETED order for UPDATE test
             INSERT INTO edcl.job.pickup_orders (delivery_no, pickup_date, route_code, cycle_code, estimated_departure_time, Status, CreatedAt, CreatedBy, IsDeleted)
-            VALUES ('PO-' + @ManifestComp, GETUTCDATE(), 'R-TEST', 'C1', '08:00:00', 'COMPLETED', GETUTCDATE(), 'Seeder', 0);
+            VALUES ('PO-' + @ManifestComp, GETUTCDATE(), 'R01', 'C1', '08:00:00', 'COMPLETED', GETUTCDATE(), 'Seeder', 0);
             SET @PoCompId = SCOPE_IDENTITY();
 
             INSERT INTO edcl.job.pickup_order_details (PickupOrderId, SupplierId, Sequence, Status, CreatedAt, CreatedBy, IsDeleted)
@@ -1198,7 +1227,7 @@ class Program
 
             -- Create ON_PROGRESS order for DELETE test
             INSERT INTO edcl.job.pickup_orders (delivery_no, pickup_date, route_code, cycle_code, estimated_departure_time, Status, CreatedAt, CreatedBy, IsDeleted)
-            VALUES ('PO-' + @ManifestDel, GETUTCDATE(), 'R-TEST', 'C1', '08:00:00', 'ON_PROGRESS', GETUTCDATE(), 'Seeder', 0);
+            VALUES ('PO-' + @ManifestDel, GETUTCDATE(), 'R01', 'C1', '08:00:00', 'ON_PROGRESS', GETUTCDATE(), 'Seeder', 0);
             SET @PoDelId = SCOPE_IDENTITY();
 
             INSERT INTO edcl.job.pickup_order_details (PickupOrderId, SupplierId, Sequence, Status, CreatedAt, CreatedBy, IsDeleted)
@@ -1210,7 +1239,7 @@ class Program
 
             -- Create COMPLETED order for DELETE test
             INSERT INTO edcl.job.pickup_orders (delivery_no, pickup_date, route_code, cycle_code, estimated_departure_time, Status, CreatedAt, CreatedBy, IsDeleted)
-            VALUES ('PO-' + @ManifestDelC, GETUTCDATE(), 'R-TEST', 'C1', '08:00:00', 'COMPLETED', GETUTCDATE(), 'Seeder', 0);
+            VALUES ('PO-' + @ManifestDelC, GETUTCDATE(), 'R01', 'C1', '08:00:00', 'COMPLETED', GETUTCDATE(), 'Seeder', 0);
             SET @PoDelCId = SCOPE_IDENTITY();
 
             INSERT INTO edcl.job.pickup_order_details (PickupOrderId, SupplierId, Sequence, Status, CreatedAt, CreatedBy, IsDeleted)
@@ -1284,7 +1313,7 @@ class Program
             DECLARE @DetProgId BIGINT;
 
             INSERT INTO edcl.job.pickup_orders (delivery_no, pickup_date, route_code, cycle_code, estimated_departure_time, Status, DriverId, TruckId, CreatedAt, CreatedBy, IsDeleted)
-            VALUES (@PoNo, GETUTCDATE(), 'R-TEST', 'C1', '08:00:00', 'ON_PROGRESS', @DriverId, @TruckId, GETUTCDATE(), 'Seeder', 0);
+            VALUES (@PoNo, GETUTCDATE(), 'R01', 'C1', '08:00:00', 'ON_PROGRESS', @DriverId, @TruckId, GETUTCDATE(), 'Seeder', 0);
             SET @PoProgId = SCOPE_IDENTITY();
 
             INSERT INTO edcl.job.pickup_order_details (PickupOrderId, SupplierId, Sequence, Status, CreatedAt, CreatedBy, IsDeleted)
@@ -1313,6 +1342,35 @@ class Program
 
         await edclConn.ExecuteAsync(sqlSeedEdcl, new { PoNo = poNo, DriverId = driverId, TruckId = truckId, SupplierId = supplierId, ManifestNo = manifestNo });
         
+        var poProgId = await edclConn.ExecuteScalarAsync<long>("SELECT TOP 1 Id FROM edcl.job.pickup_orders WHERE delivery_no = @PoNo", new { PoNo = poNo });
+        
         Console.WriteLine($"✅ Successfully created Live Tracking Pickup Order ({poNo}) for DriverId: {driverId}, TruckId: {truckId} with Mock GPS Fleet data.");
+        
+        // Publish JobAssignedIntegrationEvent to trigger FCM Notification
+        var busControl = MassTransit.Bus.Factory.CreateUsingRabbitMq(cfg =>
+        {
+            cfg.Host("amqp://localhost:5672");
+        });
+        
+        await busControl.StartAsync();
+        try
+        {
+            var assignedEvent = new EDCL.Shared.Kernel.Events.JobAssignedIntegrationEvent
+            {
+                PickupOrderId = poProgId,
+                DriverId = driverId.Value,
+                RouteCode = "R01",
+                Cycle = "C1",
+                PickupDate = System.DateTime.UtcNow.AddHours(7) // Approximate estimated departure
+            };
+            
+            await busControl.Publish(assignedEvent);
+            Console.WriteLine("✅ Published JobAssignedIntegrationEvent to trigger FCM Notification.");
+            await Task.Delay(2000); // Give it some time to ensure message is sent
+        }
+        finally
+        {
+            await busControl.StopAsync();
+        }
     }
 }

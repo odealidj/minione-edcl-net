@@ -77,15 +77,35 @@ fun HomeScreen(onLogout: () -> Unit) {
 
         Text("Your FCM Token:", style = MaterialTheme.typography.titleMedium)
         Spacer(modifier = Modifier.height(8.dp))
+        
+        val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
+        
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
         ) {
-            Text(
-                text = fcmToken,
-                modifier = Modifier.padding(16.dp),
-                style = MaterialTheme.typography.bodySmall
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                androidx.compose.foundation.text.selection.SelectionContainer(
+                    modifier = Modifier.weight(1f).padding(start = 16.dp, top = 16.dp, bottom = 16.dp)
+                ) {
+                    Text(
+                        text = fcmToken,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+                TextButton(
+                    onClick = {
+                        clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(fcmToken))
+                        statusMessage = "FCM Token copied to clipboard!"
+                    },
+                    modifier = Modifier.padding(end = 8.dp)
+                ) {
+                    Text("Copy")
+                }
+            }
         }
 
         Spacer(modifier = Modifier.height(16.dp))

@@ -40,6 +40,9 @@ export interface PickupOrder {
   status: string;
   startedAt?: string;
   completedAt?: string;
+  fcmDeliveryStatus?: string;
+  fcmErrorMessage?: string;
+  fcmIsRead?: boolean;
   details?: PickupOrderDetail[];
 }
 

@@ -15,6 +15,7 @@ public static class NotificationModuleRegistration
 
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(NotificationModuleRegistration).Assembly));
         services.AddScoped<IFirebaseNotificationService, FirebaseNotificationService>();
+        services.AddScoped<EDCL.Shared.Kernel.Ports.INotificationPort, EDCL.Module.Notification.Infrastructure.Adapters.NotificationPortAdapter>();
 
         // Initialize Firebase
         var credentialPath = configuration["Firebase:CredentialPath"];

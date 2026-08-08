@@ -24,4 +24,10 @@ public sealed record AdminGetPickupOrdersResponse(
     int TotalPages
 );
 
-public sealed record AdminPickupOrderListItemDto(long Id, long? DriverId, long? TruckId, string PoNo, DateTime PickupDate, string RouteCode, string CycleCode, TimeSpan EstimatedDepartureTime, string Status, DateTime? StartedAt, DateTime? CompletedAt);
+public sealed record AdminPickupOrderListItemDto(long Id, long? DriverId, long? TruckId, string PoNo, DateTime PickupDate, string RouteCode, string CycleCode, TimeSpan EstimatedDepartureTime, string Status, DateTime? StartedAt, DateTime? CompletedAt)
+{
+    // Notification Status
+    public string? FcmDeliveryStatus { get; init; }
+    public string? FcmErrorMessage { get; init; }
+    public bool? FcmIsRead { get; init; }
+}

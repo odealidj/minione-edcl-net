@@ -6,9 +6,11 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
+using EDCL.Shared.Kernel.Ports;
+
 namespace EDCL.Module.Job.Application.Queries.AdminGetPickupOrders;
 
-internal sealed class AdminGetPickupOrdersQueryHandler(JobDbContext dbContext) 
+internal sealed class AdminGetPickupOrdersQueryHandler(JobDbContext dbContext, INotificationPort notificationPort) 
     : IRequestHandler<AdminGetPickupOrdersQuery, Result<AdminGetPickupOrdersResponse>>
 {
     public async Task<Result<AdminGetPickupOrdersResponse>> Handle(AdminGetPickupOrdersQuery request, CancellationToken cancellationToken)
@@ -60,6 +62,28 @@ internal sealed class AdminGetPickupOrdersQueryHandler(JobDbContext dbContext)
                 x.Id, x.DriverId, x.TruckId, x.PoNo, x.PickupDate, x.RouteCode, x.CycleCode, x.EstimatedDepartureTime, x.Status, x.StartedAt, x.CompletedAt
             ))
             .ToListAsync(cancellationToken);
+
+        // Fetch Notification Statuses via Port
+        if (items.Any())
+        {
+            var pickupOrderIds = items.Select(x => x.Id).ToList();
+            var notificationStatuses = await notificationPort.GetNotificationStatusesByReferenceIdsAsync(
+                pickupOrderIds, "ASSIGNMENT", cancellationToken);
+
+            items = items.Select(item =>
+            {
+                if (notificationStatuses.TryGetValue(item.Id, out var status))
+                {
+                    return item with
+                    {
+                        FcmDeliveryStatus = status.FcmDeliveryStatus,
+                        FcmErrorMessage = status.FcmErrorMessage,
+                        FcmIsRead = status.IsRead
+                    };
+                }
+                return item;
+            }).ToList();
+        }
 
         var totalPages = (int)System.Math.Ceiling(totalCount / (double)request.PageSize);
         return Result<AdminGetPickupOrdersResponse>.Success(new AdminGetPickupOrdersResponse(items, totalCount, request.PageNumber, request.PageSize, totalPages));

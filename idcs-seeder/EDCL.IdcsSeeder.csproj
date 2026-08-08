@@ -9,8 +9,14 @@
 
   <ItemGroup>
     <PackageReference Include="Dapper" Version="2.1.79" />
+    <PackageReference Include="MassTransit" Version="8.5.0" />
+    <PackageReference Include="MassTransit.RabbitMQ" Version="8.5.0" />
     <PackageReference Include="Microsoft.Data.SqlClient" Version="7.0.2" />
     <PackageReference Include="RabbitMQ.Client" Version="7.2.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\be\src\Shared\EDCL.Shared.Kernel\EDCL.Shared.Kernel.csproj" />
   </ItemGroup>
 
 </Project>

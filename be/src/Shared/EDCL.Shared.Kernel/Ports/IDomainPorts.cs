@@ -61,3 +61,21 @@ public sealed record TruckInfo(
     long Id,
     string PlateNumber,
     string? VehicleType);
+
+/// <summary>
+/// Provides notification status to other modules.
+/// Implemented by EDCL.Module.Notification.
+/// </summary>
+public interface INotificationPort
+{
+    Task<IReadOnlyDictionary<long, NotificationStatusInfo>> GetNotificationStatusesByReferenceIdsAsync(
+        IEnumerable<long> referenceIds, 
+        string type, 
+        CancellationToken ct = default);
+}
+
+public sealed record NotificationStatusInfo(
+    long Id,
+    string? FcmDeliveryStatus,
+    string? FcmErrorMessage,
+    bool IsRead);
