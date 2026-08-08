@@ -662,6 +662,9 @@ class Program
         }
         Console.WriteLine("[IDCS] Done.");
 
+        Console.WriteLine("Waiting 5 seconds for CDC Debezium to capture deletes...");
+        await Task.Delay(5000);
+
         // ── RabbitMQ ────────────────────────────────────────────────────────────
         Console.WriteLine("[RabbitMQ] Purging edcl_ingestion queues from leftover messages...");
         try
