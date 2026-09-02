@@ -1,6 +1,7 @@
 .PHONY: help \
         fe-install fe-start fe-test fe-e2e fe-e2e-open \
         be-up be-down be-infra-up be-infra-down be-run-all be-stop-all be-test be-load-test be-metrics \
+        idcs-up idcs-down \
         seed-master-one reset-master-one seed-all seed-reset-all seed-init seed-transaction \
         seed-logistic-partner seed-reset-logistic-partner seed-route seed-reset-route \
         seed-driver seed-reset-driver seed-truck seed-reset-truck seed-supplier seed-reset-supplier \
@@ -29,6 +30,10 @@ help:
 	@echo "  make be-test         - Run backend unit and integration test suites"
 	@echo "  make be-load-test    - Execute Grafana k6 End-to-End driver journey load test"
 	@echo "  make be-metrics      - Inspect OpenTelemetry Prometheus metrics endpoint"
+	@echo ""
+	@echo "IDCS Container Simulation (Port 1466):"
+	@echo "  make idcs-up         - Start isolated IDCS SQL Server container (port 1466)"
+	@echo "  make idcs-down       - Stop and remove IDCS SQL Server container"
 	@echo ""
 	@echo "Simulation & Seeder Commands (IDCS & Master Data):"
 	@echo "  make seed-master-one - [RECOMMENDED] Seed full master set + 1 manifest + PO for E2E demo"
@@ -102,6 +107,15 @@ be-load-test:
 
 be-metrics:
 	@curl -s http://localhost:5140/metrics | head -40 || echo "API is not running. Start with 'make be-run-all'."
+
+# =============================================================================
+# IDCS Simulation Container Commands (Port 1466)
+# =============================================================================
+idcs-up:
+	cd idcs-seeder && $(MAKE) idcs-up
+
+idcs-down:
+	cd idcs-seeder && $(MAKE) idcs-down
 
 # =============================================================================
 # Seeder & Simulation Commands

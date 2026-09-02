@@ -371,6 +371,8 @@ Kredensial Default: **`admin@edcl.com`** / **`Password123!`**
 |---|---|
 | `make be-infra-up` | Menyalakan container SQL Server, Redis, RabbitMQ, Debezium, Jaeger, dan Prometheus |
 | `make be-infra-down` | Mematikan seluruh container infrastruktur backend |
+| `make idcs-up` | Menyalakan container SQL Server IDCS terisolasi (`port 1466`) untuk simulasi CDC |
+| `make idcs-down` | Menghentikan dan menghapus container SQL Server IDCS |
 | `make be-run-all` | Menjalankan API Host, Gateway, dan 4 Worker secara simultan |
 | `make be-test` | Menjalankan seluruh test suite backend (Unit & Integration Tests) |
 | `make be-load-test` | Menjalankan k6 stress testing skenario Driver Journey |
