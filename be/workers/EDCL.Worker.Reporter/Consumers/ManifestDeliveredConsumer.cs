@@ -10,14 +10,13 @@ namespace EDCL.Worker.Reporter.Consumers;
 public class ManifestDeliveredConsumer : IConsumer<ManifestDeliveredIntegrationEvent>
 {
     private readonly ILogger<ManifestDeliveredConsumer> _logger;
-    // Connects to the simulated IDCS SQL Server which runs on port 1466 locally, 
-    // or 'idcs-sqlserver:1433' inside the docker network if both are in the same docker-compose.
-    // For this simulation (if EDCL is running outside Docker or accessing via host):
-    private const string IdcsConnectionString = "Server=localhost,1466;Database=IDCS;User Id=sa;Password=IdcsPassword123!;TrustServerCertificate=True;";
+    private readonly string _idcsConnectionString;
 
-    public ManifestDeliveredConsumer(ILogger<ManifestDeliveredConsumer> logger)
+    public ManifestDeliveredConsumer(ILogger<ManifestDeliveredConsumer> logger, Microsoft.Extensions.Configuration.IConfiguration configuration)
     {
         _logger = logger;
+        _idcsConnectionString = configuration.GetConnectionString("IdcsDb") 
+            ?? "Server=localhost,1466;Database=IDCS;User Id=sa;Password=IdcsPassword123!;TrustServerCertificate=True;";
     }
 
     public async Task Consume(ConsumeContext<ManifestDeliveredIntegrationEvent> context)
@@ -28,7 +27,7 @@ public class ManifestDeliveredConsumer : IConsumer<ManifestDeliveredIntegrationE
 
         try
         {
-            using var connection = new SqlConnection(IdcsConnectionString);
+            using var connection = new SqlConnection(_idcsConnectionString);
             await connection.OpenAsync(context.CancellationToken);
 
             var sql = @"

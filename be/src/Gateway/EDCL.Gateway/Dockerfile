@@ -10,6 +10,8 @@ WORKDIR "/src/src/Gateway/EDCL.Gateway"
 RUN dotnet publish "EDCL.Gateway.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine AS runtime
+RUN apk add --no-cache icu-libs
+ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
 WORKDIR /app
 EXPOSE 8080
 
@@ -17,4 +19,4 @@ EXPOSE 8080
 USER $APP_UID
 
 COPY --from=build /app/publish .
-ENTRYPOINT ["dotnet", "EDCL.Gateway.dll"]
+ENTRYPOINT ["dotnet", "edcl.gateway.dll"]

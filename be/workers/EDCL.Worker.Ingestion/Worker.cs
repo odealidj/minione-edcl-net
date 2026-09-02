@@ -39,11 +39,31 @@ public class Worker : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("Ingestion Worker started. Connecting to RabbitMQ...");
+        _logger.LogInformation("Ingestion Worker started. Connecting to RabbitMQ at {Uri}...", _rabbitMqConnectionString);
 
-        var factory = new ConnectionFactory { Uri = new Uri(_rabbitMqConnectionString) };
-        var connection = await factory.CreateConnectionAsync(stoppingToken);
-        var channel = await connection.CreateChannelAsync(cancellationToken: stoppingToken);
+        IConnection? connection = null;
+        IChannel? channel = null;
+
+        while (!stoppingToken.IsCancellationRequested && connection == null)
+        {
+            try
+            {
+                var factory = new ConnectionFactory { Uri = new Uri(_rabbitMqConnectionString) };
+                connection = await factory.CreateConnectionAsync(stoppingToken);
+                channel = await connection.CreateChannelAsync(cancellationToken: stoppingToken);
+                _logger.LogInformation("Connected to RabbitMQ successfully.");
+            }
+            catch (Exception ex) when (!stoppingToken.IsCancellationRequested)
+            {
+                _logger.LogWarning(ex, "RabbitMQ not ready yet. Retrying in 3 seconds...");
+                await Task.Delay(3000, stoppingToken);
+            }
+        }
+
+        if (connection == null || channel == null || stoppingToken.IsCancellationRequested)
+        {
+            return;
+        }
 
         // Ensure exchange and queue exist
         await channel.ExchangeDeclareAsync("debezium_events", "topic", true, false, null, cancellationToken: stoppingToken);

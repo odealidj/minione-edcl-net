@@ -10,8 +10,10 @@ COPY ["workers/", "workers/"]
 WORKDIR "/src/workers/EDCL.Worker.Ingestion"
 RUN dotnet publish "EDCL.Worker.Ingestion.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
-FROM mcr.microsoft.com/dotnet/runtime:10.0-alpine AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine AS runtime
+RUN apk add --no-cache icu-libs
+ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
 WORKDIR /app
 USER $APP_UID
 COPY --from=build /app/publish .
-ENTRYPOINT ["dotnet", "EDCL.Worker.Ingestion.dll"]
+ENTRYPOINT ["dotnet", "edcl.worker.ingestion.dll"]

@@ -12,8 +12,8 @@ builder.Services.AddMassTransit(x =>
 
     x.UsingRabbitMq((context, cfg) =>
     {
-        // Use RabbitMQ from Docker
-        cfg.Host("amqp://localhost:5672");
+        var rabbitMqConn = builder.Configuration.GetConnectionString("RabbitMqConnection") ?? "amqp://localhost:5672";
+        cfg.Host(rabbitMqConn);
         cfg.ConfigureEndpoints(context);
     });
 });
