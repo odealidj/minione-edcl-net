@@ -176,6 +176,9 @@ try
         ResponseWriter = HealthChecks.UI.Client.UIResponseWriter.WriteHealthCheckUIResponse
     });
 
+    // ── OpenTelemetry Prometheus Metrics (/metrics) ───────────────────────────
+    app.UseOpenTelemetryPrometheusScrapingEndpoint();
+
     // Swagger UI & Scalar UI (dev only or configurable)
     if (app.Environment.IsDevelopment())
     {

@@ -41,6 +41,9 @@ public sealed class ScanKanbanCommandHandler(
         // Save
         await repository.UpdateStopAsync(stop, cancellationToken);
 
+        EDCL.Shared.Infrastructure.Telemetry.EdclTelemetry.KanbanScannedCounter
+            .Add(1, new KeyValuePair<string, object?>("status", manifest.Status.ToString()));
+
         return new ScanKanbanResponse(
             ManifestId: manifest.Id,
             Status: manifest.Status,

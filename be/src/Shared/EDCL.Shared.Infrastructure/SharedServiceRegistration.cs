@@ -1,5 +1,6 @@
 using EDCL.Shared.Infrastructure.Cache;
 using EDCL.Shared.Infrastructure.Persistence;
+using EDCL.Shared.Infrastructure.Telemetry;
 using EDCL.Shared.Kernel.Ports;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -50,6 +51,9 @@ public static class SharedInfrastructureRegistration
 
         // ── EF Core Interceptors ──────────────────────────────────────────
         services.AddScoped<AuditSaveChangesInterceptor>();
+
+        // ── OpenTelemetry (Distributed Tracing, Metrics & Prometheus) ─────
+        services.AddEdclOpenTelemetry(configuration);
 
         return services;
     }

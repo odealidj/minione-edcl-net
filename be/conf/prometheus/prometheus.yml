@@ -1,0 +1,12 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+scrape_configs:
+  - job_name: 'edcl-api'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['host.docker.internal:5140', 'edcl-api:8080']
+        labels:
+          application: 'EDCL.Api'
+          environment: 'Development'

@@ -47,7 +47,11 @@ public sealed class IdempotencyBehavior<TRequest, TResponse>(
         // Check cache
         var cached = await cache.GetAsync<TResponse>(cacheKey, cancellationToken);
         if (cached is not null)
+        {
+            EDCL.Shared.Infrastructure.Telemetry.EdclTelemetry.IdempotencyReplayedCounter
+                .Add(1, new KeyValuePair<string, object?>("request_name", typeof(TRequest).Name));
             return cached;
+        }
 
         // Process the request
         var response = await next();

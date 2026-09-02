@@ -8,9 +8,9 @@ up:
 down:
 	docker-compose down
 
-# Hanya menjalankan infrastruktur utama (SQL Server, Redis, RabbitMQ, Debezium)
+# Hanya menjalankan infrastruktur utama (SQL Server, Redis, RabbitMQ, Debezium, Jaeger, Prometheus)
 infra-up:
-	docker-compose up -d sqlserver redis rabbitmq debezium-server
+	docker-compose up -d sqlserver redis rabbitmq debezium-server jaeger prometheus
 	@echo "Waiting for infrastructure to become healthy..."
 	@while docker-compose ps | grep -qi "starting"; do \
 		sleep 2; \
@@ -23,7 +23,7 @@ infra-up:
 
 # Mematikan hanya infrastruktur utama
 infra-down:
-	docker-compose stop sqlserver redis rabbitmq debezium-server
+	docker-compose stop sqlserver redis rabbitmq debezium-server jaeger prometheus
 
 # Melihat log dari semua service
 logs:

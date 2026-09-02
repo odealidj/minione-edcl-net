@@ -140,8 +140,11 @@ graph TD
 - **Automated Audit Trail & Soft Deletes**:
   Seluruh entitas turunan `AuditableEntity` otomatis diaudit oleh EF Core `AuditSaveChangesInterceptor` (mengisi `CreatedAt`, `CreatedBy`, `UpdatedAt`, `UpdatedBy`, dan `IsDeleted` secara transparan tanpa intervensi manual di handler).
 
-- **Distributed Tracing & Observability**:
-  Setiap request diinjeksi dengan `X-Trace-Id` melalui `TraceIdMiddleware`, yang otomatis dipropagasikan ke Serilog diagnostic context, HTTP response header, dan event bus metadata. Sistem menyediakan UI dokumentasi interaktif modern menggunakan **Scalar API Reference** (`/scalar/v1`) dan **Swagger UI** (`/swagger`).
+- **OpenTelemetry Distributed Tracing & Observability (Jaeger & Prometheus)**:
+  Sistem mengadopsi standar **OpenTelemetry .NET SDK** untuk instrumentasi terpadu:
+  1. *Distributed Tracing*: Setiap request diinjeksi dengan `X-Trace-Id` melalui `TraceIdMiddleware` dan diekspor via OTLP ke **Jaeger** (`http://localhost:16686`) untuk visualisasi *trace waterfall* lengkap antar-lapisan (API $\to$ MediatR $\to$ SQL/EF Core $\to$ Redis $\to$ RabbitMQ).
+  2. *Prometheus Metrics Scraper*: Endpoint `/metrics` mengekspos metrik sistem (.NET Runtime CPU/RAM, ThreadPool, HTTP latency, DB operations) dan metrik bisnis logistik (`edcl.kanban.scanned.total`, `edcl.idempotency.replayed.total`, dll.) yang di-scrape oleh **Prometheus** (`http://localhost:9090`).
+  3. *Structured Logging*: Serilog terintegrasi dengan *diagnostic context enrichment* (`TraceId`, `UserId`, `Application`). Dokumentasi interaktif modern tersedia via **Scalar API Reference** (`/scalar/v1`) dan **Swagger UI** (`/swagger`).
 
 ---
 
@@ -295,11 +298,14 @@ Kredensial Default: **`admin@edcl.com`** / **`Password123!`**
 
 ---
 
-## 📡 Dokumentasi & Endpoint API
-
-Backend mengekspos API terstruktur dengan dokumentasi interaktif bawaan:
+## 📡 Dokumentasi, Observabilitas & Endpoint API
+ 
+Backend mengekspos API terstruktur dan stack observabilitas lengkap:
 - **Scalar API Reference**: `http://localhost:5140/scalar/v1`
 - **Swagger UI**: `http://localhost:5140/swagger`
+- **Jaeger Tracing Dashboard**: `http://localhost:16686`
+- **Prometheus Metrics Dashboard**: `http://localhost:9090`
+- **Prometheus Scrape Endpoint**: `http://localhost:5140/metrics`
 - **Health Check Dashboard**: `http://localhost:5140/health`
 - **Hangfire Dashboard**: `http://localhost:5140/hangfire`
 
