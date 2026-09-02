@@ -63,7 +63,7 @@ graph TD
     end
 
     subgraph "Asynchronous Workers & Background Jobs"
-        GpsWorker["🛰️ GpsTracker Worker<br/>(Hangfire, Multi-Vendor Adapter, OSRM)"]:::worker
+        GpsWorker["🛰️ GpsTracker Worker<br/>(Hangfire, Multi-Vendor Adapter, Geofencing)"]:::worker
         IngestionWorker["📥 Ingestion Worker<br/>(CDC Consumer, 5-Stage Delayed Retry, DLQ)"]:::worker
         OutboxWorker["📤 Outbox Worker<br/>(Transactional Outbox Relay)"]:::worker
         ReporterWorker["📊 Reporter Worker<br/>(Aggregated Analytics)"]:::worker
@@ -85,7 +85,6 @@ graph TD
         IDCS["🏭 IDCS Database<br/>(Legacy Manifest System)"]:::external
         GPS["🛰️ 3rd Party GPS APIs<br/>(Innovatrack, Puninar, Muliatrack, Jitra)"]:::external
         FCM["📲 Firebase Cloud Messaging<br/>(Push Notifications)"]:::external
-        OSRM["🗺️ OSRM Engine<br/>(Street-Level Route Simulation)"]:::external
     end
 
     Admin --> WebAdmin
@@ -107,7 +106,6 @@ graph TD
     OutboxWorker -- "Relay Events" --> RabbitMQ
 
     GpsWorker -- "Sync Coordinates" --> GPS
-    GpsWorker -- "Route Waypoints" --> OSRM
     GpsWorker -- "Update Live Locations" --> SQL
     GpsWorker -- "Broadcast Location" --> API
 ```
@@ -146,7 +144,7 @@ graph TD
   Untuk pemantauan aliran data CDC berskala tinggi secara *zero-polling*, backend mengimplementasikan **Server-Sent Events (SSE)** (`text/event-stream`) yang didukung oleh **`System.Threading.Channels`** (`Channel<T>` & `IAsyncEnumerable<T>`). Saat *Ingestion Worker* memproses lonjakan ribuan manifes dari IDCS, metrik throughput dan galat CDC di-*broadcast* seketika ke browser admin tanpa overhead protokol bidirectional WebSockets, lengkap dengan kemampuan *native auto-reconnect*.
 
 - **Pluggable Multi-Vendor GPS Engine (Adapter Pattern)**:
-  Worker `EDCL.Worker.GpsTracker` mengimplementasikan *Adapter Pattern* untuk menstandardisasi integrasi data telemetri dari berbagai vendor GPS (Innovatrack, Puninar, Muliatrack, Jitra). Dilengkapi fitur **GPS Connection Tester** dan **OSRM Real-World Route Simulator** yang mensimulasikan pergerakan armada secara realistis di jalan raya beserta kalkulasi **Geofencing** kedatangan di supplier.
+  Worker `EDCL.Worker.GpsTracker` mengimplementasikan *Adapter Pattern* untuk menstandardisasi integrasi data telemetri dari berbagai vendor GPS (Innovatrack, Puninar, Muliatrack, Jitra). Dilengkapi fitur **GPS Connection Tester** dan kalkulasi **Geofencing** kedatangan armada di supplier.
 
 - **Automated Audit Trail & Soft Deletes**:
   Seluruh entitas turunan `AuditableEntity` otomatis diaudit oleh EF Core `AuditSaveChangesInterceptor` (mengisi `CreatedAt`, `CreatedBy`, `UpdatedAt`, `UpdatedBy`, dan `IsDeleted` secara transparan tanpa intervensi manual di handler).
@@ -330,7 +328,6 @@ Setiap *Virtual User (VU)* menjalankan alur transaksi lengkap:
 | **Change Data Capture** | Debezium 2.5 | SQL Server transaction log tailing untuk IDCS sync |
 | **Background Scheduler** | Hangfire 1.8 | Periodic GPS synchronization & orchestrator jobs |
 | **Push Notification** | Firebase Admin SDK (FCM) | Push notification ke aplikasi Android sopir |
-| **Routing Engine** | OSRM (Open Source Routing) | Perhitungan rute dan simulasi kecepatan armada |
 | **Observability & Tracing**| OpenTelemetry, Jaeger, Prometheus | OTLP distributed tracing waterfall & PromQL metrics scraper |
 | **Frontend Framework** | Angular 19.0 (TypeScript) | Single Page Application berbasis Standalone Components |
 | **UI & Charts** | DaisyUI 4.x, TailwindCSS 3.x, Chart.js | Responsive components & real-time time-series telemetry charts |
