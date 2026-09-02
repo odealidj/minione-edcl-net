@@ -4,6 +4,8 @@ Dokumen ini menjelaskan arsitektur tingkat tinggi dari **EDCL Mini** (Electronic
 
 Pendekatan ini dipilih agar sistem mudah di-maintenance, memiliki batasan (*boundaries*) yang tegas antar domain, namun tetap siap (*ready*) jika di masa depan perlu dipecah menjadi **Microservices**.
 
+---
+
 ## 1. Topologi Sistem & Diagram Arsitektur
 
 Berikut adalah gambaran besar bagaimana komponen-komponen dalam EDCL Mini berinteraksi satu sama lain:
@@ -13,85 +15,99 @@ graph TD
     DriverClient(["📱 Mobile Client (Driver)"])
     WebClient(["💻 Web Client (Admin/AppUser)"])
     Gateway["🚪 API Gateway (YARP)\n:5293\n─────────────────\nRouting & Reverse Proxy\nSingle Point of Entry"]
-    
-    subgraph API_Monolith [EDCL.Api - Modular Monolith]
-        Auth["🔐 Auth Module\n(JWT, Roles, Users, Drivers)"]
-        Job["🚚 Job Module\n(Route, Stop, Kanban)"]
-        Cargo["📦 Cargo Module\n(Manifest, Parts, Skid, Kanban)"]
-        Notif["🔔 Notification Module\n(Alerts, Messages)"]
-    end
-    
-    SQL[("🐘 SQL Server\n:1444\n─────────────────\nDB: EDCLMini\n(Schema per Module)\n+ Outbox Table")]
-    Redis[("🔴 Redis\n:6399\n─────────────────\nDistributed Cache\nIdempotency Keys")]
-    RabbitMQ[["📨 RabbitMQ\n:5672\n─────────────────\nMessage Broker\n(MassTransit)"]]
-    
-    subgraph Background_Workers [Background Workers - Headless]
-        W_Ingest["📥 Worker.Ingestion\n(Consume CDC Events)"]
-        W_Outbox["📤 Worker.Outbox\n(Polling Outbox -> RabbitMQ)"]
-        W_Report["📊 Worker.Reporter\n(Consume Events -> Read Models)"]
+
+    subgraph Host ["EDCL.Api (Host App) - Modular Monolith (:5140)"]
+        direction TB
+        AuthModule["🔒 Auth Module\n(JWT, Users, Roles, Driver Auth)"]
+        JobModule["📦 Job Module\n(PickupOrder, Stops, Assignment, Observability)"]
+        CargoModule["📄 Cargo Module\n(Manifest, Kanban, Parts)"]
+        NotificationModule["🔔 Notification Module\n(FCM Alerts, History Logs)"]
+        DriverModule["🚚 Driver & Master Module\n(Suppliers, Trucks, Routes)"]
     end
 
-    %% Client Interactions
+    subgraph Workers ["Background Workers"]
+        direction TB
+        WorkerIngestion["📥 Ingestion Worker\n(Debezium CDC Consumer)"]
+        WorkerOutbox["📤 Outbox Worker\n(Reliable Event Relay)"]
+        WorkerReporter["📊 Reporter Worker\n(Read-Model Aggregator)"]
+        WorkerGpsTracker["🛰️ GpsTracker Worker\n(Hangfire, GPS Adapters, OSRM)"]
+    end
+
+    subgraph Observability ["Observability Ecosystem"]
+        direction TB
+        Jaeger["📊 Jaeger Tracing (:16686)\n(Distributed OTLP Waterfall)"]
+        Prometheus["📈 Prometheus (:9090)\n(PromQL Scraper /metrics)"]
+    end
+
+    subgraph Infrastructure ["Data & Messaging Layer"]
+        direction TB
+        SQLServer[("🗄️ SQL Server 2022 (:1444)\n──────────────────\nSchema: auth, job, cargo,\ndriver, notification, ingestion")]
+        Redis[("🔴 Redis 7.2 (:6379)\n──────────────────\nDistributed Cache\nIdempotency Key Lock")]
+        RabbitMQ[("🐰 RabbitMQ 3.13 (:5672)\n──────────────────\nMassTransit Event Bus\nDelayed Retry DLX")]
+        Debezium["🔄 Debezium Engine\n(CDC from Legacy IDCS DB)"]
+    end
+
     DriverClient -->|HTTP/REST| Gateway
-    WebClient -->|HTTP/REST| Gateway
-    Gateway -->|"HTTP Internal"| Auth
-    Gateway -->|"HTTP Internal"| Job
-    Gateway -->|"HTTP Internal"| Cargo
-    Gateway -->|"HTTP Internal"| Notif
+    WebClient -->|HTTP/REST / SignalR / SSE| Gateway
+    Gateway -->|Forward| Host
 
-    %% Module DB Interactions (Strict Boundaries, No Cross-Schema FKs)
-    Auth -.->|Read/Write Schema: auth| SQL
-    Job -.->|Read/Write Schema: job| SQL
-    Cargo -.->|Read/Write Schema: ingestion| SQL
-    Notif -.->|Read/Write Schema: notification| SQL
+    Host -->|Reads/Writes| SQLServer
+    Host -->|Cache & Locks| Redis
+    Host -->|Publish Events| RabbitMQ
+    Host -.->|OTLP Traces & Metrics| Jaeger & Prometheus
 
-    %% Cache & Idempotency
-    Job -.->|Cache/Idempotency| Redis
-    Cargo -.->|Cache| Redis
+    Debezium -->|CDC Events| RabbitMQ
+    RabbitMQ -->|Consume| WorkerIngestion
+    WorkerIngestion -->|Upsert Data| SQLServer
 
-    %% Outbox & Event Publishing
-    Job -->|Insert Outbox Same TX| SQL
-    W_Outbox -->|1. Poll Outbox Table| SQL
-    W_Outbox -->|2. Publish Domain Events| RabbitMQ
-    
-    %% Event Consumption & Integration
-    RabbitMQ -->|Consume Events| W_Report
-    RabbitMQ -->|CDC Real-time| W_Ingest
-    W_Ingest -->|Insert Data| SQL
-    
-    style Client fill:#4A90D9,color:#fff
-    style Gateway fill:#F5A623,color:#fff
-    style SQL fill:#336791,color:#fff
-    style Redis fill:#D82C20,color:#fff
-    style RabbitMQ fill:#FF6600,color:#fff
-    style W_Ingest fill:#60BFBF,color:#fff
-    style W_Outbox fill:#60BFBF,color:#fff
-    style W_Report fill:#60BFBF,color:#fff
+    WorkerOutbox -->|Poll Outbox Table| SQLServer
+    WorkerOutbox -->|Publish Messages| RabbitMQ
+
+    RabbitMQ -->|Consume Events| WorkerReporter
+    WorkerReporter -->|Save Reports| SQLServer
+
+    WorkerGpsTracker -->|Sync Coordinates & OSRM| SQLServer
 ```
 
 ---
 
-## 2. Komponen Utama
+## 2. Prinsip & Pola Desain Kunci
 
 ### A. API Gateway (YARP)
-Bertindak sebagai **Single Point of Entry**. Klien (Mobile App) tidak bisa menebak atau mengakses langsung ke *backend* API. Semua *request* akan divalidasi *routing*-nya di level Gateway sebelum diteruskan ke *internal API*. Hal ini juga memudahkan *load balancing* dan migrasi *microservices* (hanya perlu mengubah konfigurasi rute di Gateway tanpa mengubah klien).
+- Bertindak sebagai **Single Point of Entry** bagi seluruh klien luar (Web & Mobile).
+- Mengisolasi arsitektur internal; klien tidak perlu tahu port internal masing-masing modul/worker.
+- Menangani sanitasi *forwarded headers* (`X-Forwarded-For`, `X-Forwarded-Proto`).
 
-### B. EDCL.Api (Modular Monolith)
-Aplikasi inti yang membungkus beberapa modul independen (`Auth`, `Job`, `Cargo`, `Notification`).
+### B. Modular Monolith & Domain Isolation
+Aplikasi inti yang membungkus beberapa modul independen (`Auth`, `Job`, `Cargo`, `Driver`, `Notification`).
 - **Strict Boundaries**: Modul tidak boleh me-*reference* modul lain secara langsung. Komunikasi silang (*cross-domain*) dilakukan secara elegan melalui interface/port di *Shared Kernel* (contoh: `IDriverPort`, `ISupplierPort`). Di fase monolith, ini dieksekusi secara *in-memory* via *Dependency Injection*. Saat migrasi ke *microservices*, port tersebut cukup di-inject dengan *HTTP/gRPC Client* tanpa mengubah *business logic* dari modul pemanggil.
 - **CQRS**: Menggunakan `MediatR` untuk memisahkan *Command* (operasi tulis/ubah data) dan *Query* (operasi baca data). Hal ini mempercepat performa *read* dan mengamankan *write*.
-- **Database Schema per Module (Microservices Ready)**: Meski secara fisik menggunakan 1 Database (`EDCLMini`), setiap modul memiliki skema (*schema*) SQL Server yang terpisah (contoh: `auth`, `job`, `ingestion`, `notification`). Yang paling krusial, **tidak ada Foreign Key constraint antar skema** (misal: Modul Job hanya menyimpan `long DriverId` bukan navigasi objek relasional ke skema Auth). Hal ini membuat migrasi ke *microservices* semudah mengekspor skema ke database fisik terpisah.
+- **Database Schema per Module (Microservices Ready)**: Meski secara fisik menggunakan 1 Database (`EDCLMini`), setiap modul memiliki skema (*schema*) SQL Server yang terpisah (contoh: `auth`, `job`, `cargo`, `driver`, `notification`, `ingestion`). Yang paling krusial, **tidak ada Foreign Key constraint antar skema** (misal: Modul Job hanya menyimpan `long DriverId` bukan navigasi objek relasional ke skema Auth). Hal ini membuat migrasi ke *microservices* semudah mengekspor skema ke database fisik terpisah.
 
 ### C. Infrastruktur Pendukung
-- **SQL Server**: Relational Database Management System utama.
-- **Redis**: Digunakan untuk *Distributed Caching* (mempercepat pengambilan data statis) dan menyimpan status *Idempotency Key* (mencegah *request* duplikat jika aplikasi klien kehilangan koneksi jaringan).
-- **RabbitMQ**: *Message Broker* andalan kita untuk komunikasi *Asynchronous* antar layanan, menggunakan pustaka `MassTransit`.
+- **SQL Server 2022**: Relational Database Management System utama.
+- **Redis 7.2**: Digunakan untuk *Distributed Caching* (mempercepat pengambilan data statis) dan menyimpan status *Idempotency Key* (mencegah *request* duplikat jika aplikasi klien kehilangan koneksi jaringan).
+- **RabbitMQ 3.13**: *Message Broker* andalan kita untuk komunikasi *Asynchronous* antar layanan, menggunakan pustaka `MassTransit` dengan *5-Stage Delayed Retry* dan *Dead Letter Exchange (DLX)*.
 
 ### D. Background Workers
-Pemisahan beban kerja berat agar tidak memblokir antarmuka API klien.
-1. **Worker.Ingestion**: Ujung tombak integrasi data dari sistem *Legacy* (IDCS). Tidak lagi menggunakan *polling* periodik yang membebani database sumber, melainkan mendengarkan aliran data *real-time* via **Change Data Capture (Debezium CDC)** dari RabbitMQ dan menyimpannya ke database internal kita secara aman.
-2. **Worker.Outbox**: Menjamin **Eventual Consistency**. Membaca tabel `Outbox` secara *polling*, lalu melempar kejadian (*Domain Events*) tersebut ke RabbitMQ.
-3. **Worker.Reporter**: Pendengar setia RabbitMQ. Ia mengolah *events* yang dilempar oleh Outbox (misal: "Paket Terkirim") untuk membangun data laporan (*Read Models*) atau mengirimkan notifikasi.
+Pemisahan beban kerja berat agar tidak memblokir antarmuka API klien:
+1. **Worker.Ingestion**: Ujung tombak integrasi data dari sistem *Legacy* (IDCS) via **Change Data Capture (Debezium CDC)**.
+2. **Worker.Outbox**: Menjamin **Eventual Consistency** melalui *Transactional Outbox Pattern*.
+3. **Worker.Reporter**: Mengolah *events* yang dilempar oleh Outbox untuk membangun data laporan (*Read Models*).
+4. **Worker.GpsTracker**: Mengelola tracking GPS armada, simulasi OSRM, geofencing, dan scheduler Hangfire periodik.
+
+### E. Observability & SRE Golden Signals
+Sistem mengimplementasikan instrumentasi terpadu:
+- **OpenTelemetry .NET SDK**: Menyediakan OTLP provider untuk Tracing dan Metrics.
+- **Jaeger (`:16686`)**: Visualisasi *distributed trace waterfall* melacak alur HTTP $\to$ MediatR $\to$ SQL $\to$ Redis $\to$ RabbitMQ.
+- **Prometheus (`:9090`)**: Scraper otomatis terhadap endpoint `/metrics` untuk metrik runtime dan domain logistik.
+- **System Observability Dashboard (`/admin/system-observability`)**: Menampilkan live resource metrics, Service Memory Breakdown Donut Chart, dan Full-Stack Capacity Sizing Guide.
+
+### F. Testing Architecture (Piramida Pengujian)
+- **Unit Tests**: 31 Tests (xUnit, FluentAssertions, Moq) untuk domain logic murni.
+- **Integration Tests (Testcontainers)**: Menjalankan kontainer Docker nyata (SQL Server, Redis, RabbitMQ) saat pengujian endpoint API.
+- **End-to-End Tests**: `DriverJourney_E2ETest.cs` menguji alur login, start job, arrive, scan kanban, complete stop, hingga finish trip.
+- **Load Testing (k6)**: Benchmark skenario konkurensi supir dengan latensi P95 48.15 ms dan 0% failure rate.
 
 ---
 
@@ -102,7 +118,7 @@ Untuk memahami bagaimana arsitektur ini bekerja dari perspektif *request* klien 
 ### Skenario: Driver menyelesaikan rute pemberhentian (Complete Stop)
 
 1. **Inisiasi Klien (Mobile):** Driver menekan tombol "Selesai" di aplikasi. Aplikasi klien mengirim HTTP POST `/api/v1/jobs/stops/1/complete` yang dilengkapi *JWT Token* dan `X-Idempotency-Key` ke API Gateway (Port `5293`).
-2. **Routing (Gateway):** Gateway menerima *request* tersebut dan meneruskannya ke `EDCL.Api` (Port internal `8080`).
+2. **Routing (Gateway):** Gateway menerima *request* tersebut dan meneruskannya ke `EDCL.Api` (Port internal `5140`).
 3. **Validasi Idempotency & Auth:** Pipeline `EDCL.Api` mengecek JWT dan mengecek `X-Idempotency-Key` di **Redis**. Jika *request* ini duplikat (misal user memencet tombol 2 kali secara cepat), API langsung membalas sukses tanpa mengeksekusi ulang kode di bawahnya.
 4. **Command Execution (CQRS):** Request dipetakan menjadi `CompleteStopCommand` lalu ditangkap oleh *Handler* di Modul `Job`.
 5. **Database Transaction (Unit of Work):** 
@@ -110,6 +126,6 @@ Untuk memahami bagaimana arsitektur ini bekerja dari perspektif *request* klien 
    - *Handler* membuat `StopCompletedEvent` dan menambahkannya ke entitas.
    - Entity Framework menyimpannya ke SQL Server (Schema `job`). Bersamaan dengan itu (dalam 1 Transaksi Database yang sama), *Domain Event* tadi di-serialize menjadi JSON dan dimasukkan ke dalam tabel **Outbox**.
    - Ini memastikan prinsip ACID: Jika perubahan status gagal, *Event* tidak akan masuk Outbox.
-6. **Respons Sinkron (Instan):** Setelah *commit* ke DB selesai, `EDCL.Api` segera mengembalikan HTTP `200 OK` ke klien. (Proses API selesai sangat cepat, tidak menunggu notifikasi/sistem lain).
+6. **Respons Sinkron (Instan):** Setelah *commit* ke DB selesai, `EDCL.Api` segera mengembalikan HTTP `200 OK` ke klien.
 7. **Relay Asinkron (Worker Outbox):** Di *background*, `Worker.Outbox` yang melakukan *polling* ke SQL Server menyadari ada pesan baru di tabel Outbox. Worker ini mengambil pesan tersebut dan mem-*publish*-nya ke **RabbitMQ**. Jika berhasil ter-*publish*, pesannya ditandai sebagai *Processed* di database.
 8. **Reaksi Lanjutan (Worker Reporter / Notif):** Pesan di RabbitMQ didengarkan oleh `Worker.Reporter` atau Modul `Notification`. Mereka secara asinkron (tanpa mengganggu *driver*) memproses pesan tersebut untuk membuat rekap laporan *delay* atau men-*trigger* Push Notification ke sistem pusat.

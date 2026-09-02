@@ -1,155 +1,116 @@
 # Web UI to API Mapping (Functional Overview)
 
-Dokumen ini memetakan tampilan antarmuka (UI) aplikasi Web Dashboard (Admin/Staff) dengan Endpoint API yang sesuai di sisi Backend (EDCL Mini).
+Dokumen ini memetakan seluruh tampilan antarmuka (UI) aplikasi Web Dashboard (Admin/Staff) dengan Endpoint API yang sesuai di sisi Backend (EDCL Mini).
 
 ---
 
-## 1. Web Login (Admin & Staff)
+## 1. 🔑 Autentikasi & Manajemen Pengguna Web
 
-Tampilan awal aplikasi Web untuk Admin Logistic Partner atau Staff Pabrik masuk ke dalam sistem.
+### A. Web Login (`/login`)
+- **Endpoint**: `POST /api/v1/auth/users/login`
+- **Request**: `{ "email": "admin@edcl.com", "password": "Password123!" }`
+- **Response**: `{ "data": { "userId": "...", "roles": ["ADMIN"], "accessToken": "..." } }`
 
-**Tampilan:** Halaman Login Web (`/login`)
+### B. Auto-Refresh Token
+- **Endpoint**: `POST /api/v1/auth/users/refresh-token`
+- **Deskripsi**: Di-trigger otomatis oleh HTTP Interceptor saat terjadi HTTP 401 Unauthorized tanpa memutus sesi user.
 
-**Deskripsi Alur:**
-1. Pengguna memasukkan Email dan Password.
-2. Web memanggil `POST /api/v1/auth/users/login` dengan kredensial tersebut.
-3. Backend memverifikasi *hash* Password. Jika cocok, Backend menerbitkan JWT Access Token.
-4. Token disimpan (misalnya di `localStorage` atau `HttpOnly Cookies`) dan pengguna diarahkan ke Dashboard.
-
-### API Endpoints Terkait
-
-#### A. Eksekusi Login
-- **URL:** `POST /api/v1/auth/users/login`
-- **Method:** `POST`
-- **Auth:** *(None / Public)*
-
-**Request Body:**
-```json
-{
-  "email": "admin@edcl.com",
-  "password": "Password123!" 
-}
-```
-
-**Contoh Request (cURL):**
-```bash
-curl -X POST http://localhost:5000/api/v1/auth/users/login \
-  -H "Content-Type: application/json" \
-  -d '{"email": "admin@edcl.com", "password": "Password123!"}'
-```
-
-**Contoh Response (Success):**
-```json
-{
-  "success": true,
-  "traceId": "0HN...:00000003",
-  "data": {
-    "userId": "guid-uuid-string",
-    "name": "Super Admin",
-    "email": "admin@edcl.com",
-    "roles": ["ADMIN"],
-    "accessToken": "eyJhbGci...",
-    "accessTokenExpiresAt": "2024-04-21T10:15:00Z"
-  }
-}
-```
+### C. Manajemen Pengguna (`/admin/users`)
+- **List Users**: `GET /api/v1/auth/users`
+- **Update Role User**: `PUT /api/v1/auth/users/{id}/role`
 
 ---
 
----
+## 2. 📊 System Observability & Health (`/admin/system-observability`)
 
-## 2. Manajemen Pengguna Web (Registrasi Web)
+Tampilan pemantauan performa real-time, telemetri OpenTelemetry, dan panduan kapasitas infrastruktur.
 
-Tampilan untuk mendaftarkan akun baru bagi Admin Logistic Partner atau Staff Pabrik. Saat ini bisa diakses *Public* untuk keperluan *setup* awal, namun ke depan akan diproteksi khusus Admin.
-
-**Tampilan:** Halaman Tambah Pengguna Web
-
-### API Endpoints Terkait
-
-#### A. Registrasi Pengguna Web Baru
-- **URL:** `POST /api/v1/auth/users/register`
-- **Method:** `POST`
-- **Auth:** *(None / Public sementara)*
-
-**Request Body:**
-```json
-{
-  "name": "Admin Bintang Logistik",
-  "email": "admin.bintang@edcl.com",
-  "password": "Password123!",
-  "roleCode": "ADMIN"
-}
-```
-
-**Contoh Request (cURL):**
-```bash
-curl -X POST http://localhost:5000/api/v1/auth/users/register \
-  -H "Content-Type: application/json" \
-  -d '{"name": "Admin Bintang Logistik", "email": "admin.bintang@edcl.com", "password": "Password123!", "roleCode": "ADMIN"}'
-```
-
-**Contoh Response (Success - 201 Created):**
-```json
-{
-  "success": true,
-  "traceId": "0HN...:00000005",
-  "data": {
-    "id": 2,
-    "name": "Admin Bintang Logistik",
-    "email": "admin.bintang@edcl.com",
-    "roleCode": "ADMIN"
-  }
-}
-```
+- **Endpoint**: `GET /api/v1/web/admin/observability/metrics`
+- **Auth**: `Bearer JWT Token` (Role: `ADMIN`)
+- **Komponen UI**:
+  - **4 Stat Cards**: CPU %, RAM Working Set (MB) & GC, Idempotency Shield count, CDC events throughput.
+  - **2 Time-Series Charts (Chart.js)**: CPU & RAM Trend (Dual y-axis) dan Throughput (Requests/sec).
+  - **Card Memory Allocation by Service**: Donut Chart & Tabel alokasi RAM 5 proses .NET (`EDCL.Api`, `EDCL.Worker.Ingestion`, `EDCL.Worker.GpsTracker`, `EDCL.Gateway`, `EDCL.Worker.Outbox` $\to$ Cluster Total: ~695 MB).
+  - **Card Full-Stack Infrastructure Sizing**: Donut Chart & Tabel alokasi seluruh ekosistem (SQL Server ~1.45 GB, .NET App ~700 MB, Linux OS ~450 MB, Debezium ~180 MB, Jaeger/Prometheus ~120 MB, RabbitMQ ~115 MB, Redis ~28 MB) + 3 Rekomendasi Host (Min Dev 4 GB, Prod 8 GB, Multi-Server).
+  - **Infrastructure Health Probes**: Live status probe untuk SQL Server, Redis, RabbitMQ.
+  - **Launchpad**: Tautan langsung ke Jaeger (`:16686`), Prometheus (`:9090`), Hangfire (`:5140/hangfire`), RabbitMQ (`:15672`), dan `/metrics`.
 
 ---
 
-## 3. Manajemen Driver (Registrasi Driver)
+## 3. 📋 Route Planning & Manifest Management (`/admin/route-planning`)
 
-Tampilan untuk mendaftarkan Driver baru oleh Admin. Driver yang didaftarkan di sini secara otomatis akan mendapatkan PIN bawaan (misal: 123456) dan akan diwajibkan mengganti PIN saat masuk pertama kali di Aplikasi Mobile.
+Tampilan perancangan rute pickup multi-stop harian untuk armada logistik.
 
-**Tampilan:** Halaman Tambah Driver
+### A. List Route Plans
+- **Endpoint**: `GET /api/v1/web/admin/pickup-orders?page=1&pageSize=10`
+- **Fitur**: Filter berdasarkan status (`PENDING`, `ON_PROGRESS`, `COMPLETED`), tanggal, dan rute.
 
-### API Endpoints Terkait
+### B. Form Create / Edit Route Plan (`/admin/route-planning/:id`)
+- **Create**: `POST /api/v1/web/admin/pickup-orders`
+- **Edit**: `PUT /api/v1/web/admin/pickup-orders/{id}`
+- **Delete**: `DELETE /api/v1/web/admin/pickup-orders/{id}` (Hanya jika status `PENDING`)
+- **Fitur Khusus**:
+  - Drag-and-drop urutan stop menggunakan `@angular/cdk/drag-drop`.
+  - Multi-manifest selection modal dengan filter supplier.
+  - Smart cross-filter supir dan truk berdasarkan *Logistic Partner* rute.
 
-#### A. Registrasi Driver Baru
-- **URL:** `POST /api/v1/auth/drivers`
-- **Method:** `POST`
-- **Auth:** Bearer Token (Diwajibkan)
-
-**Request Body:**
-```json
-{
-  "name": "Budi Santoso",
-  "nik": "DRV-1029",
-  "phoneNumber": "081999888777",
-  "logistic-partnerId": 1
-}
-```
-
-**Contoh Request (cURL):**
-```bash
-curl -X POST http://localhost:5000/api/v1/auth/drivers \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5c..." \
-  -H "Content-Type: application/json" \
-  -d '{"name": "Budi Santoso", "nik": "DRV-1029", "phoneNumber": "081999888777", "logistic-partnerId": 1}'
-```
-
-**Contoh Response (Success - 201 Created):**
-```json
-{
-  "success": true,
-  "traceId": "0HN...:00000006",
-  "data": {
-    "id": 5,
-    "name": "Budi Santoso",
-    "nik": "DRV-1029",
-    "phoneNumber": "081999888777",
-    "logistic-partnerId": 1
-  }
-}
-```
+### C. Assign & Force Complete
+- **Assign Driver & Truck**: `POST /api/v1/web/admin/pickup-orders/{id}/assign`
+- **Force Complete (Admin Action)**: `POST /api/v1/web/admin/pickup-orders/{id}/complete`
 
 ---
 
-*(Dokumen ini akan terus diperbarui secara bertahap seiring bertambahnya fitur Web).*
+## 4. 🗺️ Live Fleet Tracking & Operational Dashboard (`/dashboard`)
+
+Peta operasional pemantauan pergerakan armada secara real-time.
+
+- **KPI Summary**: `GET /api/v1/web/admin/dashboard/summary` (Total order, pending, on progress, completed, kanban count, Hangfire jobs).
+- **Live Fleets Coordinates**: `GET /api/v1/web/admin/dashboard/live-fleets`
+- **SignalR Real-Time Stream**: `ws://localhost:5140/hubs/tracking` (Menerima broadcast pembaruan posisi truk aktif secara instan).
+- **Fitur Peta Leaflet**: Marker truk bergerak adaptif, info popup detail PO & sopir, status geofencing kedatangan di supplier.
+
+---
+
+## 5. ⚡ Sync Command Center & CDC Monitoring (`/admin/sync-monitoring`)
+
+Pusat kendali sinkronisasi Change Data Capture (CDC) dari sistem IDCS.
+
+- **Aliran Real-Time**: Server-Sent Events (SSE) `GET /api/v1/web/admin/sync-monitoring/live-stream`
+- **Histori Sesi**: `GET /api/v1/web/admin/sync-monitoring/sessions`
+- **Dead Letter Queue (DLQ) Resolution**:
+  - Tinjau pesan error di `edcl_ingestion_faults`.
+  - Tombol **Re-Queue All** / **Resolve Fault** langsung dari UI.
+
+---
+
+## 6. 🚚 Delivery Monitoring (`/operations/monitoring`)
+
+Monitoring status pengiriman perhentian sopir (*Supplier Stops*).
+
+- **Endpoint**: `GET /api/v1/web/admin/delivery-monitoring`
+- **Fitur**: Tracking status perhentian (*Arrived, Picked Up, Verified*) dan alert keterlambatan keberangkatan.
+
+---
+
+## 7. 🔔 Notification Logs & Alerts (`/admin/notification-logs`)
+
+Audit trail pengiriman notifikasi FCM ke aplikasi mobile supir.
+
+- **List Logs**: `GET /api/v1/web/admin/notifications/logs?page=1&pageSize=10`
+- **Resend Notification**: `POST /api/v1/web/admin/notifications/{id}/resend`
+- **Unread Alerts**: `GET /api/v1/web/admin/notifications/alerts`
+- **Acknowledge Alert**: `PUT /api/v1/web/admin/notifications/alerts/{id}/acknowledge`
+
+---
+
+## 8. 🗄️ Master Data Management
+
+| Menu | Path UI | Endpoint API | Deskripsi |
+|---|---|---|---|
+| **Driver** | `/master/driver` | `GET/POST/PUT/DELETE /api/v1/auth/drivers` | Manajemen supir, NIK, No HP, & Toggle Status |
+| **Supplier** | `/master/supplier` | `GET/POST/PUT/DELETE /api/v1/web/master/suppliers` | Pabrik supplier, koordinat lat/lng, radius geofence |
+| **Truck** | `/master/truck` | `GET/POST/PUT/DELETE /api/v1/web/master/trucks` | Plat nomor, tipe kendaraan, kapasitas |
+| **Truck Assignment** | `/master/truck-assignments` | `POST /api/v1/web/master/trucks/{id}/assign` | Pasangkan supir dengan kendaraan |
+| **Logistic Partner** | `/master/logisticPartner` | `GET/POST/PUT/DELETE /api/v1/web/master/logistic-partners` | Vendor logistik & Assign GPS Vendor modal |
+| **GPS Vendor** | `/master/gps-vendor` | `GET/POST/PUT/DELETE /api/v1/web/master/gps-vendors` | API Key vendor GPS & Tombol Test Connection |
+| **Route & Cycle** | `/master/route` | `GET/POST/PUT/DELETE /api/v1/web/master/routes` | Master kode rute, siklus, & Logistic Partner filter |
