@@ -1,6 +1,6 @@
 # Architecture Overview (EDCL Mini)
 
-Dokumen ini menjelaskan arsitektur tingkat tinggi dari **EDCL Mini** (Express Delivery Cargo Logistic). Sistem ini dibangun menggunakan arsitektur **Modular Monolith** dengan pola **Hexagonal Architecture** dan **CQRS** (Command Query Responsibility Segregation). 
+Dokumen ini menjelaskan arsitektur tingkat tinggi dari **EDCL Mini** (Electronic Delivery Check List). Sistem ini dibangun menggunakan arsitektur **Modular Monolith** dengan pola **Hexagonal Architecture** dan **CQRS** (Command Query Responsibility Segregation). 
 
 Pendekatan ini dipilih agar sistem mudah di-maintenance, memiliki batasan (*boundaries*) yang tegas antar domain, namun tetap siap (*ready*) jika di masa depan perlu dipecah menjadi **Microservices**.
 

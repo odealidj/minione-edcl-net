@@ -1,6 +1,6 @@
 # EDCL Mini - Backend
 
-EDCL Mini adalah proyek simulasi logistik (*Express Delivery Cargo Logistic*) dengan pendekatan arsitektur tingkat lanjut (**Modular Monolith** & **Hexagonal Architecture**) yang dirancang agar siap bermigrasi ke **Microservices** kapan saja.
+EDCL Mini adalah proyek simulasi logistik (*Electronic Delivery Check List*) dengan pendekatan arsitektur tingkat lanjut (**Modular Monolith** & **Hexagonal Architecture**) yang dirancang agar siap bermigrasi ke **Microservices** kapan saja.
 
 ## 🏗️ Architecture & Stack
 

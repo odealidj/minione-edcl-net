@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🚚 EDCL — Express Delivery Cargo Logistic
+# 🚚 EDCL — Electronic Delivery Check List
 
 **Sistem manajemen logistik pickup & delivery end-to-end berstandar *Enterprise* untuk industri manufaktur dan otomotif.**
 
@@ -19,7 +19,7 @@
 
 ## 📖 Ringkasan Eksekutif
 
-**EDCL** (*Express Delivery Cargo Logistic*) adalah platform logistik terdistribusi (*distributed logistics platform*) yang dirancang untuk mengelola seluruh siklus hidup rantai pasok pengiriman manufaktur — mulai dari perencanaan rute multi-stop, penugasan armada dan pengemudi, pelacakan armada real-time (IoT GPS), hingga sinkronisasi data manifes dari sistem eksternal (IDCS) menggunakan arsitektur **Event-Driven Change Data Capture (CDC)**.
+**EDCL** (*Electronic Delivery Check List*) adalah platform logistik terdistribusi (*distributed logistics platform*) yang dirancang untuk mengelola seluruh siklus hidup rantai pasok pengiriman manufaktur — mulai dari perencanaan rute multi-stop, penugasan armada dan pengemudi, pelacakan armada real-time (IoT GPS), hingga sinkronisasi data manifes dari sistem eksternal (IDCS) menggunakan arsitektur **Event-Driven Change Data Capture (CDC)**.
 
 Dibangun dengan standar **Clean Architecture**, **Modular Monolith**, dan **Domain-Driven Design (DDD)** di atas **.NET 10** dan **Angular 19**, sistem ini siap diskalakan atau dipecah menjadi **Microservices** mandiri tanpa merombak logika bisnis inti.
 
