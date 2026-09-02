@@ -323,7 +323,7 @@
               </tr>
             </thead>
             <tbody>
-              @for (item of metrics()?.memoryBreakdown; track item.serviceName) {
+              @for (item of getMemoryBreakdown(); track item.serviceName) {
                 <tr class="hover:bg-base-200/50 transition-colors">
                   <td>
                     <div class="flex items-start gap-2 py-0.5">
