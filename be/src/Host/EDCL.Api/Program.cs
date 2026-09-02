@@ -142,12 +142,27 @@ try
 
     var app = builder.Build();
 
-    // ── Apply Migrations on Startup ───────────────────────────────────────────
-    await app.Services.ApplyAuthMigrationsAsync();
-    await app.Services.ApplyDriverMigrationsAsync();
-    await app.Services.ApplyJobMigrationsAsync();
-    await app.Services.ApplyCargoMigrationsAsync();
-    await app.Services.ApplyNotificationMigrationsAsync();
+    // ── Apply Migrations on Startup (Resilient Startup) ─────────────────────
+    int migrationRetries = 0;
+    while (true)
+    {
+        try
+        {
+            await app.Services.ApplyAuthMigrationsAsync();
+            await app.Services.ApplyDriverMigrationsAsync();
+            await app.Services.ApplyJobMigrationsAsync();
+            await app.Services.ApplyCargoMigrationsAsync();
+            await app.Services.ApplyNotificationMigrationsAsync();
+            Log.Information("Database migrations applied successfully.");
+            break;
+        }
+        catch (Exception ex) when (migrationRetries < 15)
+        {
+            migrationRetries++;
+            Log.Warning(ex, "Database not ready for migrations yet (attempt {Retries}/15, Error: {Message}). Retrying in 2 seconds...", migrationRetries, ex.Message);
+            await Task.Delay(2000);
+        }
+    }
 
     // ── Middleware Pipeline ───────────────────────────────────────────────────
     app.UseForwardedHeaders();

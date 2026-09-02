@@ -74,11 +74,14 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
-      - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=edcl;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;
+      - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=edcl;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;Encrypt=false;
+      - ConnectionStrings__EdclDb=Server=sqlserver,1433;Database=edcl;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;Encrypt=false;
       - ConnectionStrings__IdcsDb=Server=host.docker.internal,1466;Database=IDCS;User Id=sa;Password=IdcsPassword123!;TrustServerCertificate=true;Encrypt=false;
       - ConnectionStrings__RedisConnection=redis:6379,abortConnect=false
       - ConnectionStrings__RabbitMqConnection=amqp://guest:guest@rabbitmq:5672/
       - ASPNETCORE_ENVIRONMENT=Development
+    ports:
+      - "5140:8080"
 
   edcl-gateway:
     build:
