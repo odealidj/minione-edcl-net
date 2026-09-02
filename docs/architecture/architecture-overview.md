@@ -1,14 +1,10 @@
 # Architecture Overview (EDCL Mini)
 
-Dokumen ini menjelaskan arsitektur tingkat tinggi dari **EDCL Mini** (Electronic Delivery Check List). Sistem ini dibangun menggunakan arsitektur **Modular Monolith** dengan pola **Hexagonal Architecture** dan **CQRS** (Command Query Responsibility Segregation). 
-
-Pendekatan ini dipilih agar sistem mudah di-maintenance, memiliki batasan (*boundaries*) yang tegas antar domain, namun tetap siap (*ready*) jika di masa depan perlu dipecah menjadi **Microservices**.
+Arsitektur sistem **EDCL Mini** berbasis **Modular Monolith**, **Hexagonal Architecture (Ports & Adapters)**, dan **CQRS**, siap dimigrasikan ke **Microservices**.
 
 ---
 
 ## 1. Topologi Sistem & Diagram Arsitektur
-
-Berikut adalah gambaran besar bagaimana komponen-komponen dalam EDCL Mini berinteraksi satu sama lain:
 
 ```mermaid
 graph TD
@@ -73,59 +69,29 @@ graph TD
 
 ## 2. Prinsip & Pola Desain Kunci
 
-### A. API Gateway (YARP)
-- Bertindak sebagai **Single Point of Entry** bagi seluruh klien luar (Web & Mobile).
-- Mengisolasi arsitektur internal; klien tidak perlu tahu port internal masing-masing modul/worker.
-- Menangani sanitasi *forwarded headers* (`X-Forwarded-For`, `X-Forwarded-Proto`).
-
-### B. Modular Monolith & Domain Isolation
-Aplikasi inti yang membungkus beberapa modul independen (`Auth`, `Job`, `Cargo`, `Driver`, `Notification`).
-- **Strict Boundaries**: Modul tidak boleh me-*reference* modul lain secara langsung. Komunikasi silang (*cross-domain*) dilakukan secara elegan melalui interface/port di *Shared Kernel* (contoh: `IDriverPort`, `ISupplierPort`). Di fase monolith, ini dieksekusi secara *in-memory* via *Dependency Injection*. Saat migrasi ke *microservices*, port tersebut cukup di-inject dengan *HTTP/gRPC Client* tanpa mengubah *business logic* dari modul pemanggil.
-- **CQRS**: Menggunakan `MediatR` untuk memisahkan *Command* (operasi tulis/ubah data) dan *Query* (operasi baca data). Hal ini mempercepat performa *read* dan mengamankan *write*.
-- **Database Schema per Module (Microservices Ready)**: Meski secara fisik menggunakan 1 Database (`EDCLMini`), setiap modul memiliki skema (*schema*) SQL Server yang terpisah (contoh: `auth`, `job`, `cargo`, `driver`, `notification`, `ingestion`). Yang paling krusial, **tidak ada Foreign Key constraint antar skema** (misal: Modul Job hanya menyimpan `long DriverId` bukan navigasi objek relasional ke skema Auth). Hal ini membuat migrasi ke *microservices* semudah mengekspor skema ke database fisik terpisah.
-
-### C. Infrastruktur Pendukung
-- **SQL Server 2022**: Relational Database Management System utama.
-- **Redis 7.2**: Digunakan untuk *Distributed Caching* (mempercepat pengambilan data statis) dan menyimpan status *Idempotency Key* (mencegah *request* duplikat jika aplikasi klien kehilangan koneksi jaringan).
-- **RabbitMQ 3.13**: *Message Broker* andalan kita untuk komunikasi *Asynchronous* antar layanan, menggunakan pustaka `MassTransit` dengan *5-Stage Delayed Retry* dan *Dead Letter Exchange (DLX)*.
-
-### D. Background Workers
-Pemisahan beban kerja berat agar tidak memblokir antarmuka API klien:
-1. **Worker.Ingestion**: Ujung tombak integrasi data dari sistem *Legacy* (IDCS) via **Change Data Capture (Debezium CDC)**.
-2. **Worker.Outbox**: Menjamin **Eventual Consistency** melalui *Transactional Outbox Pattern*.
-3. **Worker.Reporter**: Mengolah *events* yang dilempar oleh Outbox untuk membangun data laporan (*Read Models*).
-4. **Worker.GpsTracker**: Mengelola tracking GPS armada, simulasi OSRM, geofencing, dan scheduler Hangfire periodik.
-
-### E. Observability & SRE Golden Signals
-Sistem mengimplementasikan instrumentasi terpadu:
-- **OpenTelemetry .NET SDK**: Menyediakan OTLP provider untuk Tracing dan Metrics.
-- **Jaeger (`:16686`)**: Visualisasi *distributed trace waterfall* melacak alur HTTP $\to$ MediatR $\to$ SQL $\to$ Redis $\to$ RabbitMQ.
-- **Prometheus (`:9090`)**: Scraper otomatis terhadap endpoint `/metrics` untuk metrik runtime dan domain logistik.
-- **System Observability Dashboard (`/admin/system-observability`)**: Menampilkan live resource metrics, Service Memory Breakdown Donut Chart, dan Full-Stack Capacity Sizing Guide.
-
-### F. Testing Architecture (Piramida Pengujian)
-- **Unit Tests**: 31 Tests (xUnit, FluentAssertions, Moq) untuk domain logic murni.
-- **Integration Tests (Testcontainers)**: Menjalankan kontainer Docker nyata (SQL Server, Redis, RabbitMQ) saat pengujian endpoint API.
-- **End-to-End Tests**: `DriverJourney_E2ETest.cs` menguji alur login, start job, arrive, scan kanban, complete stop, hingga finish trip.
-- **Load Testing (k6)**: Benchmark skenario konkurensi supir dengan latensi P95 48.15 ms dan 0% failure rate.
+- **API Gateway (Microsoft YARP)**: Single entry point pada port `5293`. Menangani reverse proxy, path routing, sanitasi header (`X-Forwarded-*`), dan load balancing internal.
+- **Domain Isolation & Modular Monolith**: 5 modul terpisah (`Auth`, `Job`, `Cargo`, `Driver`, `Notification`) tanpa foreign key lintas skema fisik database (`auth.*`, `job.*`, `cargo.*`, dll.). Komunikasi lintas modul melalui interface contract di `Shared.Kernel` atau asynchronous events via RabbitMQ.
+- **CQRS & MediatR Pipeline**: Pemisahan Command (Write Model) dan Query (Read Model). Didukung pipeline behavior untuk validasi, logging, dan idempotency locking.
+- **Infrastruktur Terdistribusi**:
+  - **SQL Server 2022**: Skema terisolasi per modul dengan Optimistic Concurrency Control (`RowVersion`).
+  - **Redis 7.2**: Distributed cache dan lock idempotency (`X-Idempotency-Key`).
+  - **RabbitMQ 3.13 (MassTransit)**: Message broker dengan 5-Stage Delayed Retry Queue dan Dead-Letter Exchange (DLX).
+  - **Debezium 2.5 CDC**: Log tailing SQL Server IDCS untuk streaming perubahan data transaksi manifes.
+- **Asynchronous Workers**:
+  1. `Worker.Ingestion`: Konsumsi dan pemrosesan stream CDC Debezium.
+  2. `Worker.Outbox`: Menjamin *At-Least-Once Delivery* melalui Transactional Outbox Pattern.
+  3. `Worker.Reporter`: Agregasi data laporan read-model.
+  4. `Worker.GpsTracker`: Sinkronisasi telemetri GPS multi-vendor dan geofencing via Hangfire.
+- **Observability**: OpenTelemetry OTLP tracing ke Jaeger (`:16686`) dan scraping metrik Prometheus (`:9090`).
 
 ---
 
-## 3. Narasi Alur Eksekusi (Contoh Kasus: Complete Stop)
+## 3. Alur Transaksi End-to-End (`Complete Stop`)
 
-Untuk memahami bagaimana arsitektur ini bekerja dari perspektif *request* klien hingga *database* dan *message broker*, berikut adalah urutan eksekusinya:
-
-### Skenario: Driver menyelesaikan rute pemberhentian (Complete Stop)
-
-1. **Inisiasi Klien (Mobile):** Driver menekan tombol "Selesai" di aplikasi. Aplikasi klien mengirim HTTP POST `/api/v1/jobs/stops/1/complete` yang dilengkapi *JWT Token* dan `X-Idempotency-Key` ke API Gateway (Port `5293`).
-2. **Routing (Gateway):** Gateway menerima *request* tersebut dan meneruskannya ke `EDCL.Api` (Port internal `5140`).
-3. **Validasi Idempotency & Auth:** Pipeline `EDCL.Api` mengecek JWT dan mengecek `X-Idempotency-Key` di **Redis**. Jika *request* ini duplikat (misal user memencet tombol 2 kali secara cepat), API langsung membalas sukses tanpa mengeksekusi ulang kode di bawahnya.
-4. **Command Execution (CQRS):** Request dipetakan menjadi `CompleteStopCommand` lalu ditangkap oleh *Handler* di Modul `Job`.
-5. **Database Transaction (Unit of Work):** 
-   - *Handler* mengubah status `Stop` menjadi `Completed` di memori.
-   - *Handler* membuat `StopCompletedEvent` dan menambahkannya ke entitas.
-   - Entity Framework menyimpannya ke SQL Server (Schema `job`). Bersamaan dengan itu (dalam 1 Transaksi Database yang sama), *Domain Event* tadi di-serialize menjadi JSON dan dimasukkan ke dalam tabel **Outbox**.
-   - Ini memastikan prinsip ACID: Jika perubahan status gagal, *Event* tidak akan masuk Outbox.
-6. **Respons Sinkron (Instan):** Setelah *commit* ke DB selesai, `EDCL.Api` segera mengembalikan HTTP `200 OK` ke klien.
-7. **Relay Asinkron (Worker Outbox):** Di *background*, `Worker.Outbox` yang melakukan *polling* ke SQL Server menyadari ada pesan baru di tabel Outbox. Worker ini mengambil pesan tersebut dan mem-*publish*-nya ke **RabbitMQ**. Jika berhasil ter-*publish*, pesannya ditandai sebagai *Processed* di database.
-8. **Reaksi Lanjutan (Worker Reporter / Notif):** Pesan di RabbitMQ didengarkan oleh `Worker.Reporter` atau Modul `Notification`. Mereka secara asinkron (tanpa mengganggu *driver*) memproses pesan tersebut untuk membuat rekap laporan *delay* atau men-*trigger* Push Notification ke sistem pusat.
+1. **Client Request**: Driver mengirim `POST /api/v1/jobs/stops/{id}/complete` via YARP Gateway (`:5293`) dengan header JWT dan `X-Idempotency-Key`.
+2. **Idempotency Check**: Middleware memvalidasi key di Redis. Jika duplikat, kembalikan cached response seketika.
+3. **Command Handling (CQRS)**: `CompleteStopCommand` diproses oleh handler modul `Job`.
+4. **Transactional Outbox (Unit of Work)**: Status stop diperbarui ke `COMPLETED`, dan `StopCompletedEvent` disimpan ke tabel Outbox dalam transaksi database yang sama (ACID).
+5. **Fast Response**: API mengembalikan respons `200 OK` ke klien mobile.
+6. **Async Relay (Worker Outbox)**: `Worker.Outbox` membaca event dari tabel Outbox dan mem-publish-nya ke RabbitMQ.
+7. **Async Reaction**: Modul `Notification` dan `Worker.Reporter` mengonsumsi event untuk memicu push notification FCM dan memperbarui laporan.

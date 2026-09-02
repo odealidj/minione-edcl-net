@@ -1,16 +1,15 @@
 # Arsitektur Sistem: Penyelesaian Pekerjaan (End Job)
 
-Dokumen ini menguraikan arsitektur dan pola teknis implementasi penyelesaian tugas pengiriman operasional (End Job) dalam arsitektur modul `Job`.
+Spesifikasi teknis dan alur eksekusi penyelesaian pekerjaan (*End Job*) pada modul `Job`.
+
+---
 
 ## 1. Spesifikasi Endpoint API
 
-Aplikasi klien (Mobile) berinteraksi dengan API sentral untuk mengubah *state* (*Domain Entity*) dari pekerjaan saat ini.
-
-- **URL:** `POST /api/v1/jobs/{PickupOrderId}/end`
-- **Method:** `POST`
-- **Otorisasi:** `Bearer Token` (ID Driver harus sama dengan pemilik *Job*).
-- **Format Payload:** JSON
-- **Body Request:**
+- **URL**: `POST /api/v1/mobile/driver/jobs/{PickupOrderId}/end`
+- **Auth**: `Bearer JWT Token` (Driver)
+- **Headers**: `X-Idempotency-Key` (UUIDv4)
+- **Payload**:
   ```json
   {
     "latitude": -6.312151,
@@ -18,77 +17,48 @@ Aplikasi klien (Mobile) berinteraksi dengan API sentral untuk mengubah *state* (
   }
   ```
 
-## 2. Pemrosesan Logika Bisnis (CQRS)
+---
 
-Penyelesaian *job* ditangani oleh *Command* `EndJobCommand` dan dieksekusi melalui Handler `EndJobCommandHandler.cs` menggunakan *library* MediatR.
+## 2. Aturan Bisnis & Validasi (Domain Model)
 
-### a. Validasi Kepemilikan & Integritas (*Validation*)
-1. Sistem mencari identitas pekerjaan melalui `PickupOrderId`. Jika tidak ada, kembalikan galat `404 Not Found`.
-2. Sistem mencocokkan `job.DriverId` dengan ID pemanggil (Driver) pada *token*. Jika berbeda, kembalikan galat `401 Unauthorized`.
-3. Sistem memanggil modul domain `job.Complete()`, yang mana di dalamnya akan diperiksa ulang:
-   - Jika status pekerjaan saat ini bukanlah `ON_PROGRESS`, sistem akan melempar *InvalidOperationException*.
-   - Jika masih ada titik (Supplier) yang statusnya bukan `PICKED_UP`, sistem juga akan melempar *InvalidOperationException*.
+1. **Ownership**: `job.DriverId` wajib cocok dengan klaim JWT pemanggil.
+2. **State Transition**: `job.Status` harus dalam status `ON_PROGRESS`.
+3. **Stop Completion**: Seluruh `PickupOrderDetail` (Supplier Stops) harus sudah berstatus `PICKED_UP`.
+4. **Geofence Audit**: Koordinat GPS server-side dicatat untuk audit lokasi penyelesaian tugas di plant.
+5. **State Mutation**: `status` $\to$ `COMPLETED`, `completed_at` $\to$ `DateTime.UtcNow`.
+6. **Integration Event**: Memicu `JobCompletedIntegrationEvent` melalui outbox/notification port.
 
-### b. Logika Geofencing Server-Side (Opsional/Ekstensi)
-Meskipun aplikasi Mobile memicu "END JOB" berdasarkan pembacaan Geofence lokal mereka, Backend API tetap menyediakan parameter `Latitude` dan `Longitude` sebagai pilar keamanan. Hal ini memungkinkan Backend untuk menghitung validasi jarak (`CalculateDistance()`) untuk memastikan bahwa aplikasi Mobile tidak diretas (lokasi palsu) dan Driver sungguh berada di kawasan TMMIN.
+---
 
-### c. Pembaruan State Database
-- Jika lolos validasi, Backend mengeksekusi *UpdateAsync* ke repositori SQL.
-- Kolom yang terdampak pada tabel `job.pickup_orders`:
-  - `status` berubah dari `ON_PROGRESS` menjadi `COMPLETED`.
-  - `completed_at` di-set menjadi waktu UTC server saat eksekusi.
-
-## 3. Sistem Notifikasi Asynchronous (Event Driven)
-
-Setelah operasi ke *Database* selesai dengan aman (*transaction committed*), sistem tidak langsung memberi balikan kosong. API memanfaatkan port abstraksi `IJobNotificationPort` untuk memicu notifikasi.
-- **Port:** `notificationPort.NotifyDriverJobCompletedAsync(...)`
-- **Tujuan Arsitektur:** Ini memungkinkan modul internal logistik atau Administrator memantau secara *real-time* via soket atau sinyal R apabila sebuah armada (*Driver*) telah kembali dan menyelesaikan tugas penjemputannya di pabrik pusat.
-
-## 4. Keuntungan Desain (Clean Architecture)
-- **Isolasi Logika (Rich Domain Model):** Metode *mutator* `Complete()` terenkapsulasi murni pada kelas `PickupOrder` tanpa kebocoran aturan ke kontroler.
-- **Geofence Fallback:** Ketersediaan koordinat GPS yang terekam pada server berfungsi sebagai jaring pengaman, alat audit untuk mengetahui lokasi persis saat tugas dianggap rampung secara sistem.
-
-## 5. Sequence Diagram: Arsitektur Backend
-
-Berikut adalah visualisasi teknis spesifik mengenai alur eksekusi di sisi *Backend* ketika permintaan "END JOB" diterima:
+## 3. Sequence Diagram
 
 ```mermaid
 sequenceDiagram
-    participant C as Controller (JobController)
-    participant H as Handler (EndJobCommandHandler)
-    participant R as Repository (PickupOrder)
-    participant E as Entity (PickupOrder)
-    participant N as Notification (IJobNotificationPort)
+    autonumber
+    participant C as JobController
+    participant H as EndJobCommandHandler
+    participant R as PickupOrderRepository
+    participant E as PickupOrder (Domain Entity)
+    participant N as IJobNotificationPort
     participant DB as SQL Server
 
     C->>H: Send(EndJobCommand)
-    activate H
     H->>R: GetByIdAsync(PickupOrderId)
     R->>DB: SELECT * FROM job.pickup_orders
     DB-->>R: Data PickupOrder
     R-->>H: instance PickupOrder
     
-    note over H: Validasi Kepemilikan (DriverId) & Geofence (Opsional)
+    Note over H: Validasi Kepemilikan (DriverId) & Geofence
     
     H->>E: Complete()
-    activate E
-    E->>E: Validasi Status (Bukan ON_PROGRESS = Throw Exception)
-    E->>E: Validasi Detail Titik (Bukan PICKED_UP = Throw Exception)
-    E->>E: Set Status = COMPLETED
-    E->>E: Set CompletedAt = UTC Now
-    E-->>H: void
-    deactivate E
+    E->>E: Validasi Status == ON_PROGRESS & All Stops == PICKED_UP
+    E->>E: Set Status = COMPLETED, CompletedAt = UTC Now
     
     H->>R: UpdateAsync(job)
     R->>DB: UPDATE job.pickup_orders
     DB-->>R: Sukses
-    R-->>H: Sukses
     
     H->>N: NotifyDriverJobCompletedAsync(DriverId, JobId)
-    note right of N: Publikasi *event* asinkron<br/>untuk memicu Socket/Notif
-    
-    H-->>C: Result.Success(true)
-    deactivate H
-    
+    H-->>C: Result.Success
     C-->>Client: 200 OK
 ```

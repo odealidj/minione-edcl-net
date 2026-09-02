@@ -350,8 +350,8 @@ Setiap *Virtual User (VU)* menjalankan alur transaksi lengkap:
 git clone https://github.com/odealidj/minione-edcl-net.git edcl-mini
 cd edcl-mini
 
-# 2. Nyalakan infrastruktur container EDCL (SQL Server, Redis, RabbitMQ, Debezium, Jaeger, Prometheus)
-make be-infra-up
+# 2. Nyalakan seluruh layanan backend EDCL (Database, Redis, RabbitMQ, Gateway, API, Workers, Telemetri)
+make be-up
 
 # 3. Nyalakan container simulasi legacy database IDCS (Port 1466)
 make idcs-up
@@ -362,60 +362,12 @@ make seed-init
 # 5. [RECOMMENDED] Seed data master lengkap (Partner, GPS, Rute, Supir, Truk, 1 Manifes & PO untuk demo E2E)
 make seed-master-one
 
-# 6. Jalankan API Host dan seluruh Worker (.NET)
-make be-run-all
-
-# 7. Di terminal baru, jalankan Frontend Web (Angular)
+# 6. Di terminal baru, jalankan Frontend Web (Angular)
 make fe-start
 ```
 
 Aplikasi web dapat diakses di: **`http://localhost:4200`**  
 Kredensial Default: **`admin@edcl.com`** / **`Password123!`**
-
----
-
-## 📋 Daftar Perintah `make`
-
-| Perintah | Deskripsi |
-|---|---|
-| `make be-up` | Membangun dan menyalakan **seluruh 11 kontainer backend** (Database, Redis, RabbitMQ, Gateway, API, Workers, Jaeger, Prometheus, Debezium) |
-| `make be-down` | Menghentikan dan membersihkan seluruh kontainer backend EDCL |
-| `make be-infra-up` | Menyalakan **hanya infrastruktur** container (SQL Server, Redis, RabbitMQ, Debezium, Jaeger, Prometheus) untuk hybrid local development |
-| `make be-infra-down` | Mematikan container infrastruktur backend |
-| `make be-run-all` | Menjalankan API Host, Gateway, dan seluruh Worker secara lokal/native (`dotnet run`) |
-| `make idcs-up` | Menyalakan container SQL Server IDCS terisolasi (`port 1466`) untuk simulasi CDC |
-| `make idcs-down` | Menghentikan dan menghapus container SQL Server IDCS |
-| `make seed-init` | Menginisialisasi skema database IDCS & membuat snapshot awal CDC Debezium |
-| `make seed-master-one` | [RECOMMENDED] Men-seed data master lengkap (Partner, GPS, Rute, Supir, Truk, 1 Manifes, PO) untuk demo E2E |
-| `make reset-master-one` | Melakukan pembersihan data simulasi secara aman (4-step safe reset) |
-| `make seed-bulk` | Mensimulasikan injeksi 200 manifes sekaligus ke sistem IDCS |
-| `make seed-out-of-order` | Mensimulasikan skenario *Out-Of-Order Event* untuk menguji Retry Queue |
-| `make be-test` | Menjalankan seluruh test suite backend (Unit & Integration Tests) |
-| `make be-load-test` | Menjalankan k6 stress testing skenario Driver Journey |
-| `make fe-install` | Menginstall dependensi frontend Angular menggunakan `pnpm` |
-| `make fe-start` | Menjalankan server development Angular (`http://localhost:4200`) |
-| `make fe-build` | Mengompilasi bundle produksi frontend Angular |
-
----
-
-## 🖥️ Peta Fitur & Modul Web Admin
-
-| Modul | Path Route | Fitur Utama |
-|---|---|---|
-| **Dashboard** | `/dashboard` | Ringkasan KPI operasional, status Hangfire job, dan peta armada Leaflet |
-| **System Observability** | `/admin/system-observability` | Real-time metric cards, Chart.js time-series, Service Memory Donut, & Full-Stack Sizing Guide |
-| **Route Planning** | `/admin/route-planning` | Penyusunan Pickup Order, filter rute, drag-and-drop stop, multi-manifest picker |
-| **Live Fleet Tracking** | `/dashboard` | Peta live lokasi armada via SignalR, marker truck adaptif, status geofencing |
-| **Sync Command Center** | `/admin/sync-monitoring` | Aliran SSE status CDC Debezium, grafik throughput, rincian event, resolusi DLQ |
-| **Delivery Monitoring** | `/operations/monitoring` | Monitoring status perhentian sopir real-time (Arrived, Picked Up, Verified) |
-| **Notification Logs** | `/admin/notification-logs` | Riwayat push notification FCM, status pengiriman (Sent/Failed), tombol aksi Resend |
-| **Manifest Problems** | `/admin/manifest-problems` | Deteksi anomali manifes (Orphan, Out-of-Order) dan resolusi manual via UI |
-| **Background Jobs** | `/admin/background-jobs` | Inspeksi antrean Hangfire, daftar failed jobs, dan pemicu *requeue* instan |
-| **Master: Driver** | `/master/driver` | Manajemen supir, nomor telepon, status PIN, dan toggle aktif/nonaktif |
-| **Master: Supplier** | `/master/supplier` | Titik koordinat pabrik/supplier (latitude/longitude) dan radius geofence (meter) |
-| **Master: Truck & Assign** | `/master/truck` & `/master/truck-assignments` | Manajemen kendaraan, tipe truk, dan penugasan supir ke kendaraan |
-| **Master: GPS Vendor** | `/master/gps-vendor` | Konfigurasi vendor GPS (API Key, Base URL) dan tombol uji koneksi langsung |
-| **Master: Route & Cycle** | `/master/route` | Pemetaan kode rute dan siklus terhadap *Logistic Partner* pengampu |
 
 ---
 
@@ -469,8 +421,6 @@ Berikut adalah daftar lengkap URL akses layanan, dashboard operasional, observab
 | Dokumen | Deskripsi |
 |---|---|
 | 📄 [`docs/architecture/architecture-overview.md`](docs/architecture/architecture-overview.md) | Panduan teknis komprehensif arsitektur sistem, domain isolation, dan alur transaksi. |
-| 📄 [`be/README.md`](be/README.md) | Panduan teknis arsitektur backend, konfigurasi EF Core, dan pengujian. |
-| 📄 [`idcs-seeder/README.md`](idcs-seeder/README.md) | Dokumentasi skenario pengujian simulasi CDC, race condition, dan injeksi data masif. |
 
 ---
 

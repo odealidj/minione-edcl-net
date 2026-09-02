@@ -1,21 +1,10 @@
 # API Sequence Diagrams
 
-Dokumen ini memuat *Sequence Diagram* untuk seluruh endpoint yang ada di **EDCL Mini**. Diagram ini dirancang untuk memberikan pemahaman teknis mengenai alur request dari *Client* (Mobile/Web), melewati *API Gateway*, masuk ke *Modular Monolith (EDCL.Api)*, hingga dieksekusi oleh *Database* dan *Message Broker* (Outbox Pattern).
-
-Agar mudah dipahami, dokumentasi ini dikelompokkan berdasarkan **Module**.
-
----
-
-## Daftar Isi
-1. [Module Auth (Authentication & Authorization)](#1-module-auth)
-2. [Module Job (Core Operational)](#2-module-job)
-3. [Module Cargo (Master Data Ingestion)](#3-module-cargo)
-4. [Module Notification (Pusat Pemberitahuan)](#4-module-notification)
+Sequence diagram endpoint utama sistem **EDCL Mini** dikelompokkan berdasarkan modul.
 
 ---
 
 ## 1. Module Auth
-Module ini bertanggung jawab atas pembuatan token JWT, registrasi pengguna, dan manajemen sesi.
 
 ### 1.1. Driver Login (2-Step OTP Verification)
 **Endpoints:** `POST /api/v1/auth/request-otp` & `POST /api/v1/auth/login`
@@ -44,9 +33,8 @@ sequenceDiagram
     Hndl->>Hndl: Generate 4-digit PIN
     Hndl->>Cache: SetAsync(OtpKey, PIN, TTL: 3 mins)
     Cache-->>Hndl: OK
-    Hndl->>Hndl: Log / Mock Send SMS/WA
     Hndl-->>Ctrl: Success Result
-    Ctrl-->>Gateway: HTTP 200 OK (OTP sent)
+    Ctrl-->>Gateway: HTTP 200 OK
     Gateway-->>Driver: HTTP 200 OK
     end
 
@@ -79,10 +67,6 @@ sequenceDiagram
     end
     end
 ```
-**Penjelasan:**
-- Driver meminta OTP (berlaku 3 menit) yang disimpan di Redis, lalu memverifikasinya melalui endpoint login.
-- Jika sukses, sistem meng-generate *Access Token* (umur pendek, misal 15 menit) dan *Refresh Token* (umur panjang, misal 30 hari).
-- Refresh Token di-hash dan disimpan di database untuk mencegah pencurian token, sehingga bisa di-*revoke* (cabut akses) kapan saja.
 
 ### 1.2. AppUser Login (Web Admin)
 **Endpoint:** `POST /api/v1/auth/users/login`
@@ -127,9 +111,6 @@ sequenceDiagram
         Gateway-->>AppUser: HTTP 200 OK (Tokens)
     end
 ```
-**Penjelasan:**
-- Login untuk pengguna Web Admin (AppUser) menggunakan *Username* dan Password. 
-- Alur intinya identik dengan login Driver, namun diarahkan ke `AppUsersController` dan tabel `app_users` untuk menjaga separasi entitas. Role code (misal: `ADMIN`) akan di-inject ke dalam JWT Claims.
 
 ### 1.3. Refresh Token
 **Endpoint:** `POST /api/v1/auth/refresh`
@@ -150,7 +131,7 @@ sequenceDiagram
     
     alt Token Invalid / Expired
         Hndl-->>Ctrl: Error
-        Ctrl-->>Client: HTTP 401
+        Ctrl-->>Client: HTTP 401 Unauthorized
     else Token Valid
         Hndl->>Hndl: Verify RefreshToken Match
         Hndl->>Jwt: Generate New Access & Refresh Token
@@ -163,9 +144,8 @@ sequenceDiagram
 ---
 
 ## 2. Module Job
-Module ini adalah pusat operasional di mana Driver menerima pekerjaan, mengeksekusi rute, men-scan barang, dan menyelesaikan tugas. Semua operasi tulis (Write) di modul ini menggunakan **Outbox Pattern**.
 
-### 2.1. Start Job (Memulai Pekerjaan)
+### 2.1. Start Job
 **Endpoint:** `POST /api/v1/jobs/{id}/start`
 
 ```mermaid
@@ -188,10 +168,8 @@ sequenceDiagram
     
     Hndl->>Hndl: Validate Status == Pending
     Hndl->>Hndl: Order.Start() -> Change Status & Date
-    
     Hndl->>Hndl: Add Domain Event (JobStartedEvent)
-    Hndl->>DB: SaveChangesAsync()
-    Note over DB: Transaksi ACID:<br/>1. Update Status<br/>2. Insert Outbox Event
+    Hndl->>DB: SaveChangesAsync() (Transactional Outbox)
     
     Hndl-->>MediatR: Success
     MediatR-->>Ctrl: Result
@@ -214,7 +192,6 @@ sequenceDiagram
     Ctrl->>Hndl: Send(ScanKanbanCommand)
     Hndl->>DB: Query PickupOrderDetail by StopId
     
-    Hndl->>Hndl: Check if Kanban belongs to this Stop Manifests
     alt Invalid Kanban
         Hndl-->>Ctrl: NotFound / Error
         Ctrl-->>Driver: HTTP 400 Bad Request
@@ -226,11 +203,8 @@ sequenceDiagram
         Ctrl-->>Driver: HTTP 200 OK
     end
 ```
-**Penjelasan:**
-- Scan divalidasi apakah barcode Kanban tersebut terdaftar dalam kumpulan Manifest di Stop (Supplier) tersebut.
-- Jika cocok, sistem mencatat waktu *scan* dan meng-update *counter* validasi Manifest.
 
-### 2.3. Complete Stop (Selesai Pickup di Supplier)
+### 2.3. Complete Stop
 **Endpoint:** `POST /api/v1/jobs/stops/{stopId}/complete`
 
 ```mermaid
@@ -246,36 +220,26 @@ sequenceDiagram
     Driver->>Ctrl: POST /complete (Lat, Long)
     Ctrl->>Hndl: Send(CompleteStopCommand)
     
-    Hndl->>Hndl: Validate Geofence (Distance < 500m)
-    Hndl->>Hndl: Validate All Manifests Scanned
+    Hndl->>Hndl: Validate Geofence (< 500m) & Scan Completeness
     Hndl->>Hndl: Update Status -> PickedUp
-    
     Hndl->>Hndl: Add DomainEvent (StopCompletedEvent)
-    Hndl->>DB: SaveChangesAsync()
-    Note over DB: Simpan perubahan & <br/>Simpan ke Outbox Tabel
+    Hndl->>DB: SaveChangesAsync() (Write status & outbox)
     
     Hndl-->>Ctrl: Success
     Ctrl-->>Driver: HTTP 200 OK
     
-    %% Asynchronous Processing
-    loop Every 5 Seconds
-        Worker->>DB: Poll Outbox Table
-        DB-->>Worker: Unprocessed Events
+    loop Polling Outbox
+        Worker->>DB: Poll Unprocessed Events
         Worker->>Broker: Publish (StopCompletedEvent)
         Worker->>DB: Mark Event as Processed
     end
 ```
-**Penjelasan:**
-- Endpoint ini menggabungkan **Validasi Bisnis (Geofence & Validasi Scan)** dengan arsitektur **Outbox Pattern**.
-- Respons diberikan seketika ke Driver agar aplikasi cepat.
-- Event `StopCompletedEvent` dilempar ke RabbitMQ di latar belakang (asinkron), yang nantinya bisa ditangkap oleh Modul Notifikasi atau Reporting.
 
 ---
 
 ## 3. Module Cargo
-Module Cargo melayani pembacaan *Master Data* yang cepat (Query) untuk kebutuhan operasional. Write biasanya dilakukan via sinkronisasi *Legacy System* (Ingestion Worker).
 
-### 3.1. Get Manifests by Stop ID / Parts / Kanbans
+### 3.1. Query Manifests / Parts / Kanbans
 **Endpoint:** `GET /api/v1/manifests/...`
 
 ```mermaid
@@ -283,73 +247,35 @@ sequenceDiagram
     autonumber
     actor Client
     participant Ctrl as CargoController
-    participant Hndl as GetManifest/Parts/KanbanQueryHandler
+    participant Hndl as QueryHandler
     participant DB as SQL Server (Ingestion)
 
     Client->>Ctrl: GET /manifests/{id}/kanbans?page=1
     Ctrl->>Hndl: Send(GetManifestKanbanDetailsQuery)
-    
-    Note over Hndl,DB: Gunakan DAPPER (Bukan EF Core) untuk High Performance Read
-    Hndl->>DB: Execute SQL SELECT LEFT JOIN dengan OFFSET-FETCH
+    Hndl->>DB: Execute Dapper Raw SQL with OFFSET-FETCH
     DB-->>Hndl: Data List & Total Count
-    
-    Hndl->>Hndl: Map to PaginatedResult Dto
+    Hndl->>Hndl: Map to PaginatedResult
     Hndl-->>Ctrl: Result
     Ctrl-->>Client: HTTP 200 OK (Paginated JSON)
 ```
-**Penjelasan:**
-- Operasi `GET` (Queries) di aplikasi ini menggunakan pustaka **Dapper** langsung memanggil syntax SQL murni.
-- Ini menghilangkan *overhead* dari *Entity Framework Core Tracking*, memastikan operasi baca sangat cepat untuk mendukung pagination di Web Admin.
 
 ---
 
 ## 4. Module Notification
-Modul ini bertugas menyajikan list notifikasi ke aplikasi klien (lonceng notifikasi).
 
-### 4.1. Get Notifications & Mark as Read
-**Endpoint:** `GET /api/v1/notifications` | `POST /api/v1/notifications/{id}/read`
-
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Client
-    participant Ctrl as NotificationController
-    participant Hndl as GetNotificationsQueryHandler
-    participant DB as SQL Server (Notification)
-
-    Client->>Ctrl: GET /notifications
-    Ctrl->>Hndl: Send(GetNotificationsQuery)
-    Hndl->>DB: Query Notifications by DriverId (Dapper/EF)
-    DB-->>Hndl: Unread List
-    Hndl-->>Ctrl: Result
-    Ctrl-->>Client: HTTP 200 OK
-```
-
-### 4.2. Penerimaan Event Asinkron (Event-Driven)
-*(Proses yang berjalan di latar belakang tanpa HTTP Request)*
-
+### 4.1. Event-Driven Notification Push
 ```mermaid
 sequenceDiagram
     autonumber
     participant Broker as RabbitMQ
-    participant Consumer as NotificationConsumer (Background)
+    participant Consumer as NotificationConsumer
     participant DB as SQL Server (Notification)
-    participant Push as FCM/OneSignal (External)
+    participant Push as Firebase Cloud Messaging (FCM)
 
-    Broker-->>Consumer: Receive Event (e.g., JobAssignedEvent)
+    Broker-->>Consumer: Receive Event (e.g. JobAssignedEvent)
     Consumer->>Consumer: Parse Message
     Consumer->>DB: Insert Notification Record (Unread)
-    Consumer->>Push: Trigger Push Notification API (Optional)
+    Consumer->>Push: Send FCM Push Notification
     Push-->>Consumer: OK
     Consumer-->>Broker: Ack Message
 ```
-**Penjelasan:**
-- Modul Notifikasi adalah *Consumer* utama dari sistem event-driven. Saat ada pekerjaan baru di-assign (dari Job Module) dan dimasukkan ke RabbitMQ via Outbox, Worker Notifikasi akan menangkapnya, mencatat ke database, dan men-trigger *Push Notification* ke HP Driver.
-
----
-
-## 💡 Best Practices yang Diterapkan:
-1. **API Gateway First**: Semua request wajib melewati Gateway untuk validasi JWT terpusat dan *Rate Limiting* guna mencegah serangan DDoS.
-2. **CQRS Strict Separation**: Command (Write) mengubah state via EF Core, sementara Query (Read) via Dapper.
-3. **Outbox Pattern**: Transaksi *database* lokal (*SQL Commit*) dan publikasi *event* (*Message Broker Publish*) tidak akan pernah *out-of-sync*.
-4. **Idempotency**: Request modifikasi (POST/PUT) wajib menyertakan kunci Idempotency untuk menghindari eksekusi ganda jika *Client* retry akibat *timeout* jaringan.

@@ -1,104 +1,35 @@
-.PHONY: idcs-up idcs-down seed-init seed-master seed-master-one seed-one-master reset-master reset-master-one \
-        seed-transaction seed-out-of-order seed-race-condition seed-bulk reset-transaction reset-pickup trigger-reject \
-        seed-manifest seed-part seed-kanban seed-skid seed-supplier reset-supplier \
-        seed-logistic-partner reset-logistic-partner seed-route reset-route seed-driver reset-driver seed-truck reset-truck seed-k6-clean
+.PHONY: help idcs-up idcs-down seed-init seed-master-one reset-master-one
 
+help:
+	@echo "================================================================="
+	@echo "🏭 IDCS Simulation & Seeder CLI"
+	@echo "================================================================="
+	@echo "  make idcs-up          - Start isolated IDCS SQL Server container (port 1466)"
+	@echo "  make idcs-down        - Stop and remove IDCS SQL Server container"
+	@echo "  make seed-init        - Initialize IDCS DB schema & CDC snapshot"
+	@echo "  make seed-master-one  - Seed full master set + 1 manifest + PO for E2E demo"
+	@echo "  make reset-master-one - Reset simulation and master data state"
+	@echo "================================================================="
+
+DOCKER_COMPOSE ?= $(shell if command -v docker-compose >/dev/null 2>&1; then echo "docker-compose"; elif command -v docker >/dev/null 2>&1; then echo "docker compose"; elif command -v podman-compose >/dev/null 2>&1; then echo "podman-compose"; else echo "podman compose"; fi)
+
+# =============================================================================
+# IDCS Simulation Container (Port 1466)
+# =============================================================================
 idcs-up:
-	@if command -v docker-compose >/dev/null 2>&1; then docker-compose -f docker-compose-idcs.yml up -d; \
-	elif command -v docker >/dev/null 2>&1; then docker compose -f docker-compose-idcs.yml up -d; \
-	elif command -v podman-compose >/dev/null 2>&1; then podman-compose -f docker-compose-idcs.yml up -d; \
-	else podman compose -f docker-compose-idcs.yml up -d; fi
+	$(DOCKER_COMPOSE) -f docker-compose-idcs.yml up -d
 
 idcs-down:
-	@if command -v docker-compose >/dev/null 2>&1; then docker-compose -f docker-compose-idcs.yml down; \
-	elif command -v docker >/dev/null 2>&1; then docker compose -f docker-compose-idcs.yml down; \
-	elif command -v podman-compose >/dev/null 2>&1; then podman-compose -f docker-compose-idcs.yml down; \
-	else podman compose -f docker-compose-idcs.yml down; fi
+	$(DOCKER_COMPOSE) -f docker-compose-idcs.yml down
 
+# =============================================================================
+# Simulation & Seeder Commands
+# =============================================================================
 seed-init:
-	dotnet run init
-
-# Master Data Seeding
-seed-master:
-	dotnet run all
+	dotnet run -- init
 
 seed-master-one:
-	dotnet run one-master
-
-seed-one-master:
-	dotnet run one-master
-
-reset-master:
-	dotnet run reset-all
+	dotnet run -- one-master
 
 reset-master-one:
-	dotnet run reset-master-one
-
-# Granular Master Data Seeders
-seed-supplier:
-	dotnet run supplier
-
-reset-supplier:
-	dotnet run reset-supplier
-
-seed-logistic-partner:
-	dotnet run logistic-partner
-
-reset-logistic-partner:
-	dotnet run reset-logistic-partner
-
-seed-route:
-	dotnet run route
-
-reset-route:
-	dotnet run reset-route
-
-seed-driver:
-	dotnet run driver
-
-reset-driver:
-	dotnet run reset-driver
-
-seed-truck:
-	dotnet run truck
-
-reset-truck:
-	dotnet run reset-truck
-
-# Transactional Data Seeding
-seed-transaction:
-	dotnet run transaction
-
-seed-manifest:
-	dotnet run manifest
-
-seed-part:
-	dotnet run part
-
-seed-kanban:
-	dotnet run kanban
-
-seed-skid:
-	dotnet run skid
-
-seed-bulk:
-	dotnet run bulk
-
-reset-transaction:
-	dotnet run reset
-
-reset-pickup:
-	dotnet run reset-pickup
-
-# Extreme Cases & Testing
-seed-out-of-order:
-	dotnet run out-of-order
-
-seed-race-condition:
-	dotnet run race-condition
-
-trigger-reject:
-	dotnet run trigger-reject
-
-seed-k6-clean:
-	cd ../be/tests/k6/EDCL.K6Seeder && dotnet run clean
+	dotnet run -- reset-master-one
