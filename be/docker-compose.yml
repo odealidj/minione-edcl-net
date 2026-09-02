@@ -164,6 +164,9 @@ services:
       - rabbitmq
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    volumes:
+      - ./conf/debezium/application.properties:/debezium/conf/application.properties:ro
+      - debezium_data:/debezium/data
 
   jaeger:
     image: jaegertracing/all-in-one:1.57
