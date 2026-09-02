@@ -458,7 +458,7 @@ Berikut adalah daftar lengkap URL akses layanan, dashboard operasional, observab
 
 | Dokumen | Deskripsi |
 |---|---|
-| 📄 [`docs/HANDOFF.md`](docs/HANDOFF.md) | Panduan teknis komprehensif untuk onboarding developer baru (detail endpoint, arsitektur modul, checklist fitur). |
+| 📄 [`docs/architecture/architecture-overview.md`](docs/architecture/architecture-overview.md) | Panduan teknis komprehensif arsitektur sistem, domain isolation, dan alur transaksi. |
 | 📄 [`be/README.md`](be/README.md) | Panduan teknis arsitektur backend, konfigurasi EF Core, dan pengujian. |
 | 📄 [`idcs-seeder/README.md`](idcs-seeder/README.md) | Dokumentasi skenario pengujian simulasi CDC, race condition, dan injeksi data masif. |
 
