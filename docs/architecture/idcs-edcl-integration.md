@@ -46,7 +46,7 @@ flowchart TD
     subgraph EDCL ["Sistem EDCL (Modern)"]
         worker_ingestion["EDCL.Worker.Ingestion\n(Native RabbitMQ Client)"]
         edcl_api["EDCL.Api\n(MassTransit Fault Consumer)"]
-        edcl_db[("Database EDCL\nPostgreSQL/SQLServer")]
+        edcl_db[("Database EDCL\nSQL Server 2022")]
         edcl_ui("Web / Mobile Client")
         
         worker_reporter["EDCL.Worker.Reporter\n(MassTransit Consumer)"]
@@ -98,5 +98,17 @@ Integrasi ini dibagi menjadi dua fase utama: **Fase Ingestion** (Masuk ke EDCL) 
 1. **Tabel Serah-Terima (Integration Table):** Dibuat satu tabel khusus di database IDCS bernama `edcl_delivery_status`. Tabel ini sepenuhnya "dimiliki" oleh EDCL untuk menaruh laporan *Delivery*.
 2. **Event Driven:** Saat sebuah pengiriman dinyatakan selesai di EDCL (misal melalui klik tombol "Delivered" oleh supir di aplikasi), API EDCL **tidak langsung** melakukan *query* ke database IDCS. API EDCL hanya akan menerbitkan pesan internal: `ManifestDeliveredIntegrationEvent` ke RabbitMQ.
 3. **Dedicated Reporter Worker:** Sebuah *Microservice* kecil bernama **`EDCL.Worker.Reporter`** akan menangkap pesan integrasi tersebut.
-4. **Eksekusi Dapper:** Worker inilah yang menyimpan *Secondary Connection String* menuju database IDCS. Worker ini akan melempar raw SQL (`INSERT INTO edcl_delivery_status`) menggunakan Dapper (karena sangat cepat dan ringan).
+4. **Eksekusi Dapper:** Worker inilah yang menyimpan *Secondary Connection String* (`ConnectionStrings:IdcsDb`) menuju database IDCS. Worker ini akan melempar raw SQL (`INSERT INTO edcl_delivery_status`) menggunakan Dapper (karena sangat cepat dan ringan).
 5. **Keamanan & Isolasi:** Jika server IDCS sedang *down* saat penulisan balik, EDCL tidak akan *error*. Pesan `ManifestDeliveredIntegrationEvent` akan tetap mengantre di RabbitMQ sampai server IDCS hidup kembali dan `Worker.Reporter` berhasil menuliskan datanya.
+
+---
+
+## 🌐 Topologi Lingkungan: Local Simulation vs Production
+
+Dalam implementasi nyata, IDCS dan EDCL berjalan pada infrastruktur server yang terpisah:
+
+| Lingkungan | Mekanisme IDCS | Konfigurasi `IdcsDb` |
+|---|---|---|
+| **Local Development** | Disimulasikan menggunakan kontainer mandiri `idcs_sqlserver` di port **`1466`** melalui folder `idcs-seeder/` (`make idcs-up`). | `Server=host.docker.internal,1466;Database=IDCS;User Id=sa;Password=...` |
+| **Staging / Production** | Berjalan di server database korporat terpisah (bukan kontainer lokal). Kontainer `idcs-seeder` tidak dijalankan. | `Server=idcs-db.corp.internal,1433;Database=IDCS;User Id=...;Password=...` (Disuntikkan via *Environment Variable* / Secret Manager). |
+

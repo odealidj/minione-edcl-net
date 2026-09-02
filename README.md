@@ -369,11 +369,15 @@ Kredensial Default: **`admin@edcl.com`** / **`Password123!`**
 
 | Perintah | Deskripsi |
 |---|---|
-| `make be-infra-up` | Menyalakan container SQL Server, Redis, RabbitMQ, Debezium, Jaeger, dan Prometheus |
-| `make be-infra-down` | Mematikan seluruh container infrastruktur backend |
+| `make be-up` | Membangun dan menyalakan **seluruh 11 kontainer backend** (Database, Redis, RabbitMQ, Gateway, API, Workers, Jaeger, Prometheus, Debezium) |
+| `make be-down` | Menghentikan dan membersihkan seluruh kontainer backend EDCL |
+| `make be-infra-up` | Menyalakan **hanya infrastruktur** container (SQL Server, Redis, RabbitMQ, Debezium, Jaeger, Prometheus) untuk hybrid local development |
+| `make be-infra-down` | Mematikan container infrastruktur backend |
+| `make be-run-all` | Menjalankan API Host, Gateway, dan seluruh Worker secara lokal/native (`dotnet run`) |
 | `make idcs-up` | Menyalakan container SQL Server IDCS terisolasi (`port 1466`) untuk simulasi CDC |
 | `make idcs-down` | Menghentikan dan menghapus container SQL Server IDCS |
-| `make be-run-all` | Menjalankan API Host, Gateway, dan 4 Worker secara simultan |
+| `make idcs-seed` | Menjalankan migrasi DDL dan seeder data awal ke database IDCS (`port 1466`) |
+| `make idcs-status` | Memeriksa status kesehatan container database IDCS |
 | `make be-test` | Menjalankan seluruh test suite backend (Unit & Integration Tests) |
 | `make be-load-test` | Menjalankan k6 stress testing skenario Driver Journey |
 | `make fe-install` | Menginstall dependensi frontend Angular menggunakan `pnpm` |

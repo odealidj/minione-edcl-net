@@ -44,49 +44,55 @@ be/
 - .NET 10 SDK (jika ingin *running* atau *debugging* manual tanpa docker)
 - VS Code dengan REST Client (opsional, untuk *testing* API)
 
-### Environment
-Kredensial dan port diatur melalui file `.env`. Pastikan Anda sudah membuat salinan dari template jika ada, atau pastikan file `.env` berada di folder `be/` dengan isi seperti ini:
-```env
-SA_PASSWORD=YourStrong@Passw0rd
-SQL_SERVER_PORT=1444
-REDIS_PORT=6399
-RABBITMQ_PORT=5672
-RABBITMQ_UI_PORT=15672
-API_PORT=5140
-GATEWAY_PORT=5293
-```
+### Environment & Ports
+Kredensial dan port diatur melalui file `.env` di folder `be/`. Daftar port yang dialokasikan:
+
+| Service | Container Name | Host Port | Container Port | Deskripsi |
+|---|---|---|---|---|
+| **API Gateway** | `edcl_gateway` | **`5293`** | `8080` | Single Point of Entry (YARP Reverse Proxy) |
+| **Backend API Host** | `edcl_api` | **`5140`** | `8080` | Modular Monolith Web API & SignalR |
+| **SQL Server (EDCL)** | `edcl_sqlserver` | **`1444`** | `1433` | Database utama EDCL (skema terpisah per modul) |
+| **Redis** | `edcl_redis` | **`6399`** | `6379` | Distributed Cache & Idempotency Lock |
+| **RabbitMQ Broker** | `edcl_rabbitmq` | **`5672`** | `5672` | AMQP Message Broker & Delayed Retry |
+| **RabbitMQ UI** | `edcl_rabbitmq` | **`15672`** | `15672` | Web Dashboard Management RabbitMQ |
+| **Jaeger UI** | `edcl_jaeger` | **`16686`** | `16686` | Distributed Tracing UI Waterfall |
+| **Prometheus** | `edcl_prometheus` | **`9090`** | `9090` | Metrik & Telemetri Scraper (`/metrics`) |
+| **Debezium Server** | `edcl_debezium_server` | - | `8080` | CDC Engine (Membaca tx-log IDCS) |
+| **Workers** | `edcl_worker_*` | - | - | Ingestion, Outbox, & Reporter Workers |
+
+> 💡 **Integrasi Sistem Eksternal IDCS**: Database IDCS disimulasikan secara terpisah di port **`1466`** melalui folder `idcs-seeder/` (eksekusi `make idcs-up`). Backend EDCL terhubung ke IDCS via `host.docker.internal:1466` pada lingkungan lokal dan via connection string DNS/IP server IDCS pada lingkungan produksi.
 
 ### 🛠️ Makefile Commands (Quick Start)
 
-Untuk mempermudah *development*, gunakan perintah `make` berikut di terminal dari dalam folder `be/`:
+Untuk mempermudah *development*, gunakan perintah `make` berikut di terminal dari dalam folder `be/` (atau gunakan target `make be-*` dari root direktori):
 
 | Command | Description |
 |---|---|
-| `make up` | Membangun dan menjalankan seluruh *environment* (Database, Redis, RabbitMQ, Gateway, API, dan Workers). |
-| `make down` | Menghentikan dan menghapus semua container. |
-| `make infra-up` | **Hanya** menjalankan *Infrastructure* (SQL Server, Redis, RabbitMQ). Gunakan ini jika Anda ingin melakukan *debugging* `.NET API` secara manual via IDE. |
-| `make infra-down` | Menghentikan container *Infrastructure*. |
+| `make up` | Membangun dan menjalankan seluruh stack backend (11 kontainer: DB, Redis, RabbitMQ, Gateway, API, Workers, Jaeger, Prometheus, Debezium). |
+| `make down` | Menghentikan dan membersihkan semua kontainer backend EDCL. |
+| `make infra-up` | **Hanya** menjalankan *Infrastructure* (SQL Server, Redis, RabbitMQ, Jaeger, Prometheus). Gunakan ini jika Anda ingin menjalankan `.NET API` & Workers secara native via IDE / terminal. |
+| `make infra-down` | Menghentikan kontainer *Infrastructure*. |
 | `make logs` | Menampilkan *live logs* dari semua service Docker. |
 
 ---
 
 ## 📡 API Endpoints & Health Checks
 
-API Gateway berfungsi sebagai **Single Point of Entry** (Pintu Tunggal). Jangan pernah mengakses Host API secara langsung.
-Secara default, Gateway berjalan di `http://localhost:5293`.
+API Gateway berfungsi sebagai **Single Point of Entry** (Pintu Tunggal). Klien eksternal (Web Admin & Mobile Driver) dapat mengakses sistem melalui Gateway di `http://localhost:5293` atau langsung ke API di `http://localhost:5140`.
 
-Anda dapat mengecek kesehatan seluruh komponen sistem (API, Database, Redis, RabbitMQ) dengan mengakses *endpoint* berikut melalui Gateway:
-```http
-GET http://localhost:5293/health
-```
-
-Untuk daftar lengkap API Request yang didukung, Anda dapat menggunakan file `edcl-api-requests.http` yang ada di *root* direktori `be/` atau file `EDCL.Gateway.http` di dalam folder `src/Gateway/EDCL.Gateway/`. Keduanya dapat dijalankan menggunakan ekstensi REST Client di VS Code.
+Endpoint penting yang dapat diakses:
+- **Health Check**: `GET http://localhost:5293/health` atau `http://localhost:5140/health`
+- **Scalar API Docs**: `GET http://localhost:5293/scalar/v1` atau `http://localhost:5140/scalar/v1`
+- **Hangfire Dashboard**: `http://localhost:5293/hangfire` atau `http://localhost:5140/hangfire`
+- **Prometheus Metrics**: `GET http://localhost:5140/metrics`
+- **Jaeger Distributed Tracing UI**: `http://localhost:16686`
+- **RabbitMQ Management Dashboard**: `http://localhost:15672` (User: `guest`, Pass: `guest`)
 
 ---
 
 ## 🧪 Testing
 
-Proyek ini dilengkapi dengan *suite testing* yang komprehensif menggunakan **xUnit**, **Moq**, dan **k6**.
+Proyek ini dilengkapi dengan *suite testing* yang komprehensif menggunakan **xUnit**, **Moq**, **Testcontainers**, dan **k6**.
 
 ### Menjalankan Test
 
@@ -94,7 +100,7 @@ Proyek ini dilengkapi dengan *suite testing* yang komprehensif menggunakan **xUn
   ```bash
   dotnet test tests/EDCL.UnitTests/
   ```
-- **Integration Test**:
+- **Integration Test** (Menggunakan Testcontainers):
   ```bash
   dotnet test tests/EDCL.IntegrationTests/
   ```
@@ -102,4 +108,4 @@ Proyek ini dilengkapi dengan *suite testing* yang komprehensif menggunakan **xUn
   ```bash
   dotnet test tests/EDCL.E2ETests/
   ```
-- **Performance / Load Test**: Skrip uji beban dan performa berada di folder `tests/k6/` (perlu dijalankan menggunakan *tool* k6).
+- **Performance / Load Test**: Skrip uji beban dan performa berada di folder `tests/k6/` (dijalankan menggunakan *tool* k6).
