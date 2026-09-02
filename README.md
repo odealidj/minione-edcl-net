@@ -142,6 +142,9 @@ graph TD
 - **Content Negotiation & Binary Serialization (MessagePack)**:
   Selain format baku JSON, API Controller terintegrasi dengan **MessagePack** formatter (`application/x-msgpack`). Klien mobile dapat meminta payload biner terkompresi tinggi dengan latensi serialisasi hingga **4x lebih cepat** dan ukuran data **60-80% lebih hemat** dibandingkan format JSON.
 
+- **Reactive Real-Time Streaming via Server-Sent Events (SSE) & System.Threading.Channels**:
+  Untuk pemantauan aliran data CDC berskala tinggi secara *zero-polling*, backend mengimplementasikan **Server-Sent Events (SSE)** (`text/event-stream`) yang didukung oleh **`System.Threading.Channels`** (`Channel<T>` & `IAsyncEnumerable<T>`). Saat *Ingestion Worker* memproses lonjakan ribuan manifes dari IDCS, metrik throughput dan galat CDC di-*broadcast* seketika ke browser admin tanpa overhead protokol bidirectional WebSockets, lengkap dengan kemampuan *native auto-reconnect*.
+
 - **Pluggable Multi-Vendor GPS Engine (Adapter Pattern)**:
   Worker `EDCL.Worker.GpsTracker` mengimplementasikan *Adapter Pattern* untuk menstandardisasi integrasi data telemetri dari berbagai vendor GPS (Innovatrack, Puninar, Muliatrack, Jitra). Dilengkapi fitur **GPS Connection Tester** dan **OSRM Real-World Route Simulator** yang mensimulasikan pergerakan armada secara realistis di jalan raya beserta kalkulasi **Geofencing** kedatangan di supplier.
 
@@ -158,8 +161,8 @@ graph TD
 - **Real-Time Live Fleet Tracking (Leaflet Integration)**:
   Peta armada interaktif berbasis Leaflet yang menerima pembaruan koordinat GPS truk secara langsung via **SignalR WebSocket** (`/hubs/tracking`). Marker armada bergerak mulus, dilengkapi fitur *Auto-Adopt Truck* dan *Dummy Simulator Tracking*.
 
-- **Zero-Latency Monitoring via Server-Sent Events (SSE)**:
-  Halaman **Sync Command Center** memanfaatkan aliran **Server-Sent Events (SSE)** satu arah untuk menampilkan grafik pemrosesan CDC, penghitung metrik, dan rincian mutasi data (*insert, update, delete*) secara instan dengan latensi di bawah 1 detik tanpa membebani browser.
+- **Zero-Latency Monitoring via Server-Sent Events (SSE) & Signals**:
+  Halaman **Sync Command Center** memanfaatkan aliran **Server-Sent Events (SSE)** (`EventSource` API) yang terhubung langsung ke Angular Signals (`currentMetrics`, `sessions`). Grafik pemrosesan CDC, *speed gauge*, dan mutasi manifes (*insert, update, delete*) terbarui secara reaktif dan instan dengan latensi di bawah 1 detik tanpa membebani browser dengan *HTTP polling*.
 
 - **Seamless Auto-Refresh Token Interceptor**:
   HTTP Interceptor cerdas mengantrekan request yang gagal karena *HTTP 401 Unauthorized*, mengeksekusi refresh token di latar belakang, dan mengulang seluruh request yang tertunda secara transparan tanpa pernah memutus sesi pengguna (*zero UX disruption*).
@@ -445,12 +448,14 @@ Berikut adalah daftar lengkap URL akses layanan, dashboard operasional, observab
 
 ---
 
-### 4. ⚙️ Manajemen Antrean & Background Jobs
-| Layanan | URL Akses | Kredensial / Port | Keterangan |
+### 4. ⚙️ Manajemen Antrean & Real-Time Streaming
+| Layanan | URL Akses | Protokol / Port | Keterangan |
 |---|---|---|---|
 | **Hangfire Dashboard** | [`http://localhost:5140/hangfire`](http://localhost:5140/hangfire) | *Built-in Dashboard* | Monitoring *Recurring Job* GPS Sync & status antrean |
 | **RabbitMQ Management** | [`http://localhost:15672`](http://localhost:15672) | `guest` / `guest` | Manajemen message broker, *exchange*, *retry queues*, & DLQ |
 | **SignalR Live Tracking Hub** | `ws://localhost:5140/hubs/tracking` | *WebSocket (WSS)* | Saluran *real-time push* koordinat lokasi truk aktif |
+| **SSE CDC Metrics Stream** | [`http://localhost:5140/api/v1/web/cargo/ingestion/metrics/stream`](http://localhost:5140/api/v1/web/cargo/ingestion/metrics/stream) | *Server-Sent Events* | Aliran *real-time* throughput & status sinkronisasi manifes IDCS |
+| **SSE CDC Errors Stream** | [`http://localhost:5140/api/v1/web/cargo/ingestion/errors/stream`](http://localhost:5140/api/v1/web/cargo/ingestion/errors/stream) | *Server-Sent Events* | Aliran *real-time* galat pemrosesan CDC & Poison Message |
 
 ---
 
