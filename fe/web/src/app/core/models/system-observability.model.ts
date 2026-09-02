@@ -8,6 +8,16 @@ export interface SystemMetric {
   processorCount: number;
 }
 
+export interface ServiceMemoryBreakdown {
+  serviceName: string;
+  processName: string;
+  memoryMb: number;
+  percentage: number;
+  role: string;
+  status: string;
+  color: string;
+}
+
 export interface ResiliencyMetrics {
   idempotencySavedRequests: number;
   kanbansScannedTotal: number;
@@ -33,6 +43,7 @@ export interface TimeSeriesData {
 export interface ObservabilityMetricsResponse {
   timestamp: string;
   system: SystemMetric;
+  memoryBreakdown: ServiceMemoryBreakdown[];
   resiliency: ResiliencyMetrics;
   infraHealth: InfraHealthItem[];
   timeSeries: TimeSeriesData;

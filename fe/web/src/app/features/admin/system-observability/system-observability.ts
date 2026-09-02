@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, AfterViewInit, ViewChild, ElementRef, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SystemObservabilityService } from '../../../core/services/system-observability.service';
-import { ObservabilityMetricsResponse } from '../../../core/models/system-observability.model';
+import { ObservabilityMetricsResponse, ServiceMemoryBreakdown } from '../../../core/models/system-observability.model';
 import { Chart, registerables } from 'chart.js/auto';
 
 Chart.register(...registerables);
@@ -15,6 +15,7 @@ Chart.register(...registerables);
 export class SystemObservabilityComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('cpuMemCanvas') cpuMemCanvas!: ElementRef<HTMLCanvasElement>;
   @ViewChild('throughputCanvas') throughputCanvas!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('memoryDonutCanvas') memoryDonutCanvas!: ElementRef<HTMLCanvasElement>;
 
   metrics = signal<ObservabilityMetricsResponse | null>(null);
   isLoading = signal<boolean>(true);
@@ -22,10 +23,12 @@ export class SystemObservabilityComponent implements OnInit, AfterViewInit, OnDe
   lastUpdated = signal<string>('');
   
   refreshIntervalSeconds = signal<number>(5);
+  isMemoryModalOpen = signal<boolean>(false);
   private timerHandle: any = null;
 
   private cpuMemChart: Chart | null = null;
   private throughputChart: Chart | null = null;
+  private memoryDonutChart: Chart | null = null;
 
   constructor(private observabilityService: SystemObservabilityService) {}
 
@@ -42,6 +45,7 @@ export class SystemObservabilityComponent implements OnInit, AfterViewInit, OnDe
     this.stopAutoRefresh();
     if (this.cpuMemChart) this.cpuMemChart.destroy();
     if (this.throughputChart) this.throughputChart.destroy();
+    if (this.memoryDonutChart) this.memoryDonutChart.destroy();
   }
 
   setRefreshInterval(seconds: number): void {
@@ -61,6 +65,9 @@ export class SystemObservabilityComponent implements OnInit, AfterViewInit, OnDe
           this.metrics.set(res.data);
           this.lastUpdated.set(new Date().toLocaleTimeString());
           this.updateCharts(res.data);
+          if (this.isMemoryModalOpen()) {
+            this.updateMemoryDonutChart(res.data.memoryBreakdown);
+          }
         }
         this.isLoading.set(false);
         this.isRefreshing.set(false);
@@ -71,6 +78,26 @@ export class SystemObservabilityComponent implements OnInit, AfterViewInit, OnDe
         this.isRefreshing.set(false);
       }
     });
+  }
+
+  openMemoryModal(): void {
+    this.isMemoryModalOpen.set(true);
+    setTimeout(() => {
+      const data = this.metrics();
+      if (data && data.memoryBreakdown) {
+        this.initOrUpdateMemoryDonutChart(data.memoryBreakdown);
+      }
+    }, 100);
+  }
+
+  closeMemoryModal(): void {
+    this.isMemoryModalOpen.set(false);
+  }
+
+  getTotalMemoryMb(): number {
+    const list = this.metrics()?.memoryBreakdown;
+    if (!list || list.length === 0) return 0;
+    return Math.round(list.reduce((acc, item) => acc + item.memoryMb, 0));
   }
 
   private startAutoRefresh(): void {
@@ -204,5 +231,60 @@ export class SystemObservabilityComponent implements OnInit, AfterViewInit, OnDe
         }
       }
     });
+  }
+
+  private initOrUpdateMemoryDonutChart(breakdown: ServiceMemoryBreakdown[]): void {
+    if (!this.memoryDonutCanvas) return;
+
+    if (!this.memoryDonutChart) {
+      const ctx = this.memoryDonutCanvas.nativeElement.getContext('2d');
+      if (!ctx) return;
+
+      this.memoryDonutChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: breakdown.map(x => x.serviceName),
+          datasets: [
+            {
+              data: breakdown.map(x => x.memoryMb),
+              backgroundColor: breakdown.map(x => x.color),
+              borderWidth: 2,
+              hoverOffset: 6
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { boxWidth: 12, padding: 12, font: { size: 11 } }
+            },
+            tooltip: {
+              callbacks: {
+                label: (context) => {
+                  const label = context.label || '';
+                  const value = context.parsed || 0;
+                  const item = breakdown[context.dataIndex];
+                  return ` ${label}: ${value} MB (${item?.percentage || 0}%)`;
+                }
+              }
+            }
+          },
+          cutout: '65%'
+        }
+      });
+    } else {
+      this.updateMemoryDonutChart(breakdown);
+    }
+  }
+
+  private updateMemoryDonutChart(breakdown: ServiceMemoryBreakdown[]): void {
+    if (!this.memoryDonutChart) return;
+    this.memoryDonutChart.data.labels = breakdown.map(x => x.serviceName);
+    this.memoryDonutChart.data.datasets[0].data = breakdown.map(x => x.memoryMb);
+    this.memoryDonutChart.data.datasets[0].backgroundColor = breakdown.map(x => x.color);
+    this.memoryDonutChart.update('none');
   }
 }
