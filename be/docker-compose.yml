@@ -148,10 +148,8 @@ services:
       JAVA_OPTS: "-Xms256m -Xmx256m"
     restart: on-failure
     depends_on:
-      sqlserver:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
+      - sqlserver
+      - rabbitmq
     extra_hosts:
       - "host.docker.internal:host-gateway"
 

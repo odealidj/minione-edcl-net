@@ -1,21 +1,23 @@
 .PHONY: up down infra-up infra-down logs run-EDCL.Api stop-EDCL.Api run-EDCL.Gateway stop-EDCL.Gateway run-workers stop-workers run-all stop-all
 
+DOCKER_COMPOSE ?= $(shell if command -v docker-compose >/dev/null 2>&1; then echo "docker-compose"; elif command -v docker >/dev/null 2>&1; then echo "docker compose"; elif command -v podman-compose >/dev/null 2>&1; then echo "podman-compose"; else echo "podman compose"; fi)
+
 # Menjalankan seluruh sistem (Infrastructure + .NET API & Gateway & Workers)
 up:
-	docker-compose up -d --build
+	$(DOCKER_COMPOSE) up -d --build
 
 # Mematikan seluruh sistem
 down:
-	docker-compose down
+	$(DOCKER_COMPOSE) down
 
 # Hanya menjalankan infrastruktur utama (SQL Server, Redis, RabbitMQ, Debezium, Jaeger, Prometheus)
 infra-up:
-	docker-compose up -d sqlserver redis rabbitmq debezium-server jaeger prometheus
+	$(DOCKER_COMPOSE) up -d sqlserver redis rabbitmq debezium-server jaeger prometheus
 	@echo "Waiting for infrastructure to become healthy..."
-	@while docker-compose ps | grep -qi "starting"; do \
+	@while $(DOCKER_COMPOSE) ps | grep -qi "starting"; do \
 		sleep 2; \
 	done
-	@if docker-compose ps | grep -qi "exited"; then \
+	@if $(DOCKER_COMPOSE) ps | grep -qi "exited"; then \
 		echo "ERROR: One or more containers failed to start or crashed."; \
 		exit 1; \
 	fi
@@ -23,11 +25,11 @@ infra-up:
 
 # Mematikan hanya infrastruktur utama
 infra-down:
-	docker-compose stop sqlserver redis rabbitmq debezium-server jaeger prometheus
+	$(DOCKER_COMPOSE) stop sqlserver redis rabbitmq debezium-server jaeger prometheus
 
 # Melihat log dari semua service
 logs:
-	docker-compose logs -f
+	$(DOCKER_COMPOSE) logs -f
 
 # ─── LOCAL DEVELOPMENT (NATIVE .NET) ──────────────────────────────────────────
 
