@@ -12,4 +12,5 @@ brain/
 /firebase
 google-services.json
 *.py
+*.sh
 scratch/
