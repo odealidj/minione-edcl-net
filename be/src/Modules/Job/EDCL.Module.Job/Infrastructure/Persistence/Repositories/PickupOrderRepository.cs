@@ -32,6 +32,7 @@ public sealed class PickupOrderRepository(JobDbContext dbContext) : IPickupOrder
     {
         return await dbContext.PickupOrders
             .Include(x => x.Details.OrderBy(d => d.Sequence))
+                .ThenInclude(d => d.Manifests)
             .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
     }
 

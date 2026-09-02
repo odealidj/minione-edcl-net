@@ -1,11 +1,14 @@
 using EDCL.Module.Job.Application.Ports;
 using EDCL.Shared.Kernel.Common;
+using EDCL.Shared.Kernel.Events;
+using MassTransit;
 using MediatR;
 
 namespace EDCL.Module.Job.Application.Commands.EndJob;
 
 public sealed class EndJobCommandHandler(
     IPickupOrderRepository repository,
+    IPublishEndpoint publishEndpoint,
     IJobNotificationPort notificationPort) : IRequestHandler<EndJobCommand, Result<bool>>
 {
     public async Task<Result<bool>> Handle(EndJobCommand request, CancellationToken cancellationToken)
@@ -23,6 +26,21 @@ public sealed class EndJobCommandHandler(
         {
             job.Complete();
             await repository.UpdateAsync(job, cancellationToken);
+
+            // Publish ManifestDeliveredIntegrationEvent for all manifests to trigger IDCS write-back
+            var manifests = job.Details.SelectMany(d => d.Manifests).ToList();
+            foreach (var manifest in manifests)
+            {
+                var evt = new ManifestDeliveredIntegrationEvent
+                {
+                    ManifestId = manifest.Id,
+                    ManifestNo = manifest.ManifestNo,
+                    Status = "Delivered",
+                    DeliveredAt = DateTime.UtcNow,
+                    Remarks = "Completed by Driver (End Job)"
+                };
+                await publishEndpoint.Publish(evt, cancellationToken);
+            }
 
             // Notify driver/system
             await notificationPort.NotifyDriverJobCompletedAsync(request.DriverId, job.Id, cancellationToken);
