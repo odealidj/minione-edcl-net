@@ -350,13 +350,22 @@ Setiap *Virtual User (VU)* menjalankan alur transaksi lengkap:
 git clone https://github.com/odealidj/minione-edcl-net.git edcl-mini
 cd edcl-mini
 
-# 2. Nyalakan seluruh infrastruktur container (SQL Server, Redis, RabbitMQ, Debezium, Jaeger, Prometheus)
+# 2. Nyalakan infrastruktur container EDCL (SQL Server, Redis, RabbitMQ, Debezium, Jaeger, Prometheus)
 make be-infra-up
 
-# 3. Jalankan API Host dan seluruh Worker (.NET)
+# 3. Nyalakan container simulasi legacy database IDCS (Port 1466)
+make idcs-up
+
+# 4. Inisialisasi skema tabel database IDCS & snapshot CDC
+make seed-init
+
+# 5. [RECOMMENDED] Seed data master lengkap (Partner, GPS, Rute, Supir, Truk, 1 Manifes & PO untuk demo E2E)
+make seed-master-one
+
+# 6. Jalankan API Host dan seluruh Worker (.NET)
 make be-run-all
 
-# 4. Di terminal baru, jalankan Frontend Web (Angular)
+# 7. Di terminal baru, jalankan Frontend Web (Angular)
 make fe-start
 ```
 
@@ -376,17 +385,16 @@ Kredensial Default: **`admin@edcl.com`** / **`Password123!`**
 | `make be-run-all` | Menjalankan API Host, Gateway, dan seluruh Worker secara lokal/native (`dotnet run`) |
 | `make idcs-up` | Menyalakan container SQL Server IDCS terisolasi (`port 1466`) untuk simulasi CDC |
 | `make idcs-down` | Menghentikan dan menghapus container SQL Server IDCS |
-| `make idcs-seed` | Menjalankan migrasi DDL dan seeder data awal ke database IDCS (`port 1466`) |
-| `make idcs-status` | Memeriksa status kesehatan container database IDCS |
+| `make seed-init` | Menginisialisasi skema database IDCS & membuat snapshot awal CDC Debezium |
+| `make seed-master-one` | [RECOMMENDED] Men-seed data master lengkap (Partner, GPS, Rute, Supir, Truk, 1 Manifes, PO) untuk demo E2E |
+| `make reset-master-one` | Melakukan pembersihan data simulasi secara aman (4-step safe reset) |
+| `make seed-bulk` | Mensimulasikan injeksi 200 manifes sekaligus ke sistem IDCS |
+| `make seed-out-of-order` | Mensimulasikan skenario *Out-Of-Order Event* untuk menguji Retry Queue |
 | `make be-test` | Menjalankan seluruh test suite backend (Unit & Integration Tests) |
 | `make be-load-test` | Menjalankan k6 stress testing skenario Driver Journey |
 | `make fe-install` | Menginstall dependensi frontend Angular menggunakan `pnpm` |
 | `make fe-start` | Menjalankan server development Angular (`http://localhost:4200`) |
 | `make fe-build` | Mengompilasi bundle produksi frontend Angular |
-| `make seed-master-one` | Men-seed data master lengkap (Partner, GPS, Rute, Supir, Truk, 1 Manifes, PO) |
-| `make reset-master-one` | Melakukan pembersihan data simulasi secara aman (4-step safe reset) |
-| `make seed-bulk` | Mensimulasikan injeksi 200 manifes sekaligus ke sistem IDCS |
-| `make seed-out-of-order` | Mensimulasikan skenario *Out-Of-Order Event* untuk menguji Retry Queue |
 
 ---
 
