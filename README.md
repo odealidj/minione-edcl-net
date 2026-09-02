@@ -298,16 +298,44 @@ Kredensial Default: **`admin@edcl.com`** / **`Password123!`**
 
 ---
 
-## 📡 Dokumentasi, Observabilitas & Endpoint API
- 
-Backend mengekspos API terstruktur dan stack observabilitas lengkap:
-- **Scalar API Reference**: `http://localhost:5140/scalar/v1`
-- **Swagger UI**: `http://localhost:5140/swagger`
-- **Jaeger Tracing Dashboard**: `http://localhost:16686`
-- **Prometheus Metrics Dashboard**: `http://localhost:9090`
-- **Prometheus Scrape Endpoint**: `http://localhost:5140/metrics`
-- **Health Check Dashboard**: `http://localhost:5140/health`
-- **Hangfire Dashboard**: `http://localhost:5140/hangfire`
+## 🌐 Portal Akses, Dashboard & Dokumentasi Interaktif
+
+Berikut adalah daftar lengkap URL akses layanan, dashboard operasional, observabilitas, dan dokumentasi interaktif pada environment lokal:
+
+### 1. 🖥️ Antarmuka Pengguna & API Gateway
+| Layanan | URL Akses | Kredensial Default | Keterangan |
+|---|---|---|---|
+| **Web Admin SPA** | [`http://localhost:4200`](http://localhost:4200) | `admin@edcl.com`<br/>`Password123!` | Portal utama Single Page Application (Angular 19) |
+| **YARP API Gateway** | [`http://localhost:5293`](http://localhost:5293) | *N/A (Reverse Proxy)* | Pintu gerbang utama (*Single Point of Entry*) |
+| **Host Web API Direct** | [`http://localhost:5140`](http://localhost:5140) | *Bearer JWT Token* | ASP.NET Core REST API Host |
+
+---
+
+### 2. 📖 Dokumentasi API Interaktif
+| Layanan | URL Akses | Format / Tema | Keterangan |
+|---|---|---|---|
+| **Scalar API Reference** | [`http://localhost:5140/scalar/v1`](http://localhost:5140/scalar/v1) | *DeepSpace Theme* | Dokumentasi API modern dengan pengujian *Bearer Auth* |
+| **Swagger UI** | [`http://localhost:5140/swagger`](http://localhost:5140/swagger) | *OpenAPI Explorer* | Antarmuka interaktif OpenAPI bawaan Swagger |
+| **OpenAPI Schema (JSON)** | [`http://localhost:5140/openapi/v1.json`](http://localhost:5140/openapi/v1.json) | *Raw JSON (OAS 3.0)* | Spesifikasi mesin OpenAPI untuk generator klien |
+
+---
+
+### 3. 📊 Observabilitas & Monitoring
+| Layanan | URL Akses | Protokol / Port | Keterangan |
+|---|---|---|---|
+| **Jaeger Tracing Dashboard** | [`http://localhost:16686`](http://localhost:16686) | *OTLP gRPC (4317)* | Visualisasi *Distributed Tracing Waterfall* end-to-end |
+| **Prometheus Web UI** | [`http://localhost:9090`](http://localhost:9090) | *PromQL / Metrics* | Dashboard metrik performa & *scraping engine* |
+| **Prometheus Metrics Endpoint**| [`http://localhost:5140/metrics`](http://localhost:5140/metrics) | *Text-based Metrics* | Endpoint eksposisi metrik OpenTelemetry & EDCL |
+| **Health Checks Probe** | [`http://localhost:5140/health`](http://localhost:5140/health) | *JSON Health Status* | Status kesiapan koneksi SQL Server, Redis & RabbitMQ |
+
+---
+
+### 4. ⚙️ Manajemen Antrean & Background Jobs
+| Layanan | URL Akses | Kredensial / Port | Keterangan |
+|---|---|---|---|
+| **Hangfire Dashboard** | [`http://localhost:5140/hangfire`](http://localhost:5140/hangfire) | *Built-in Dashboard* | Monitoring *Recurring Job* GPS Sync & status antrean |
+| **RabbitMQ Management** | [`http://localhost:15672`](http://localhost:15672) | `guest` / `guest` | Manajemen message broker, *exchange*, *retry queues*, & DLQ |
+| **SignalR Live Tracking Hub** | `ws://localhost:5140/hubs/tracking` | *WebSocket (WSS)* | Saluran *real-time push* koordinat lokasi truk aktif |
 
 ---
 
