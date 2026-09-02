@@ -1,0 +1,275 @@
+<div class="space-y-6">
+  <!-- Top Header & Live Controls -->
+  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-base-100 p-5 rounded-2xl shadow-sm border border-base-200">
+    <div>
+      <div class="flex items-center gap-3">
+        <div class="p-2.5 bg-primary/10 text-primary rounded-xl">
+          <i class="fas fa-wave-square text-xl"></i>
+        </div>
+        <div>
+          <h1 class="text-2xl font-bold tracking-tight text-base-content">System Observability & Health</h1>
+          <p class="text-sm text-base-content/60">Real-time metrics, OpenTelemetry traces, runtime resource diagnostics & telemetry</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-2">
+      <!-- Auto-Refresh Interval Picker -->
+      <div class="join bg-base-200 p-1 rounded-xl">
+        <button 
+          class="btn btn-xs join-item" 
+          [class.btn-primary]="refreshIntervalSeconds() === 5"
+          (click)="setRefreshInterval(5)">5s</button>
+        <button 
+          class="btn btn-xs join-item" 
+          [class.btn-primary]="refreshIntervalSeconds() === 10"
+          (click)="setRefreshInterval(10)">10s</button>
+        <button 
+          class="btn btn-xs join-item" 
+          [class.btn-primary]="refreshIntervalSeconds() === 30"
+          (click)="setRefreshInterval(30)">30s</button>
+        <button 
+          class="btn btn-xs join-item" 
+          [class.btn-primary]="refreshIntervalSeconds() === 0"
+          (click)="setRefreshInterval(0)">Pause</button>
+      </div>
+
+      <!-- Manual Refresh Button -->
+      <button 
+        class="btn btn-sm btn-outline gap-2 rounded-xl"
+        [disabled]="isRefreshing()"
+        (click)="fetchMetrics(true)">
+        <i class="fas fa-sync-alt" [class.fa-spin]="isRefreshing()"></i>
+        <span>Refresh</span>
+      </button>
+
+      <!-- Live Status Badge -->
+      <div class="badge badge-success gap-1.5 p-3 text-xs font-semibold rounded-lg text-success-content">
+        <span class="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+        <span>LIVE (Updated: {{ lastUpdated() || 'Just now' }})</span>
+      </div>
+    </div>
+  </div>
+
+  @if (isLoading()) {
+    <div class="flex flex-col items-center justify-center p-20 bg-base-100 rounded-2xl border border-base-200">
+      <span class="loading loading-spinner loading-lg text-primary"></span>
+      <p class="mt-4 text-sm text-base-content/60 font-medium">Gathering real-time system metrics & diagnostics...</p>
+    </div>
+  } @else if (metrics()) {
+    <!-- 1. Real-Time Resource & Resiliency Stat Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <!-- CPU Usage Card -->
+      <div class="bg-base-100 p-5 rounded-2xl shadow-sm border border-base-200 flex items-center justify-between">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-base-content/50">CPU Utilization</span>
+          <div class="text-2xl font-black text-base-content mt-1">
+            {{ metrics()!.system.cpuUsagePct }}%
+          </div>
+          <div class="text-xs text-base-content/60 mt-1">
+            <i class="fas fa-microchip mr-1"></i> {{ metrics()!.system.processorCount }} Core Processor
+          </div>
+        </div>
+        <div 
+          class="radial-progress text-primary font-bold text-xs" 
+          [style.--value]="metrics()!.system.cpuUsagePct" 
+          [style.--size]="'3.5rem'" 
+          [style.--thickness]="'4px'">
+          {{ metrics()!.system.cpuUsagePct }}%
+        </div>
+      </div>
+
+      <!-- Memory (RAM) Card -->
+      <div class="bg-base-100 p-5 rounded-2xl shadow-sm border border-base-200 flex items-center justify-between">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-base-content/50">Working Set (RAM)</span>
+          <div class="text-2xl font-black text-secondary mt-1">
+            {{ metrics()!.system.memoryWorkingSetMb }} MB
+          </div>
+          <div class="text-xs text-base-content/60 mt-1">
+            <i class="fas fa-memory mr-1"></i> GC Heap: {{ metrics()!.system.gcTotalMemoryMb }} MB
+          </div>
+        </div>
+        <div class="p-3 bg-secondary/10 text-secondary rounded-2xl">
+          <i class="fas fa-server text-2xl"></i>
+        </div>
+      </div>
+
+      <!-- Idempotency Shield Card -->
+      <div class="bg-base-100 p-5 rounded-2xl shadow-sm border border-base-200 flex items-center justify-between">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-base-content/50">Idempotency Shield</span>
+          <div class="text-2xl font-black text-success mt-1">
+            {{ metrics()!.resiliency.idempotencySavedRequests }}
+          </div>
+          <div class="text-xs text-success/80 mt-1 font-medium">
+            <i class="fas fa-shield-alt mr-1"></i> Duplicate Requests Blocked
+          </div>
+        </div>
+        <div class="p-3 bg-success/10 text-success rounded-2xl">
+          <i class="fas fa-shield-virus text-2xl"></i>
+        </div>
+      </div>
+
+      <!-- CDC Pipeline Throughput Card -->
+      <div class="bg-base-100 p-5 rounded-2xl shadow-sm border border-base-200 flex items-center justify-between">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-base-content/50">CDC Ingestion Events</span>
+          <div class="text-2xl font-black text-accent mt-1">
+            {{ metrics()!.resiliency.cdcEventsProcessed }}
+          </div>
+          <div class="text-xs text-base-content/60 mt-1">
+            <i class="fas fa-clock mr-1"></i> Uptime: {{ metrics()!.system.processUptime }}
+          </div>
+        </div>
+        <div class="p-3 bg-accent/10 text-accent rounded-2xl">
+          <i class="fas fa-bolt text-2xl"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Time-Series Trend Charts (Chart.js) -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Chart 1: CPU & Memory Line Chart (2 Cols) -->
+      <div class="lg:col-span-2 bg-base-100 p-5 rounded-2xl shadow-sm border border-base-200">
+        <div class="flex justify-between items-center mb-4">
+          <div>
+            <h2 class="font-bold text-base text-base-content">Resource Utilization Trends</h2>
+            <p class="text-xs text-base-content/60">Live CPU (%) & RAM Working Set (MB) over time</p>
+          </div>
+          <span class="badge badge-sm badge-outline text-xs text-base-content/60">Live 20 Data Points</span>
+        </div>
+        <div class="h-64 w-full relative">
+          <canvas #cpuMemCanvas></canvas>
+        </div>
+      </div>
+
+      <!-- Chart 2: Request & Message Throughput (1 Col) -->
+      <div class="bg-base-100 p-5 rounded-2xl shadow-sm border border-base-200">
+        <div class="flex justify-between items-center mb-4">
+          <div>
+            <h2 class="font-bold text-base text-base-content">Throughput Rate</h2>
+            <p class="text-xs text-base-content/60">Estimated requests / second</p>
+          </div>
+        </div>
+        <div class="h-64 w-full relative">
+          <canvas #throughputCanvas></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Infrastructure Health Probes & Quick Portals -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Live Infrastructure Health Table (2 Cols) -->
+      <div class="lg:col-span-2 bg-base-100 p-5 rounded-2xl shadow-sm border border-base-200">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="font-bold text-base text-base-content">Infrastructure Health Probes</h2>
+          <span class="text-xs text-base-content/50">Active Liveness Checks</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="table table-sm w-full">
+            <thead>
+              <tr class="text-base-content/60 text-xs uppercase border-b border-base-200">
+                <th>Service / Component</th>
+                <th>Status</th>
+                <th>Latency</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (probe of metrics()!.infraHealth; track probe.name) {
+                <tr class="hover:bg-base-200/50 transition-colors">
+                  <td class="font-semibold text-base-content flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full" [ngClass]="probe.status === 'Healthy' ? 'bg-success' : 'bg-warning'"></span>
+                    {{ probe.name }}
+                  </td>
+                  <td>
+                    <span class="badge badge-xs p-2 font-bold" [ngClass]="probe.status === 'Healthy' ? 'badge-success text-success-content' : 'badge-warning'">
+                      {{ probe.status }}
+                    </span>
+                  </td>
+                  <td class="font-mono text-xs">{{ probe.latencyMs }} ms</td>
+                  <td class="text-xs text-base-content/70">{{ probe.description }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Quick Observability Portals Launchpad (1 Col) -->
+      <div class="bg-base-100 p-5 rounded-2xl shadow-sm border border-base-200 flex flex-col justify-between">
+        <div>
+          <h2 class="font-bold text-base text-base-content mb-1">External Portals & Traces</h2>
+          <p class="text-xs text-base-content/60 mb-4">Direct access to deep telemetry and worker engines</p>
+
+          <div class="space-y-2.5">
+            <!-- Jaeger Tracing -->
+            <a 
+              href="http://localhost:16686" 
+              target="_blank" 
+              class="flex items-center justify-between p-3 rounded-xl bg-base-200/60 hover:bg-primary/10 hover:text-primary transition-all text-xs font-semibold group">
+              <div class="flex items-center gap-2.5">
+                <i class="fas fa-water text-primary text-sm"></i>
+                <span>Jaeger Distributed Tracing</span>
+              </div>
+              <i class="fas fa-external-link-alt text-base-content/40 group-hover:text-primary text-xs"></i>
+            </a>
+
+            <!-- Prometheus UI -->
+            <a 
+              href="http://localhost:9090" 
+              target="_blank" 
+              class="flex items-center justify-between p-3 rounded-xl bg-base-200/60 hover:bg-warning/10 hover:text-warning transition-all text-xs font-semibold group">
+              <div class="flex items-center gap-2.5">
+                <i class="fas fa-chart-bar text-warning text-sm"></i>
+                <span>Prometheus PromQL UI</span>
+              </div>
+              <i class="fas fa-external-link-alt text-base-content/40 group-hover:text-warning text-xs"></i>
+            </a>
+
+            <!-- Hangfire Dashboard -->
+            <a 
+              href="http://localhost:5140/hangfire" 
+              target="_blank" 
+              class="flex items-center justify-between p-3 rounded-xl bg-base-200/60 hover:bg-secondary/10 hover:text-secondary transition-all text-xs font-semibold group">
+              <div class="flex items-center gap-2.5">
+                <i class="fas fa-cogs text-secondary text-sm"></i>
+                <span>Hangfire Scheduled Jobs</span>
+              </div>
+              <i class="fas fa-external-link-alt text-base-content/40 group-hover:text-secondary text-xs"></i>
+            </a>
+
+            <!-- RabbitMQ Management -->
+            <a 
+              href="http://localhost:15672" 
+              target="_blank" 
+              class="flex items-center justify-between p-3 rounded-xl bg-base-200/60 hover:bg-accent/10 hover:text-accent transition-all text-xs font-semibold group">
+              <div class="flex items-center gap-2.5">
+                <i class="fas fa-envelope-open-text text-accent text-sm"></i>
+                <span>RabbitMQ Queue Broker</span>
+              </div>
+              <i class="fas fa-external-link-alt text-base-content/40 group-hover:text-accent text-xs"></i>
+            </a>
+
+            <!-- Raw Prometheus Metrics -->
+            <a 
+              href="http://localhost:5140/metrics" 
+              target="_blank" 
+              class="flex items-center justify-between p-3 rounded-xl bg-base-200/60 hover:bg-info/10 hover:text-info transition-all text-xs font-semibold group">
+              <div class="flex items-center gap-2.5">
+                <i class="fas fa-code text-info text-sm"></i>
+                <span>Raw OpenTelemetry /metrics</span>
+              </div>
+              <i class="fas fa-external-link-alt text-base-content/40 group-hover:text-info text-xs"></i>
+            </a>
+          </div>
+        </div>
+
+        <div class="text-[11px] text-base-content/50 text-center mt-4">
+          Powered by OpenTelemetry .NET 10 SDK & Prometheus
+        </div>
+      </div>
+    </div>
+  }
+</div>

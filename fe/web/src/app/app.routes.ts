@@ -45,6 +45,7 @@ export const routes: Routes = [
       { path: 'admin/route-planning/:id', loadComponent: () => import('./features/admin/route-planning/route-planning-form/route-planning-form').then(c => c.RoutePlanningFormComponent), canActivate: [adminGuard] },
       { path: 'admin/sync-monitoring', loadComponent: () => import('./features/admin/sync-monitoring/sync-monitoring').then(c => c.SyncMonitoring), canActivate: [adminGuard] },
       { path: 'admin/idcs-deliveries', loadComponent: () => import('./features/admin/idcs-delivery/idcs-delivery').then(c => c.IdcsDeliveryComponent), canActivate: [adminGuard] },
+      { path: 'admin/system-observability', loadComponent: () => import('./features/admin/system-observability/system-observability').then(c => c.SystemObservabilityComponent), canActivate: [adminGuard] },
       // Fallback for sub-routes
       { path: '**', redirectTo: 'dashboard' }
     ]
