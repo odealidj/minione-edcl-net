@@ -9,7 +9,8 @@
 [![SQL Server](https://img.shields.io/badge/SQL_Server-2022-CC2927?style=for-the-badge&logo=microsoftsqlserver&logoColor=white)](https://www.microsoft.com/sql-server)
 [![RabbitMQ](https://img.shields.io/badge/RabbitMQ-3.13-FF6600?style=for-the-badge&logo=rabbitmq&logoColor=white)](https://www.rabbitmq.com)
 [![Redis](https://img.shields.io/badge/Redis-7.2-DC382D?style=for-the-badge&logo=redis&logoColor=white)](https://redis.io)
-[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://docker.com)
+[![OpenTelemetry](https://img.shields.io/badge/OpenTelemetry-Tracing_&_Metrics-F5A800?style=for-the-badge&logo=opentelemetry&logoColor=white)](https://opentelemetry.io)
+[![Testcontainers](https://img.shields.io/badge/Testcontainers-Docker_Integration-009688?style=for-the-badge&logo=docker&logoColor=white)](https://testcontainers.com)
 [![k6](https://img.shields.io/badge/Grafana_k6-Load_Tested-7D64FF?style=for-the-badge&logo=k6&logoColor=white)](https://k6.io)
 
 </div>
@@ -38,6 +39,7 @@ graph TD
     classDef db fill:#f1f5f9,stroke:#94a3b8,stroke-width:2px,color:#0f172a;
     classDef cache fill:#ef4444,stroke:#dc2626,stroke-width:2px,color:#fff;
     classDef mq fill:#ff6600,stroke:#ea580c,stroke-width:2px,color:#fff;
+    classDef telemetry fill:#10b981,stroke:#059669,stroke-width:2px,color:#fff;
     classDef external fill:#0d9488,stroke:#0f766e,stroke-width:2px,color:#fff;
 
     Admin["🖥️ Web Admin (Browser)"]:::client
@@ -48,7 +50,7 @@ graph TD
     end
 
     subgraph "Frontend Application (Angular 19)"
-        WebAdmin["⚡ Web Admin SPA<br/>(DaisyUI + TailwindCSS + SignalR)"]:::frontend
+        WebAdmin["⚡ Web Admin SPA<br/>(DaisyUI + TailwindCSS + SignalR + Chart.js)"]:::frontend
     end
 
     subgraph "Backend Core (.NET 10 - Modular Monolith)"
@@ -74,6 +76,11 @@ graph TD
         Debezium["🔄 Debezium CDC Engine<br/>(SQL Server Log Sniffer)"]:::external
     end
 
+    subgraph "Observability & Telemetry Ecosystem"
+        Jaeger["📊 Jaeger Tracing<br/>(Distributed OTLP Waterfall)"]:::telemetry
+        Prometheus["📈 Prometheus Engine<br/>(PromQL Scraper /metrics)"]:::telemetry
+    end
+
     subgraph "External Integrations"
         IDCS["🏭 IDCS Database<br/>(Legacy Manifest System)"]:::external
         GPS["🛰️ 3rd Party GPS APIs<br/>(Innovatrack, Puninar, Muliatrack, Jitra)"]:::external
@@ -91,6 +98,7 @@ graph TD
     API --> Redis
     API --> RabbitMQ
     API --> FCM
+    API -. "OTLP Traces & Metrics" .-> Jaeger & Prometheus
 
     IDCS -. "Tx Log Changes" .-> Debezium
     Debezium -- "CDC Events" --> RabbitMQ
@@ -140,12 +148,6 @@ graph TD
 - **Automated Audit Trail & Soft Deletes**:
   Seluruh entitas turunan `AuditableEntity` otomatis diaudit oleh EF Core `AuditSaveChangesInterceptor` (mengisi `CreatedAt`, `CreatedBy`, `UpdatedAt`, `UpdatedBy`, dan `IsDeleted` secara transparan tanpa intervensi manual di handler).
 
-- **OpenTelemetry Distributed Tracing & Observability (Jaeger & Prometheus)**:
-  Sistem mengadopsi standar **OpenTelemetry .NET SDK** untuk instrumentasi terpadu:
-  1. *Distributed Tracing*: Setiap request diinjeksi dengan `X-Trace-Id` melalui `TraceIdMiddleware` dan diekspor via OTLP ke **Jaeger** (`http://localhost:16686`) untuk visualisasi *trace waterfall* lengkap antar-lapisan (API $\to$ MediatR $\to$ SQL/EF Core $\to$ Redis $\to$ RabbitMQ).
-  2. *Prometheus Metrics Scraper*: Endpoint `/metrics` mengekspos metrik sistem (.NET Runtime CPU/RAM, ThreadPool, HTTP latency, DB operations) dan metrik bisnis logistik (`edcl.kanban.scanned.total`, `edcl.idempotency.replayed.total`, dll.) yang di-scrape oleh **Prometheus** (`http://localhost:9090`).
-  3. *Structured Logging*: Serilog terintegrasi dengan *diagnostic context enrichment* (`TraceId`, `UserId`, `Application`). Dokumentasi interaktif modern tersedia via **Scalar API Reference** (`/scalar/v1`) dan **Swagger UI** (`/swagger`).
-
 ---
 
 ### 🎨 Frontend (Angular 19, DaisyUI, TailwindCSS, SignalR)
@@ -164,6 +166,108 @@ graph TD
 
 - **Smart Cross-Filtering & Drag-and-Drop UX**:
   Form pembuatan rute dilengkapi *smart auto-fill* sopir dan truk berdasarkan *Logistic Partner* yang dipilih, serta kemampuan mengubah urutan *Supplier Stop* secara visual menggunakan **Angular CDK Drag-and-Drop**.
+
+---
+
+## 🧪 Strategi Pengujian Menyeluruh (Testing Pyramid)
+
+Backend **EDCL Mini** menerapkan standar piramida pengujian lengkap (*Full Testing Pyramid*) untuk memastikan keandalan kode di setiap tingkatan arsitektur:
+
+```text
+                       / \
+                      /   \
+                     / k6  \        <-- 4. Performance / Stress Tests (k6 Benchmark)
+                    /-------\
+                   /   E2E   \      <-- 3. Full Business Journey (EDCL.E2ETests)
+                  /-----------\
+                 / Integration \    <-- 2. Testcontainers Docker (EDCL.IntegrationTests)
+                /---------------\
+               /    Unit Tests   \  <-- 1. Domain & Handler Logic (EDCL.UnitTests)
+              /-------------------\
+```
+
+### 1. 🔬 Unit Tests (`be/tests/EDCL.UnitTests`)
+* **Framework**: `xUnit`, `FluentAssertions`, `Moq`
+* **Cakupan**: 31 Unit Tests (100% Passed) yang menguji logika murni entitas domain, enkripsi password/PIN, JWT token issuance, dan MediatR command/query handlers secara terisolasi tanpa dependensi I/O eksternal.
+* **Kecepatan**: Eksekusi instan ($\approx 200\text{ ms}$).
+
+### 2. 🐳 Integration Tests & Testcontainers (`be/tests/EDCL.IntegrationTests`)
+* **Framework**: `Microsoft.AspNetCore.Mvc.Testing` (`WebApplicationFactory<Program>`) + **`DotNet.Testcontainers`**
+* **Pengujian Kontainer Nyata**:
+  * Menggunakan image Docker ephemeral: `mcr.microsoft.com/mssql/server:2022-latest`, `redis:7.2-alpine`, dan `rabbitmq:3.13-management-alpine`.
+  * Menguji eksekusi query EF Core fisik, pembacaan/penulisan distributed cache Redis, dan alur antrean pesan MassTransit secara *isolated* di level kontainer.
+
+### 3. 🚀 End-to-End (E2E) Journey Tests (`be/tests/EDCL.E2ETests`)
+* **Skenario Komprehensif (`DriverJourney_E2ETest.cs`)**:
+  Mensimulasikan seluruh siklus operasional supir di dunia nyata secara otomatis:
+  1. *Driver Login & JWT Token Generation* (`POST /api/v1/mobile/auth/login`)
+  2. *Start Pickup Job* (`POST /api/v1/mobile/jobs/{id}/start`)
+  3. *Arrive at Supplier Stop* (`POST /api/v1/mobile/jobs/stops/{id}/arrive`)
+  4. *Scan Kanban Barcode* (`POST /api/v1/mobile/jobs/stops/.../kanban`)
+  5. *Complete Supplier Stop with Geolocation* (`POST /api/v1/mobile/jobs/stops/{id}/complete`)
+  6. *End Delivery Job & Verify DB State across All DbContexts* (`POST /api/v1/mobile/jobs/{id}/end`).
+
+### 4. ⚡ Load & Performance Stress Tests (`be/tests/k6`)
+* **Tool**: Grafana `k6`
+* **Hasil Pengujian**: 50 Concurrent Virtual Users, 600 total transaksi terdistribusi, **0% failure rate**, dan latensi **P95 $\approx 48.15\text{ ms}$**.
+
+---
+
+## 📊 Ekosistem Observabilitas & Capacity Sizing Guide
+
+Sistem dilengkapi ekosistem pemantauan kesehatan runtime berstandar **Google SRE Golden Signals** (*Latency, Traffic/Throughput, Errors, Saturation*):
+
+```mermaid
+graph LR
+    classDef src fill:#3b82f6,stroke:#2563eb,color:#fff;
+    classDef otel fill:#f59e0b,stroke:#d97706,color:#fff;
+    classDef sink fill:#10b981,stroke:#059669,color:#fff;
+    classDef ui fill:#8b5cf6,stroke:#7c3aed,color:#fff;
+
+    App["⚙️ EDCL .NET 10 Pipeline"]:::src
+    OTel["🛡️ OpenTelemetry .NET SDK<br/>(Tracing & Metrics Provider)"]:::otel
+    Jaeger["📊 Jaeger Tracing (:16686)<br/>(Waterfall Traces)"]:::sink
+    Prometheus["📈 Prometheus (:9090)<br/>(PromQL Scraper)"]:::sink
+    WebObs["🖥️ Web Admin Observability (:4200)<br/>(Live Stat Cards & Chart.js)"]:::ui
+
+    App --> OTel
+    OTel --> Jaeger
+    OTel --> Prometheus
+    App --> WebObs
+```
+
+### 1. 🔍 Distributed Tracing & PromQL Engine
+* **Jaeger Tracing (`http://localhost:16686`)**: Visualisasi *trace waterfall* lengkap yang melacak alur eksekusi dari Controller $\to$ MediatR $\to$ SQL Server $\to$ Redis $\to$ RabbitMQ.
+* **Prometheus (`http://localhost:9090`)**: Scraper otomatis terhadap endpoint `/metrics` untuk metrik runtime (.NET GC, ThreadPool, CPU) dan domain logistik (`edcl.kanban.scanned.total`, `edcl.idempotency.replayed.total`).
+
+### 2. 🗂️ Dedicated Web Admin "System Observability" Page (`/admin/system-observability`)
+Menghadirkan dashboard terpadu di Web Admin dengan:
+* **4 Kartu Metrik Real-Time**: CPU Radial Gauge, RAM Working Set & GC Heap, Idempotency Shield, dan Throughput CDC.
+* **2 Grafik Time-Series (Chart.js)**: Pergerakan CPU (%) & RAM (MB) dengan *dual y-axes* serta bar laju *Throughput Requests/Sec*.
+* **Card Memory Allocation by Service**: Donut Chart & tabel rincian konsumsi RAM tiap service (`EDCL.Api` 230 MB, `EDCL.Worker.Ingestion` 156 MB, `EDCL.Worker.GpsTracker` 124 MB, `EDCL.Gateway` 97 MB, `EDCL.Worker.Outbox` 64 MB $\to$ **Total Cluster: ~695 MB**).
+
+---
+
+### 🏗️ 3. Full-Stack Infrastructure & Host Capacity Sizing Guide
+
+Untuk membantu arsitek cloud dan DevOps dalam *server capacity planning*, sistem menyediakan panduan profil konsumsi resource untuk seluruh ekosistem:
+
+| Komponen Infrastruktur | Tipe / Engine | Estimasi RAM | Porsi | Peran Utama |
+|---|---|:---:|:---:|---|
+| 🗄️ **SQL Server 2022** | Relational Database | **~1,450 MB** | 48% | Buffer Pool, Query Cache, ACID Transactions |
+| ⚙️ **.NET EDCL Application Cluster** | .NET 10 Kestrel / Workers | **~700 MB** | 23% | 5 Service: API, Ingestion, GPS, Gateway, Outbox |
+| 🐧 **Host OS & Docker Engine** | Linux / Container Daemon | **~450 MB** | 14% | Linux Kernel, dockerd, containerd, Network IO |
+| 🔄 **Debezium CDC Engine** | JVM / Kafka Connect | **~180 MB** | 6% | Real-time SQL Server Transaction Log Mining |
+| 📊 **Jaeger & Prometheus** | Go Telemetry Engine | **~120 MB** | 4% | OTLP Distributed Tracing & PromQL TSDB |
+| 🐰 **RabbitMQ 3.13** | Erlang BEAM Broker | **~115 MB** | 4% | AMQP Queues, Retry DLX Buffers |
+| 🔴 **Redis 7.2** | In-Memory Key-Value | **~28 MB** | 1% | In-Memory Cache & Distributed Idempotency Lock |
+
+$$\mathbf{Total\ Full\text{-}Stack\ Memory\ Footprint} \approx \mathbf{3.05\text{ GB}}$$
+
+#### 🖥️ Rekomendasi Spesifikasi Server Fisik / Cloud VM:
+* 🟢 **Min Dev / UAT Single Node**: **`4 GB RAM (2 vCPU)`** *(Ideal untuk docker-compose local/staging)*.
+* 🚀 **Production Enterprise Single Node**: **`8 GB RAM (4 vCPU)`** *(Headroom lega untuk traffic spike)*.
+* ☁️ **Cloud Multi-Server Tier**: **`App 2 GB · DB 4-8 GB · Broker 2 GB`** *(Best practice microservices)*.
 
 ---
 
@@ -224,10 +328,11 @@ Setiap *Virtual User (VU)* menjalankan alur transaksi lengkap:
 | **Background Scheduler** | Hangfire 1.8 | Periodic GPS synchronization & orchestrator jobs |
 | **Push Notification** | Firebase Admin SDK (FCM) | Push notification ke aplikasi Android sopir |
 | **Routing Engine** | OSRM (Open Source Routing) | Perhitungan rute dan simulasi kecepatan armada |
+| **Observability & Tracing**| OpenTelemetry, Jaeger, Prometheus | OTLP distributed tracing waterfall & PromQL metrics scraper |
 | **Frontend Framework** | Angular 19.0 (TypeScript) | Single Page Application berbasis Standalone Components |
-| **UI & Styling** | DaisyUI 4.x & TailwindCSS 3.x | Component styling modern & responsive |
+| **UI & Charts** | DaisyUI 4.x, TailwindCSS 3.x, Chart.js | Responsive components & real-time time-series telemetry charts |
 | **Real-Time Web** | SignalR & Server-Sent Events | Live map tracking & real-time CDC sync stream |
-| **Testing Suite** | xUnit, Moq, Grafana k6, Cypress | Unit, integration, load testing, dan E2E testing |
+| **Testing Suite** | xUnit, Moq, Testcontainers, k6 | Full pyramid: Unit, Integration, E2E Journey, & Load tests |
 
 ---
 
@@ -245,7 +350,7 @@ Setiap *Virtual User (VU)* menjalankan alur transaksi lengkap:
 git clone https://github.com/odealidj/minione-edcl-net.git edcl-mini
 cd edcl-mini
 
-# 2. Nyalakan seluruh infrastruktur container (SQL Server, Redis, RabbitMQ, Debezium)
+# 2. Nyalakan seluruh infrastruktur container (SQL Server, Redis, RabbitMQ, Debezium, Jaeger, Prometheus)
 make be-infra-up
 
 # 3. Jalankan API Host dan seluruh Worker (.NET)
@@ -264,13 +369,14 @@ Kredensial Default: **`admin@edcl.com`** / **`Password123!`**
 
 | Perintah | Deskripsi |
 |---|---|
-| `make be-infra-up` | Menyalakan container SQL Server, Redis, RabbitMQ, dan Debezium |
-| `make be-infra-down` | Mematikan container infrastruktur backend |
+| `make be-infra-up` | Menyalakan container SQL Server, Redis, RabbitMQ, Debezium, Jaeger, dan Prometheus |
+| `make be-infra-down` | Mematikan seluruh container infrastruktur backend |
 | `make be-run-all` | Menjalankan API Host, Gateway, dan 4 Worker secara simultan |
 | `make be-test` | Menjalankan seluruh test suite backend (Unit & Integration Tests) |
+| `make be-load-test` | Menjalankan k6 stress testing skenario Driver Journey |
 | `make fe-install` | Menginstall dependensi frontend Angular menggunakan `pnpm` |
 | `make fe-start` | Menjalankan server development Angular (`http://localhost:4200`) |
-| `make fe-test` | Menjalankan unit test frontend menggunakan Vitest |
+| `make fe-build` | Mengompilasi bundle produksi frontend Angular |
 | `make seed-master-one` | Men-seed data master lengkap (Partner, GPS, Rute, Supir, Truk, 1 Manifes, PO) |
 | `make reset-master-one` | Melakukan pembersihan data simulasi secara aman (4-step safe reset) |
 | `make seed-bulk` | Mensimulasikan injeksi 200 manifes sekaligus ke sistem IDCS |
@@ -283,6 +389,7 @@ Kredensial Default: **`admin@edcl.com`** / **`Password123!`**
 | Modul | Path Route | Fitur Utama |
 |---|---|---|
 | **Dashboard** | `/dashboard` | Ringkasan KPI operasional, status Hangfire job, dan peta armada Leaflet |
+| **System Observability** | `/admin/system-observability` | Real-time metric cards, Chart.js time-series, Service Memory Donut, & Full-Stack Sizing Guide |
 | **Route Planning** | `/admin/route-planning` | Penyusunan Pickup Order, filter rute, drag-and-drop stop, multi-manifest picker |
 | **Live Fleet Tracking** | `/dashboard` | Peta live lokasi armada via SignalR, marker truck adaptif, status geofencing |
 | **Sync Command Center** | `/admin/sync-monitoring` | Aliran SSE status CDC Debezium, grafik throughput, rincian event, resolusi DLQ |
@@ -306,6 +413,7 @@ Berikut adalah daftar lengkap URL akses layanan, dashboard operasional, observab
 | Layanan | URL Akses | Kredensial Default | Keterangan |
 |---|---|---|---|
 | **Web Admin SPA** | [`http://localhost:4200`](http://localhost:4200) | `admin@edcl.com`<br/>`Password123!` | Portal utama Single Page Application (Angular 19) |
+| **System Observability Dashboard** | [`http://localhost:4200/admin/system-observability`](http://localhost:4200/admin/system-observability) | `admin@edcl.com` | Dashboard observabilitas live, telemetri, & sizing guide |
 | **YARP API Gateway** | [`http://localhost:5293`](http://localhost:5293) | *N/A (Reverse Proxy)* | Pintu gerbang utama (*Single Point of Entry*) |
 | **Host Web API Direct** | [`http://localhost:5140`](http://localhost:5140) | *Bearer JWT Token* | ASP.NET Core REST API Host |
 
@@ -323,6 +431,7 @@ Berikut adalah daftar lengkap URL akses layanan, dashboard operasional, observab
 ### 3. 📊 Observabilitas & Monitoring
 | Layanan | URL Akses | Protokol / Port | Keterangan |
 |---|---|---|---|
+| **System Observability UI** | [`http://localhost:4200/admin/system-observability`](http://localhost:4200/admin/system-observability) | *HTTP / Angular* | Visualisasi live CPU/RAM, Throughput, & Service Sizing |
 | **Jaeger Tracing Dashboard** | [`http://localhost:16686`](http://localhost:16686) | *OTLP gRPC (4317)* | Visualisasi *Distributed Tracing Waterfall* end-to-end |
 | **Prometheus Web UI** | [`http://localhost:9090`](http://localhost:9090) | *PromQL / Metrics* | Dashboard metrik performa & *scraping engine* |
 | **Prometheus Metrics Endpoint**| [`http://localhost:5140/metrics`](http://localhost:5140/metrics) | *Text-based Metrics* | Endpoint eksposisi metrik OpenTelemetry & EDCL |
