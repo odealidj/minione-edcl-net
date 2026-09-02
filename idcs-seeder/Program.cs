@@ -801,7 +801,14 @@ class Program
             
             var rows = await connEdcl.ExecuteAsync("DELETE FROM job.pickup_orders");
             await connEdcl.ExecuteAsync("DBCC CHECKIDENT ('job.pickup_orders', RESEED, 0)");
-            Console.WriteLine($"✅ Cleared {rows} Pickup Orders, their children, and Manifest Problems in EDCL.");
+
+            await connEdcl.ExecuteAsync("DELETE FROM job.live_tracking_fleets");
+            await connEdcl.ExecuteAsync("DBCC CHECKIDENT ('job.live_tracking_fleets', RESEED, 0)");
+
+            await connEdcl.ExecuteAsync("DELETE FROM driver.truck_locations");
+            await connEdcl.ExecuteAsync("DBCC CHECKIDENT ('driver.truck_locations', RESEED, 0)");
+            
+            Console.WriteLine($"✅ Cleared {rows} Pickup Orders, their children, Live Tracking, and Manifest Problems in EDCL.");
         }
         catch (SqlException ex)
         {
@@ -1010,8 +1017,16 @@ class Program
                 if (!mappingExists)
                 {
                     await conn.ExecuteAsync(@"
-                        INSERT INTO edcl.driver.logistic_partner_gps_vendors (LogisticPartnerId, GpsVendorId, created_at, created_by, is_deleted)
-                        VALUES (@LpId, @VendorId, GETUTCDATE(), 'System', 0)",
+                        INSERT INTO edcl.driver.logistic_partner_gps_vendors (LogisticPartnerId, GpsVendorId, LastGpsSyncStatus, LastGpsSyncAt, LastGpsSyncMessage, created_at, created_by, is_deleted)
+                        VALUES (@LpId, @VendorId, 'Success', GETUTCDATE(), 'Connected', GETUTCDATE(), 'System', 0)",
+                        new { LpId = lpId.Value, VendorId = vendorId });
+                }
+                else
+                {
+                    await conn.ExecuteAsync(@"
+                        UPDATE edcl.driver.logistic_partner_gps_vendors
+                        SET LastGpsSyncStatus = 'Success', LastGpsSyncAt = GETUTCDATE(), LastGpsSyncMessage = 'Connected'
+                        WHERE LogisticPartnerId = @LpId AND GpsVendorId = @VendorId",
                         new { LpId = lpId.Value, VendorId = vendorId });
                 }
             }
@@ -1390,6 +1405,15 @@ class Program
             -- Insert Mock Live Tracking Data (PUNINAR style)
             INSERT INTO edcl.job.live_tracking_fleets (PickupOrderId, TruckId, DriverId, Latitude, Longitude, Speed, Heading, Odometer, Address, EngineStatus, RecordedAt, Provider, RawData, CreatedAt, CreatedBy, IsDeleted)
             VALUES (@PoProgId, @TruckId, @DriverId, -6.1284332, 106.947584, 0.0, 0.0, NULL, 'Kawasan Industri dan Peti Kemas', 0, DATEADD(minute, -15, GETUTCDATE()), 'PUNINAR', '{""nopol"": ""B 9710 TXS""}', GETUTCDATE(), 'Seeder', 0);
+
+            -- Insert Mock Live Tracking Data into driver.truck_locations for Live Fleet Tracking Query
+            INSERT INTO edcl.driver.truck_locations (TruckId, Latitude, Longitude, Speed, Heading, Timestamp, ProviderName, created_at, created_by, is_deleted)
+            VALUES (@TruckId, -6.327392, 107.162465, 34.0, 112.0, GETUTCDATE(), 'JITRA', GETUTCDATE(), 'Seeder', 0);
+
+            -- Update GPS Vendor Mapping to Connected
+            UPDATE edcl.driver.logistic_partner_gps_vendors
+            SET LastGpsSyncStatus = 'Success', LastGpsSyncAt = GETUTCDATE(), LastGpsSyncMessage = 'Connected'
+            WHERE LogisticPartnerId = (SELECT LogisticPartnerId FROM edcl.driver.trucks WHERE Id = @TruckId);
         ";
 
         await edclConn.ExecuteAsync(sqlSeedEdcl, new { PoNo = poNo, DriverId = driverId, TruckId = truckId, SupplierId = supplierId, ManifestNo = manifestNo });
