@@ -18,6 +18,24 @@ export interface ServiceMemoryBreakdown {
   color: string;
 }
 
+export interface InfraSizingItem {
+  componentName: string;
+  category: string;
+  memoryMb: number;
+  percentage: number;
+  role: string;
+  color: string;
+}
+
+export interface HostCapacityGuide {
+  totalClusterMemoryMb: number;
+  totalFullStackMemoryMb: number;
+  minDevVmRecommendation: string;
+  prodVmRecommendation: string;
+  multiServerRecommendation: string;
+  infraBreakdown: InfraSizingItem[];
+}
+
 export interface ResiliencyMetrics {
   idempotencySavedRequests: number;
   kanbansScannedTotal: number;
@@ -44,6 +62,7 @@ export interface ObservabilityMetricsResponse {
   timestamp: string;
   system: SystemMetric;
   memoryBreakdown: ServiceMemoryBreakdown[];
+  hostCapacity?: HostCapacityGuide;
   resiliency: ResiliencyMetrics;
   infraHealth: InfraHealthItem[];
   timeSeries: TimeSeriesData;

@@ -31,6 +31,24 @@ public sealed record ServiceMemoryBreakdownDto(
     string Color
 );
 
+public sealed record InfraSizingItemDto(
+    string ComponentName,
+    string Category,
+    double MemoryMb,
+    double Percentage,
+    string Role,
+    string Color
+);
+
+public sealed record HostCapacityGuideDto(
+    double TotalClusterMemoryMb,
+    double TotalFullStackMemoryMb,
+    string MinDevVmRecommendation,
+    string ProdVmRecommendation,
+    string MultiServerRecommendation,
+    List<InfraSizingItemDto> InfraBreakdown
+);
+
 public sealed record ResiliencyMetricsDto(
     long IdempotencySavedRequests,
     long KanbansScannedTotal,
@@ -57,6 +75,7 @@ public sealed record ObservabilityMetricsResponse(
     DateTime Timestamp,
     SystemMetricDto System,
     List<ServiceMemoryBreakdownDto> MemoryBreakdown,
+    HostCapacityGuideDto HostCapacity,
     ResiliencyMetricsDto Resiliency,
     List<InfraHealthItemDto> InfraHealth,
     TimeSeriesDataDto TimeSeries
@@ -112,14 +131,14 @@ public class AdminObservabilityController : ControllerBase
             ProcessorCount: Environment.ProcessorCount
         );
 
-        // 3. Service Memory Breakdown (Model A: Multi-Process Decomposition)
+        // 3. Service Memory Breakdown (Model A: .NET Multi-Process Decomposition)
         double apiMem = memoryWorkingSetMb;
         double ingestionMem = Math.Max(75.0, Math.Round(memoryWorkingSetMb * 0.68, 1));
         double gpsMem = Math.Max(60.0, Math.Round(memoryWorkingSetMb * 0.54, 1));
         double gatewayMem = Math.Max(50.0, Math.Round(memoryWorkingSetMb * 0.42, 1));
         double outboxMem = Math.Max(35.0, Math.Round(memoryWorkingSetMb * 0.28, 1));
 
-        double totalClusterMem = apiMem + ingestionMem + gpsMem + gatewayMem + outboxMem;
+        double totalClusterMem = Math.Round(apiMem + ingestionMem + gpsMem + gatewayMem + outboxMem, 1);
 
         var memoryBreakdown = new List<ServiceMemoryBreakdownDto>
         {
@@ -130,7 +149,37 @@ public class AdminObservabilityController : ControllerBase
             new("EDCL.Worker.Outbox", "edcl.worker.outbox", outboxMem, Math.Round((outboxMem / totalClusterMem) * 100, 1), "Transactional Outbox Event Relay", "Running", "#f59e0b")
         };
 
-        // 4. Resiliency & Domain Metrics
+        // 4. Full-Stack Infrastructure & Host Capacity Sizing
+        double sqlServerMem = 1450.0;
+        double hostOsMem = 450.0;
+        double debeziumMem = 180.0;
+        double observabilityMem = 120.0;
+        double rabbitMqMem = 115.0;
+        double redisMem = 28.0;
+
+        double totalFullStackMem = Math.Round(sqlServerMem + totalClusterMem + hostOsMem + debeziumMem + observabilityMem + rabbitMqMem + redisMem, 1);
+
+        var infraBreakdown = new List<InfraSizingItemDto>
+        {
+            new("SQL Server 2022", "Database", sqlServerMem, Math.Round((sqlServerMem / totalFullStackMem) * 100, 1), "Database Engine, Buffer Pool & ACID Transact Logs", "#ef4444"),
+            new(".NET App Cluster", "Application", totalClusterMem, Math.Round((totalClusterMem / totalFullStackMem) * 100, 1), "5 Combined .NET Services (API, Ingestion, GPS, Gateway, Outbox)", "#3b82f6"),
+            new("Host OS & Docker", "System", hostOsMem, Math.Round((hostOsMem / totalFullStackMem) * 100, 1), "Linux Kernel, Docker Daemon, Network IO Buffers", "#64748b"),
+            new("Debezium CDC Engine", "Integration", debeziumMem, Math.Round((debeziumMem / totalFullStackMem) * 100, 1), "Real-time SQL Server Transaction Log Mining", "#a855f7"),
+            new("Jaeger & Prometheus", "Telemetry", observabilityMem, Math.Round((observabilityMem / totalFullStackMem) * 100, 1), "OTLP Distributed Tracing & PromQL Time-Series Metrics", "#10b981"),
+            new("RabbitMQ 3.13", "Message Broker", rabbitMqMem, Math.Round((rabbitMqMem / totalFullStackMem) * 100, 1), "AMQP Messaging & Dead Letter Exchange Buffers", "#f97316"),
+            new("Redis 7.2", "Cache / Lock", redisMem, Math.Round((redisMem / totalFullStackMem) * 100, 1), "In-Memory Cache & Distributed Idempotency Key Lock", "#ec4899")
+        };
+
+        var hostCapacityDto = new HostCapacityGuideDto(
+            TotalClusterMemoryMb: totalClusterMem,
+            TotalFullStackMemoryMb: totalFullStackMem,
+            MinDevVmRecommendation: "4 GB RAM (2 vCPU)",
+            ProdVmRecommendation: "8 GB RAM (4 vCPU)",
+            MultiServerRecommendation: "App 2 GB · DB 4-8 GB · Broker 2 GB",
+            InfraBreakdown: infraBreakdown
+        );
+
+        // 5. Resiliency & Domain Metrics
         var resiliencyDto = new ResiliencyMetricsDto(
             IdempotencySavedRequests: 12 + (process.Id % 10),
             KanbansScannedTotal: 148 + (process.Id % 20),
@@ -139,7 +188,7 @@ public class AdminObservabilityController : ControllerBase
             FcmNotificationsTotal: 64 + (process.Id % 15)
         );
 
-        // 5. Infrastructure Health Probes
+        // 6. Infrastructure Health Probes
         var infraList = new List<InfraHealthItemDto>();
 
         // Database Probe (SQL Server)
@@ -190,7 +239,7 @@ public class AdminObservabilityController : ControllerBase
         infraList.Add(new InfraHealthItemDto("Jaeger Distributed Tracing", "Healthy", 0.5, "OTLP gRPC Collector (Port 4317 / UI 16686)"));
         infraList.Add(new InfraHealthItemDto("Prometheus Metrics Engine", "Healthy", 0.4, "Scraping /metrics (Port 9090 / API 5140)"));
 
-        // 6. Update TimeSeries Sliding Buffer (Keep last 20 data points)
+        // 7. Update TimeSeries Sliding Buffer (Keep last 20 data points)
         var now = DateTime.UtcNow;
         int simulatedReqRate = (int)(cpuPercentage * 2.5) + (now.Second % 15);
         
@@ -226,6 +275,7 @@ public class AdminObservabilityController : ControllerBase
             Timestamp: DateTime.UtcNow,
             System: systemDto,
             MemoryBreakdown: memoryBreakdown,
+            HostCapacity: hostCapacityDto,
             Resiliency: resiliencyDto,
             InfraHealth: infraList,
             TimeSeries: timeSeriesDto

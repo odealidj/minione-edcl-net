@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, AfterViewInit, ViewChild, ElementRef, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SystemObservabilityService } from '../../../core/services/system-observability.service';
-import { ObservabilityMetricsResponse, ServiceMemoryBreakdown } from '../../../core/models/system-observability.model';
+import { ObservabilityMetricsResponse, ServiceMemoryBreakdown, HostCapacityGuide, InfraSizingItem } from '../../../core/models/system-observability.model';
 import { Chart, registerables } from 'chart.js/auto';
 
 Chart.register(...registerables);
@@ -15,7 +15,8 @@ Chart.register(...registerables);
 export class SystemObservabilityComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('cpuMemCanvas') cpuMemCanvas!: ElementRef<HTMLCanvasElement>;
   @ViewChild('throughputCanvas') throughputCanvas!: ElementRef<HTMLCanvasElement>;
-  @ViewChild('memoryDonutCanvas') memoryDonutCanvas!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('serviceMemoryDonutCanvas') serviceMemoryDonutCanvas!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('infraDonutCanvas') infraDonutCanvas!: ElementRef<HTMLCanvasElement>;
 
   metrics = signal<ObservabilityMetricsResponse | null>(null);
   isLoading = signal<boolean>(true);
@@ -23,12 +24,12 @@ export class SystemObservabilityComponent implements OnInit, AfterViewInit, OnDe
   lastUpdated = signal<string>('');
   
   refreshIntervalSeconds = signal<number>(5);
-  isMemoryModalOpen = signal<boolean>(false);
   private timerHandle: any = null;
 
   private cpuMemChart: Chart | null = null;
   private throughputChart: Chart | null = null;
-  private memoryDonutChart: Chart | null = null;
+  private serviceMemoryDonutChart: Chart | null = null;
+  private infraDonutChart: Chart | null = null;
 
   constructor(private observabilityService: SystemObservabilityService) {}
 
@@ -45,7 +46,8 @@ export class SystemObservabilityComponent implements OnInit, AfterViewInit, OnDe
     this.stopAutoRefresh();
     if (this.cpuMemChart) this.cpuMemChart.destroy();
     if (this.throughputChart) this.throughputChart.destroy();
-    if (this.memoryDonutChart) this.memoryDonutChart.destroy();
+    if (this.serviceMemoryDonutChart) this.serviceMemoryDonutChart.destroy();
+    if (this.infraDonutChart) this.infraDonutChart.destroy();
   }
 
   setRefreshInterval(seconds: number): void {
@@ -65,9 +67,8 @@ export class SystemObservabilityComponent implements OnInit, AfterViewInit, OnDe
           this.metrics.set(res.data);
           this.lastUpdated.set(new Date().toLocaleTimeString());
           this.updateCharts(res.data);
-          if (this.isMemoryModalOpen()) {
-            this.updateMemoryDonutChart(this.getMemoryBreakdown());
-          }
+          this.initOrUpdateServiceMemoryDonutChart(this.getMemoryBreakdown());
+          this.initOrUpdateInfraDonutChart(this.getHostCapacity().infraBreakdown);
         }
         this.isLoading.set(false);
         this.isRefreshing.set(false);
@@ -80,18 +81,6 @@ export class SystemObservabilityComponent implements OnInit, AfterViewInit, OnDe
     });
   }
 
-  openMemoryModal(): void {
-    this.isMemoryModalOpen.set(true);
-    setTimeout(() => {
-      const breakdown = this.getMemoryBreakdown();
-      this.initOrUpdateMemoryDonutChart(breakdown);
-    }, 150);
-  }
-
-  closeMemoryModal(): void {
-    this.isMemoryModalOpen.set(false);
-  }
-
   getMemoryBreakdown(): ServiceMemoryBreakdown[] {
     const list = this.metrics()?.memoryBreakdown;
     if (list && list.length > 0) {
@@ -99,7 +88,7 @@ export class SystemObservabilityComponent implements OnInit, AfterViewInit, OnDe
     }
 
     // Dynamic decomposition fallback based on current working set RAM
-    const apiMem = this.metrics()?.system?.memoryWorkingSetMb || 257.7;
+    const apiMem = this.metrics()?.system?.memoryWorkingSetMb || 230.0;
     const ingestionMem = Math.max(75.0, Math.round(apiMem * 0.68 * 10) / 10);
     const gpsMem = Math.max(60.0, Math.round(apiMem * 0.54 * 10) / 10);
     const gatewayMem = Math.max(50.0, Math.round(apiMem * 0.42 * 10) / 10);
@@ -162,6 +151,92 @@ export class SystemObservabilityComponent implements OnInit, AfterViewInit, OnDe
     return Math.round(list.reduce((acc, item) => acc + item.memoryMb, 0));
   }
 
+  getHostCapacity(): HostCapacityGuide {
+    const capacity = this.metrics()?.hostCapacity;
+    if (capacity && capacity.infraBreakdown && capacity.infraBreakdown.length > 0) {
+      return capacity;
+    }
+
+    // Dynamic infrastructure sizing fallback
+    const clusterMem = this.getTotalMemoryMb() || 695.0;
+    const sqlServerMem = 1450.0;
+    const hostOsMem = 450.0;
+    const debeziumMem = 180.0;
+    const observabilityMem = 120.0;
+    const rabbitMqMem = 115.0;
+    const redisMem = 28.0;
+
+    const totalFullStack = Math.round(sqlServerMem + clusterMem + hostOsMem + debeziumMem + observabilityMem + rabbitMqMem + redisMem);
+
+    const infraBreakdown: InfraSizingItem[] = [
+      {
+        componentName: 'SQL Server 2022',
+        category: 'Database',
+        memoryMb: sqlServerMem,
+        percentage: Math.round((sqlServerMem / totalFullStack) * 1000) / 10,
+        role: 'Database Engine, Buffer Pool & ACID Transact Logs',
+        color: '#ef4444'
+      },
+      {
+        componentName: '.NET App Cluster',
+        category: 'Application',
+        memoryMb: clusterMem,
+        percentage: Math.round((clusterMem / totalFullStack) * 1000) / 10,
+        role: '5 Combined .NET Services (API, Ingestion, GPS, Gateway, Outbox)',
+        color: '#3b82f6'
+      },
+      {
+        componentName: 'Host OS & Docker',
+        category: 'System',
+        memoryMb: hostOsMem,
+        percentage: Math.round((hostOsMem / totalFullStack) * 1000) / 10,
+        role: 'Linux Kernel, Docker Daemon, Network IO Buffers',
+        color: '#64748b'
+      },
+      {
+        componentName: 'Debezium CDC Engine',
+        category: 'Integration',
+        memoryMb: debeziumMem,
+        percentage: Math.round((debeziumMem / totalFullStack) * 1000) / 10,
+        role: 'Real-time SQL Server Transaction Log Mining',
+        color: '#a855f7'
+      },
+      {
+        componentName: 'Jaeger & Prometheus',
+        category: 'Telemetry',
+        memoryMb: observabilityMem,
+        percentage: Math.round((observabilityMem / totalFullStack) * 1000) / 10,
+        role: 'OTLP Distributed Tracing & PromQL Time-Series Metrics',
+        color: '#10b981'
+      },
+      {
+        componentName: 'RabbitMQ 3.13',
+        category: 'Message Broker',
+        memoryMb: rabbitMqMem,
+        percentage: Math.round((rabbitMqMem / totalFullStack) * 1000) / 10,
+        role: 'AMQP Messaging & Dead Letter Exchange Buffers',
+        color: '#f97316'
+      },
+      {
+        componentName: 'Redis 7.2',
+        category: 'Cache / Lock',
+        memoryMb: redisMem,
+        percentage: Math.round((redisMem / totalFullStack) * 1000) / 10,
+        role: 'In-Memory Cache & Distributed Idempotency Key Lock',
+        color: '#ec4899'
+      }
+    ];
+
+    return {
+      totalClusterMemoryMb: clusterMem,
+      totalFullStackMemoryMb: totalFullStack,
+      minDevVmRecommendation: '4 GB RAM (2 vCPU)',
+      prodVmRecommendation: '8 GB RAM (4 vCPU)',
+      multiServerRecommendation: 'App 2 GB · DB 4-8 GB · Broker 2 GB',
+      infraBreakdown
+    };
+  }
+
   private startAutoRefresh(): void {
     const sec = this.refreshIntervalSeconds();
     if (sec <= 0) return;
@@ -188,7 +263,7 @@ export class SystemObservabilityComponent implements OnInit, AfterViewInit, OnDe
       this.cpuMemChart.data.labels = data.timeSeries.labels;
       this.cpuMemChart.data.datasets[0].data = data.timeSeries.cpuHistory;
       this.cpuMemChart.data.datasets[1].data = data.timeSeries.memoryHistory;
-      this.cpuMemChart.update('none'); // smooth update
+      this.cpuMemChart.update('none');
     }
 
     // 2. Throughput Chart
@@ -295,14 +370,14 @@ export class SystemObservabilityComponent implements OnInit, AfterViewInit, OnDe
     });
   }
 
-  private initOrUpdateMemoryDonutChart(breakdown: ServiceMemoryBreakdown[]): void {
-    if (!this.memoryDonutCanvas) return;
+  private initOrUpdateServiceMemoryDonutChart(breakdown: ServiceMemoryBreakdown[]): void {
+    if (!this.serviceMemoryDonutCanvas) return;
 
-    if (!this.memoryDonutChart) {
-      const ctx = this.memoryDonutCanvas.nativeElement.getContext('2d');
+    if (!this.serviceMemoryDonutChart) {
+      const ctx = this.serviceMemoryDonutCanvas.nativeElement.getContext('2d');
       if (!ctx) return;
 
-      this.memoryDonutChart = new Chart(ctx, {
+      this.serviceMemoryDonutChart = new Chart(ctx, {
         type: 'doughnut',
         data: {
           labels: breakdown.map(x => x.serviceName),
@@ -338,15 +413,60 @@ export class SystemObservabilityComponent implements OnInit, AfterViewInit, OnDe
         }
       });
     } else {
-      this.updateMemoryDonutChart(breakdown);
+      this.serviceMemoryDonutChart.data.labels = breakdown.map(x => x.serviceName);
+      this.serviceMemoryDonutChart.data.datasets[0].data = breakdown.map(x => x.memoryMb);
+      this.serviceMemoryDonutChart.data.datasets[0].backgroundColor = breakdown.map(x => x.color);
+      this.serviceMemoryDonutChart.update('none');
     }
   }
 
-  private updateMemoryDonutChart(breakdown: ServiceMemoryBreakdown[]): void {
-    if (!this.memoryDonutChart) return;
-    this.memoryDonutChart.data.labels = breakdown.map(x => x.serviceName);
-    this.memoryDonutChart.data.datasets[0].data = breakdown.map(x => x.memoryMb);
-    this.memoryDonutChart.data.datasets[0].backgroundColor = breakdown.map(x => x.color);
-    this.memoryDonutChart.update('none');
+  private initOrUpdateInfraDonutChart(breakdown: InfraSizingItem[]): void {
+    if (!this.infraDonutCanvas) return;
+
+    if (!this.infraDonutChart) {
+      const ctx = this.infraDonutCanvas.nativeElement.getContext('2d');
+      if (!ctx) return;
+
+      this.infraDonutChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: breakdown.map(x => x.componentName),
+          datasets: [
+            {
+              data: breakdown.map(x => x.memoryMb),
+              backgroundColor: breakdown.map(x => x.color),
+              borderWidth: 2,
+              hoverOffset: 6
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { boxWidth: 10, padding: 8, font: { size: 10 } }
+            },
+            tooltip: {
+              callbacks: {
+                label: (context) => {
+                  const label = context.label || '';
+                  const value = context.parsed || 0;
+                  const item = breakdown[context.dataIndex];
+                  return ` ${label}: ${value} MB (${item?.percentage || 0}%)`;
+                }
+              }
+            }
+          },
+          cutout: '65%'
+        }
+      });
+    } else {
+      this.infraDonutChart.data.labels = breakdown.map(x => x.componentName);
+      this.infraDonutChart.data.datasets[0].data = breakdown.map(x => x.memoryMb);
+      this.infraDonutChart.data.datasets[0].backgroundColor = breakdown.map(x => x.color);
+      this.infraDonutChart.update('none');
+    }
   }
 }

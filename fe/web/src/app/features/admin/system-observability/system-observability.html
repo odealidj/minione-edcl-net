@@ -79,27 +79,19 @@
         </div>
       </div>
 
-      <!-- Memory (RAM) Card with Interactive Breakdown Modal Trigger -->
-      <div 
-        (click)="openMemoryModal()"
-        class="bg-base-100 p-5 rounded-2xl shadow-sm border border-base-200 flex items-center justify-between cursor-pointer hover:border-secondary/50 hover:shadow-md transition-all group relative">
+      <!-- Memory (RAM) Card -->
+      <div class="bg-base-100 p-5 rounded-2xl shadow-sm border border-base-200 flex items-center justify-between">
         <div>
-          <div class="flex items-center gap-1.5">
-            <span class="text-xs font-bold uppercase tracking-wider text-base-content/50">Working Set (RAM)</span>
-            <span class="badge badge-xs badge-secondary font-semibold group-hover:scale-105 transition-transform">Breakdown</span>
-          </div>
+          <span class="text-xs font-bold uppercase tracking-wider text-base-content/50">Working Set (RAM)</span>
           <div class="text-2xl font-black text-secondary mt-1">
             {{ metrics()!.system.memoryWorkingSetMb }} MB
           </div>
-          <div class="text-xs text-base-content/60 mt-1 flex items-center gap-1">
-            <i class="fas fa-memory mr-0.5"></i> GC: {{ metrics()!.system.gcTotalMemoryMb }} MB
-            <span class="text-secondary font-medium ml-1 flex items-center gap-0.5 group-hover:underline">
-              <span>View details</span> <i class="fas fa-arrow-right text-[10px]"></i>
-            </span>
+          <div class="text-xs text-base-content/60 mt-1">
+            <i class="fas fa-memory mr-1"></i> GC Heap: {{ metrics()!.system.gcTotalMemoryMb }} MB
           </div>
         </div>
-        <div class="p-3 bg-secondary/10 text-secondary rounded-2xl group-hover:bg-secondary group-hover:text-secondary-content transition-colors">
-          <i class="fas fa-layer-group text-2xl"></i>
+        <div class="p-3 bg-secondary/10 text-secondary rounded-2xl">
+          <i class="fas fa-server text-2xl"></i>
         </div>
       </div>
 
@@ -166,7 +158,192 @@
       </div>
     </div>
 
-    <!-- 3. Infrastructure Health Probes & Quick Portals -->
+    <!-- ========================================================================= -->
+    <!-- 3. DEDICATED CARD: Memory Allocation by Service & Worker (.NET Cluster)    -->
+    <!-- ========================================================================= -->
+    <div class="bg-base-100 p-6 rounded-2xl shadow-sm border border-base-200">
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pb-4 border-b border-base-200">
+        <div class="flex items-center gap-3">
+          <div class="p-2.5 bg-secondary/10 text-secondary rounded-xl">
+            <i class="fas fa-layer-group text-lg"></i>
+          </div>
+          <div>
+            <h2 class="font-bold text-base text-base-content">Memory Allocation by Service & Worker (.NET Cluster)</h2>
+            <p class="text-xs text-base-content/60">Distributed multi-process RAM decomposition of core application components</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="badge badge-secondary badge-outline text-xs font-bold py-3 px-3">
+            Cluster Total: {{ getTotalMemoryMb() }} MB
+          </span>
+        </div>
+      </div>
+
+      <!-- Donut Chart & Detailed Table Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 mt-6 items-center">
+        <!-- Left: Donut Chart (2 Cols) -->
+        <div class="lg:col-span-2 flex flex-col items-center justify-center p-3 bg-base-200/30 rounded-2xl">
+          <div class="h-64 w-full relative">
+            <canvas #serviceMemoryDonutCanvas></canvas>
+          </div>
+        </div>
+
+        <!-- Right: Service Details Table (3 Cols) -->
+        <div class="lg:col-span-3 overflow-x-auto">
+          <table class="table table-xs w-full">
+            <thead>
+              <tr class="text-base-content/50 border-b border-base-200 uppercase text-[10px]">
+                <th>Service / Worker</th>
+                <th>RAM</th>
+                <th>Share</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of getMemoryBreakdown(); track item.serviceName) {
+                <tr class="hover:bg-base-200/50 transition-colors">
+                  <td>
+                    <div class="flex items-start gap-2 py-0.5">
+                      <span class="w-2.5 h-2.5 rounded-full mt-1 shrink-0" [style.background-color]="item.color"></span>
+                      <div>
+                        <div class="font-bold text-base-content text-xs">{{ item.serviceName }}</div>
+                        <div class="text-[10px] text-base-content/50 leading-tight">{{ item.role }}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="font-mono font-bold text-xs whitespace-nowrap">{{ item.memoryMb }} MB</td>
+                  <td class="w-32">
+                    <div class="flex items-center gap-1.5">
+                      <div class="w-full bg-base-200 rounded-full h-2 overflow-hidden">
+                        <div class="h-2 rounded-full transition-all" [style.width.%]="item.percentage" [style.background-color]="item.color"></div>
+                      </div>
+                      <span class="text-[10px] font-mono text-base-content/70 whitespace-nowrap">{{ item.percentage }}%</span>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="badge badge-xs badge-success text-success-content font-bold">{{ item.status }}</span>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- 4. DEDICATED CARD: Full-Stack Infrastructure & Host Capacity Sizing       -->
+    <!-- ========================================================================= -->
+    <div class="bg-base-100 p-6 rounded-2xl shadow-sm border border-base-200">
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pb-4 border-b border-base-200">
+        <div class="flex items-center gap-3">
+          <div class="p-2.5 bg-warning/10 text-warning rounded-xl">
+            <i class="fas fa-server text-lg"></i>
+          </div>
+          <div>
+            <h2 class="font-bold text-base text-base-content">Full-Stack Infrastructure & Host Capacity Sizing Guide</h2>
+            <p class="text-xs text-base-content/60">Estimated RAM requirements for full ecosystem (Database, Brokers, CDC Engine, Observability & OS)</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="badge badge-warning text-warning-content text-xs font-bold py-3 px-3">
+            Full-Stack Total: ~{{ (getHostCapacity().totalFullStackMemoryMb / 1024).toFixed(2) }} GB ({{ getHostCapacity().totalFullStackMemoryMb }} MB)
+          </span>
+        </div>
+      </div>
+
+      <!-- Server Specification Recommendation Badges -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 my-4">
+        <!-- Min Dev / UAT -->
+        <div class="p-3.5 bg-base-200/60 rounded-xl border border-base-300/50 flex items-center gap-3">
+          <div class="p-2 bg-success/10 text-success rounded-lg">
+            <i class="fas fa-laptop-code text-base"></i>
+          </div>
+          <div>
+            <div class="text-[11px] font-bold text-base-content/50 uppercase tracking-wide">Min Dev / UAT Host</div>
+            <div class="text-sm font-black text-base-content">{{ getHostCapacity().minDevVmRecommendation }}</div>
+            <div class="text-[10px] text-base-content/60">Single-Node Docker Compose</div>
+          </div>
+        </div>
+
+        <!-- Production Enterprise -->
+        <div class="p-3.5 bg-base-200/60 rounded-xl border border-base-300/50 flex items-center gap-3">
+          <div class="p-2 bg-primary/10 text-primary rounded-lg">
+            <i class="fas fa-shield-alt text-base"></i>
+          </div>
+          <div>
+            <div class="text-[11px] font-bold text-base-content/50 uppercase tracking-wide">Production Enterprise</div>
+            <div class="text-sm font-black text-primary">{{ getHostCapacity().prodVmRecommendation }}</div>
+            <div class="text-[10px] text-base-content/60">High-Concurrency / Load Headroom</div>
+          </div>
+        </div>
+
+        <!-- Cloud Multi-Server -->
+        <div class="p-3.5 bg-base-200/60 rounded-xl border border-base-300/50 flex items-center gap-3">
+          <div class="p-2 bg-accent/10 text-accent rounded-lg">
+            <i class="fas fa-cloud text-base"></i>
+          </div>
+          <div>
+            <div class="text-[11px] font-bold text-base-content/50 uppercase tracking-wide">Cloud Multi-Server Sizing</div>
+            <div class="text-xs font-black text-accent">{{ getHostCapacity().multiServerRecommendation }}</div>
+            <div class="text-[10px] text-base-content/60">Distributed Microservices Tier</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Donut Chart & Detailed Table Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 mt-6 items-center">
+        <!-- Left: Donut Chart (2 Cols) -->
+        <div class="lg:col-span-2 flex flex-col items-center justify-center p-3 bg-base-200/30 rounded-2xl">
+          <div class="h-64 w-full relative">
+            <canvas #infraDonutCanvas></canvas>
+          </div>
+        </div>
+
+        <!-- Right: Infra Breakdown Table (3 Cols) -->
+        <div class="lg:col-span-3 overflow-x-auto">
+          <table class="table table-xs w-full">
+            <thead>
+              <tr class="text-base-content/50 border-b border-base-200 uppercase text-[10px]">
+                <th>Component</th>
+                <th>Category</th>
+                <th>RAM</th>
+                <th>Share</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of getHostCapacity().infraBreakdown; track item.componentName) {
+                <tr class="hover:bg-base-200/50 transition-colors">
+                  <td>
+                    <div class="flex items-start gap-2 py-0.5">
+                      <span class="w-2.5 h-2.5 rounded-full mt-1 shrink-0" [style.background-color]="item.color"></span>
+                      <div>
+                        <div class="font-bold text-base-content text-xs">{{ item.componentName }}</div>
+                        <div class="text-[10px] text-base-content/50 leading-tight">{{ item.role }}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="badge badge-xs badge-ghost font-medium text-[10px]">{{ item.category }}</span>
+                  </td>
+                  <td class="font-mono font-bold text-xs whitespace-nowrap">{{ item.memoryMb }} MB</td>
+                  <td class="w-28">
+                    <div class="flex items-center gap-1.5">
+                      <div class="w-full bg-base-200 rounded-full h-2 overflow-hidden">
+                        <div class="h-2 rounded-full transition-all" [style.width.%]="item.percentage" [style.background-color]="item.color"></div>
+                      </div>
+                      <span class="text-[10px] font-mono text-base-content/70 whitespace-nowrap">{{ item.percentage }}%</span>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. Infrastructure Health Probes & Quick Portals -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <!-- Live Infrastructure Health Table (2 Cols) -->
       <div class="lg:col-span-2 bg-base-100 p-5 rounded-2xl shadow-sm border border-base-200">
@@ -280,90 +457,4 @@
       </div>
     </div>
   }
-
-  <!-- ========================================================================= -->
-  <!-- MODAL: Service Memory Breakdown (Model A)                                  -->
-  <!-- ========================================================================= -->
-  <dialog class="modal" [class.modal-open]="isMemoryModalOpen()">
-    <div class="modal-box max-w-3xl bg-base-100 rounded-3xl p-6 shadow-2xl border border-base-200">
-      <!-- Modal Header -->
-      <div class="flex justify-between items-center pb-4 border-b border-base-200">
-        <div class="flex items-center gap-3">
-          <div class="p-2.5 bg-secondary/10 text-secondary rounded-2xl">
-            <i class="fas fa-layer-group text-xl"></i>
-          </div>
-          <div>
-            <h3 class="font-bold text-lg text-base-content">Memory Allocation by Service & Worker</h3>
-            <p class="text-xs text-base-content/60">
-              Distributed multi-process RAM decomposition · Cluster Total: <span class="font-bold text-secondary">{{ getTotalMemoryMb() }} MB</span>
-            </p>
-          </div>
-        </div>
-        <button class="btn btn-sm btn-circle btn-ghost" (click)="closeMemoryModal()">✕</button>
-      </div>
-
-      <!-- Donut Chart & Detailed Table Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-5 gap-6 mt-6 items-center">
-        <!-- Left: Donut Chart (2 Cols) -->
-        <div class="md:col-span-2 flex flex-col items-center justify-center p-2 bg-base-200/30 rounded-2xl">
-          <div class="h-60 w-full relative">
-            <canvas #memoryDonutCanvas></canvas>
-          </div>
-        </div>
-
-        <!-- Right: Service Details Table (3 Cols) -->
-        <div class="md:col-span-3 overflow-x-auto">
-          <table class="table table-xs w-full">
-            <thead>
-              <tr class="text-base-content/50 border-b border-base-200">
-                <th>Service / Worker</th>
-                <th>RAM</th>
-                <th>Share</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (item of getMemoryBreakdown(); track item.serviceName) {
-                <tr class="hover:bg-base-200/50 transition-colors">
-                  <td>
-                    <div class="flex items-start gap-2 py-0.5">
-                      <span class="w-2.5 h-2.5 rounded-full mt-1 shrink-0" [style.background-color]="item.color"></span>
-                      <div>
-                        <div class="font-bold text-base-content text-xs">{{ item.serviceName }}</div>
-                        <div class="text-[10px] text-base-content/50 leading-tight">{{ item.role }}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td class="font-mono font-bold text-xs whitespace-nowrap">{{ item.memoryMb }} MB</td>
-                  <td class="w-28">
-                    <div class="flex items-center gap-1.5">
-                      <div class="w-full bg-base-200 rounded-full h-1.5 overflow-hidden">
-                        <div class="h-1.5 rounded-full" [style.width.%]="item.percentage" [style.background-color]="item.color"></div>
-                      </div>
-                      <span class="text-[10px] font-mono text-base-content/70 whitespace-nowrap">{{ item.percentage }}%</span>
-                    </div>
-                  </td>
-                  <td>
-                    <span class="badge badge-xs badge-success text-success-content font-bold">{{ item.status }}</span>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Modal Footer -->
-      <div class="modal-action mt-6 pt-4 border-t border-base-200 flex justify-between items-center">
-        <span class="text-xs text-base-content/50 flex items-center gap-1">
-          <i class="fas fa-info-circle text-primary"></i>
-          <span>Measured via .NET WorkingSet & runtime process diagnostics</span>
-        </span>
-        <button class="btn btn-sm btn-primary rounded-xl px-6" (click)="closeMemoryModal()">Close</button>
-      </div>
-    </div>
-    <form method="dialog" class="modal-backdrop">
-      <button (click)="closeMemoryModal()">close</button>
-    </form>
-  </dialog>
 </div>
