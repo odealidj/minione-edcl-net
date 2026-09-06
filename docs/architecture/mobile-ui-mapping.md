@@ -9,7 +9,7 @@ Pemetaan antarmuka aplikasi Mobile Driver ke endpoint backend **EDCL Mini**.
 <img src="../assets/images/login-driver-otp.png" width="300" alt="Driver Login UI" />
 
 ### A. Eksekusi Login
-- **URL**: `POST /api/v1/auth/drivers/login`
+- **URL**: `POST /api/v1/mobile/auth/drivers/login`
 - **Payload**:
   ```json
   {
@@ -40,7 +40,7 @@ Jika pengemudi masih menggunakan PIN default, API mengembalikan kode `Auth.Force
 
 <img src="../assets/images/simple_change_pin_ui.png" width="300" alt="Force Change PIN UI" />
 
-- **URL**: `POST /api/v1/auth/drivers/change-pin`
+- **URL**: `POST /api/v1/mobile/auth/drivers/change-pin`
 - **Payload**:
   ```json
   {
@@ -56,7 +56,7 @@ Jika pengemudi masih menggunakan PIN default, API mengembalikan kode `Auth.Force
 
 <img src="../assets/images/home-dashboard.png" width="300" alt="Home Dashboard UI" />
 
-- **URL**: `GET /api/v1/mobile/driver/jobs/dashboard`
+- **URL**: `GET /api/v1/mobile/jobs/dashboard`
 - **Auth**: `Bearer JWT Token`
 - **Response**:
   ```json
@@ -89,7 +89,7 @@ Jika pengemudi masih menggunakan PIN default, API mengembalikan kode `Auth.Force
 <img src="../assets/images/notification-new-job.png" width="300" alt="Notification New Job UI" />
 
 ### A. Route Stops & Arrival Plan
-- **URL**: `GET /api/v1/mobile/driver/jobs/{id}/route-stops`
+- **URL**: `GET /api/v1/mobile/jobs/{id}/route-stops`
 - **Response**:
   ```json
   {
@@ -119,7 +119,7 @@ Jika pengemudi masih menggunakan PIN default, API mengembalikan kode `Auth.Force
   ```
 
 ### B. Mulai Pekerjaan
-- **URL**: `POST /api/v1/mobile/driver/jobs/{id}/start`
+- **URL**: `POST /api/v1/mobile/jobs/{id}/start`
 - **Headers**: `X-Idempotency-Key: <UUID>`
 
 ---
@@ -128,8 +128,8 @@ Jika pengemudi masih menggunakan PIN default, API mengembalikan kode `Auth.Force
 
 <img src="../assets/images/info-pengiriman.png" width="300" alt="Info Pengiriman UI" />
 
-- **Data Route**: `GET /api/v1/mobile/driver/jobs/{id}/route-stops`
-- **End Job**: `POST /api/v1/mobile/driver/jobs/{id}/end`
+- **Data Route**: `GET /api/v1/mobile/jobs/{id}/route-stops`
+- **End Job**: `POST /api/v1/mobile/jobs/{id}/end`
   - **Headers**: `X-Idempotency-Key: <UUID>`
   - **Payload**: `{"latitude": -6.312151, "longitude": 107.135422}`
 
@@ -139,9 +139,9 @@ Jika pengemudi masih menggunakan PIN default, API mengembalikan kode `Auth.Force
 
 <img src="../assets/images/detail-pengiriman.png" width="300" alt="Detail Pengiriman UI" />
 
-- **Fetch Manifests**: `GET /api/v1/mobile/driver/jobs/stops/{stopId}/manifests`
-- **Scan Barcode**: `POST /api/v1/mobile/driver/jobs/stops/{stopId}/manifests/{manifestId}/kanban`
-- **Complete Stop**: `POST /api/v1/mobile/driver/jobs/stops/{stopId}/complete`
+- **Fetch Manifests**: `GET /api/v1/mobile/jobs/stops/{stopId}/manifests`
+- **Scan Barcode**: `POST /api/v1/mobile/jobs/stops/{stopId}/manifests/{manifestId}/kanban`
+- **Complete Stop**: `POST /api/v1/mobile/jobs/stops/{stopId}/complete`
 
 ---
 
@@ -149,7 +149,7 @@ Jika pengemudi masih menggunakan PIN default, API mengembalikan kode `Auth.Force
 
 <img src="../assets/images/scan-kanban.png" width="300" alt="Scan Kanban UI" />
 
-- **URL**: `POST /api/v1/mobile/driver/jobs/stops/{stopId}/manifests/{manifestId}/kanban`
+- **URL**: `POST /api/v1/mobile/jobs/stops/{stopId}/manifests/{manifestId}/kanban`
 - **Payload**:
   ```json
   {
@@ -163,5 +163,5 @@ Jika pengemudi masih menggunakan PIN default, API mengembalikan kode `Auth.Force
 
 <img src="../assets/images/manifest-detail.png" width="300" alt="Manifest Detail UI" />
 
-- **URL**: `GET /api/v1/mobile/driver/cargo/manifests/{manifestNo}/detail`
+- **URL**: `GET /api/v1/mobile/cargo/manifests/{manifestNo}/detail`
 - **Pola**: *Client-Side Composition* (menggabungkan data master parts `Cargo` dengan rute `Job`).

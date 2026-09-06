@@ -88,7 +88,7 @@ graph TD
 
 ## 3. Alur Transaksi End-to-End (`Complete Stop`)
 
-1. **Client Request**: Driver mengirim `POST /api/v1/jobs/stops/{id}/complete` via YARP Gateway (`:5293`) dengan header JWT dan `X-Idempotency-Key`.
+1. **Client Request**: Driver mengirim `POST /api/v1/mobile/jobs/stops/{stopId}/complete` via YARP Gateway (`:5293`) dengan header JWT dan `X-Idempotency-Key`.
 2. **Idempotency Check**: Middleware memvalidasi key di Redis. Jika duplikat, kembalikan cached response seketika.
 3. **Command Handling (CQRS)**: `CompleteStopCommand` diproses oleh handler modul `Job`.
 4. **Transactional Outbox (Unit of Work)**: Status stop diperbarui ke `COMPLETED`, dan `StopCompletedEvent` disimpan ke tabel Outbox dalam transaksi database yang sama (ACID).

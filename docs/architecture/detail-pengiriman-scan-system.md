@@ -8,9 +8,9 @@ Spesifikasi alur pemindaian barcode Kanban pada perhentian supplier (*Pickup Sto
 
 | Endpoint | HTTP Method | Deskripsi |
 |---|---|---|
-| `/api/v1/mobile/driver/jobs/stops/{stopId}/manifests` | `GET` | Mengambil daftar manifes dan progres pemindaian kanban per manifes. |
-| `/api/v1/mobile/driver/jobs/stops/{stopId}/manifests/{manifestId}/kanban` | `POST` | Merekam barcode kanban yang dipindai (`KanbanCode`). |
-| `/api/v1/mobile/driver/jobs/stops/{stopId}/complete` | `POST` | Mengunci perhentian setelah seluruh kanban terverifikasi. |
+| `/api/v1/mobile/jobs/stops/{stopId}/manifests` | `GET` | Mengambil daftar manifes dan progres pemindaian kanban per manifes. |
+| `/api/v1/mobile/jobs/stops/{stopId}/manifests/{manifestId}/kanban` | `POST` | Merekam barcode kanban yang dipindai (`KanbanCode`). |
+| `/api/v1/mobile/jobs/stops/{stopId}/complete` | `POST` | Mengunci perhentian setelah seluruh kanban terverifikasi. |
 
 ---
 

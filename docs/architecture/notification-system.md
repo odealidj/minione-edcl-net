@@ -8,7 +8,7 @@ Spesifikasi teknis arsitektur notifikasi penugasan dan pengingat terjadwal (*Sch
 
 ```mermaid
 graph TD
-    Client[Web Admin] -->|POST /assign| JobAPI[EDCL.Module.Job]
+    Client[Web Admin] -->|POST /pickup-orders/{id}/assign| JobAPI[EDCL.Module.Job]
     
     subgraph Job Module
         JobAPI -->|Save Order| DB[(Job Database)]
@@ -32,7 +32,7 @@ graph TD
 ## 2. Alur Eksekusi
 
 ### A. Penugasan Langsung (*Direct Assignment*)
-1. Web Admin mengeksekusi `POST /api/v1/jobs/{id}/assign` dengan payload `driverId`.
+1. Web Admin mengeksekusi `POST /api/v1/web/admin/pickup-orders/{id}/assign` dengan payload `driverId` dan `truckId`.
 2. `AssignJobCommandHandler`:
    - Menghapus job scheduler Hangfire sebelumnya jika ada penugasan ulang.
    - Mengatur 2 scheduled reminder via Hangfire (`H-1 Jam` dan `H-30 Menit`).

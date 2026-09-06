@@ -38,7 +38,7 @@ sequenceDiagram
     D->>M: Pilih/Ketuk salah satu Manifest
     M->>M: Tampilkan Loading Spinner
     note over M: Mengambil nilai Manifest No<br/>serta Delivery No dari memori (State)
-    M->>C: GET /api/v1/cargo/manifests/{manifestNo}/detail
+    M->>C: GET /api/v1/mobile/cargo/manifests/{manifestNo}/detail
     
     activate C
     C->>C: Kueri Manifest beserta Parts & Kanbans (Ingestion Schema)
@@ -63,7 +63,7 @@ Berdasarkan *best practice* arsitektur terdistribusi, layar **Manifest Detail** 
 - **Client-Side Composition**: Aplikasi Mobile (Klien) memegang peran komposisi. Mobile memegang `DeliveryNo` dan `Route` dari rute operasional, lalu menggabungkannya dengan `PartList` dari rute *Master Data/Cargo*.
 
 ### b. Aliran Data (Data Flow)
-1. **Request API**: `GET /api/v1/cargo/manifests/{manifestNo}/detail`
+1. **Request API**: `GET /api/v1/mobile/cargo/manifests/{manifestNo}/detail`
 2. **Query Handler**: `GetManifestDetailQueryHandler` (di Modul Cargo).
 3. **Database Layer**: Membaca dari `CargoDbContext` dengan *schema* `ingestion`.
 4. **Relasi Entitas**: 

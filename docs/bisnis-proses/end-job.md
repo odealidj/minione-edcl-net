@@ -63,7 +63,7 @@ sequenceDiagram
         GPS-->>M: Koordinat [Lat, Lng]
     end
 
-    M->>API: POST /api/v1/jobs/{id}/end
+    M->>API: POST /api/v1/mobile/jobs/{id}/end
     note right of M: Payload: { "latitude": ..., "longitude": ... }
 
     activate API

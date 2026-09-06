@@ -6,7 +6,7 @@ Spesifikasi teknis query detail part manifes dari modul `Cargo` menggunakan pola
 
 ## 1. Spesifikasi Endpoint & DTO Contract
 
-**Endpoint**: `GET /api/v1/mobile/driver/cargo/manifests/{manifestNo}/detail`
+**Endpoint**: `GET /api/v1/mobile/cargo/manifests/{manifestNo}/detail`
 
 ```csharp
 public sealed record ManifestDetailDto(
@@ -44,7 +44,7 @@ sequenceDiagram
     UI->>State: Ambil DeliveryNo & RouteCycle
     State-->>UI: { DeliveryNo, RouteCycle }
     
-    UI->>Cargo: GET /api/v1/cargo/manifests/{manifestNo}/detail
+    UI->>Cargo: GET /api/v1/mobile/cargo/manifests/{manifestNo}/detail
     activate Cargo
     Cargo->>DB: Kueri EF Core .Include(Parts).Include(Kanbans)
     DB-->>Cargo: Data Entitas Manifest Lengkap

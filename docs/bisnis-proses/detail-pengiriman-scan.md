@@ -53,7 +53,7 @@ sequenceDiagram
     participant DB as Database
     
     D->>M: Buka "Detail Pengiriman" (Pilih Supplier)
-    M->>API: GET /api/v1/jobs/stops/{stopId}/manifests
+    M->>API: GET /api/v1/mobile/jobs/stops/{stopId}/manifests
     API-->>M: Daftar Manifest & Target Kanban (misal: 0/8)
     
     D->>M: Ketuk "Mulai Scan"
@@ -63,7 +63,7 @@ sequenceDiagram
         D->>HW: Arahkan ke Barcode Kanban
         HW-->>M: Baca string Barcode (Contoh: "KBN-123")
         
-        M->>API: POST /api/v1/jobs/stops/{stopId}/manifests/{manifestId}/kanban
+        M->>API: POST /api/v1/mobile/jobs/stops/{stopId}/manifests/{manifestId}/kanban
         note right of M: Payload: { "kanbanCode": "KBN-123" }
         
         activate API
@@ -87,7 +87,7 @@ sequenceDiagram
     
     D->>M: Geser "Selesai Pengambilan" (Swipe to Complete)
     M->>M: Tangkap Koordinat GPS Saat Ini
-    M->>API: POST /api/v1/jobs/stops/{stopId}/complete
+    M->>API: POST /api/v1/mobile/jobs/stops/{stopId}/complete
     activate API
     note right of M: Payload: { "latitude": ..., "longitude": ... }
     API->>DB: UPDATE status Stop menjadi "COMPLETED"

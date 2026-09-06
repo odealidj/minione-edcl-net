@@ -8,10 +8,10 @@ Pemetaan antarmuka Web Admin ke endpoint backend **EDCL Mini**.
 
 | Modul UI | Endpoint API | Method | Deskripsi |
 |---|---|---|---|
-| **Web Login** (`/login`) | `/api/v1/auth/users/login` | `POST` | Login email + password, mengembalikan JWT & Role. |
-| **Auto-Refresh** | `/api/v1/auth/users/refresh-token` | `POST` | Rotasi token via HTTP Interceptor saat 401. |
-| **User List** (`/admin/users`) | `/api/v1/auth/users` | `GET` | Daftar pengguna dan role backoffice. |
-| **User Role** | `/api/v1/auth/users/{id}/role` | `PUT` | Perubahan hak akses pengguna (`ADMIN` / `USER`). |
+| **Web Login** (`/login`) | `/api/v1/web/auth/users/login` | `POST` | Login email + password, mengembalikan JWT & Role. |
+| **Auto-Refresh** | `/api/v1/web/auth/users/refresh-token` | `POST` | Rotasi token via HTTP Interceptor saat 401. |
+| **User List** (`/admin/users`) | `/api/v1/web/auth/users` | `GET` | Daftar pengguna dan role backoffice. |
+| **User Role** | `/api/v1/web/auth/users/{id}/role` | `PUT` | Perubahan hak akses pengguna (`ADMIN` / `USER`). |
 
 ---
 
@@ -70,7 +70,7 @@ Pemetaan antarmuka Web Admin ke endpoint backend **EDCL Mini**.
 
 | Modul Master | Path Web UI | Endpoint API | Deskripsi |
 |---|---|---|---|
-| **Driver** | `/master/driver` | `GET/POST/PUT/DELETE /api/v1/auth/drivers` | Kelola akun pengemudi, NIK, No HP, & PIN. |
+| **Driver** | `/master/driver` | `GET/POST/PUT/DELETE /api/v1/web/master/drivers` | Kelola akun pengemudi, NIK, No HP, & PIN. |
 | **Supplier** | `/master/supplier` | `GET/POST/PUT/DELETE /api/v1/web/master/suppliers` | Titik pabrik supplier, lat/long, radius geofence. |
 | **Truck** | `/master/truck` | `GET/POST/PUT/DELETE /api/v1/web/master/trucks` | Data armada fisik, plat nomor, tipe kendaraan. |
 | **Truck Assignment** | `/master/truck-assignments` | `POST /api/v1/web/master/trucks/{id}/assign` | Pasangkan supir aktif ke truk armada. |

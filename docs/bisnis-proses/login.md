@@ -27,10 +27,10 @@ sequenceDiagram
 
     alt Jalur Web (Admin / Staff)
         User->>Client: Input Kredensial (Email + Password)
-        Client->>AuthAPI: POST /api/v1/auth/users/login
+        Client->>AuthAPI: POST /api/v1/web/auth/users/login
     else Jalur Mobile (Driver)
         User->>Client: Input Kredensial (No HP + PIN)
-        Client->>AuthAPI: POST /api/v1/auth/drivers/login
+        Client->>AuthAPI: POST /api/v1/mobile/auth/drivers/login
     end
     
     AuthAPI->>DB: Cek Keberadaan Akun & Status (is_active)

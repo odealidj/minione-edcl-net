@@ -27,7 +27,7 @@ sequenceDiagram
     Client->>Client: Tampilkan Form Registrasi
     
     Creator->>Client: Input: Nama, Email, Password, & Role
-    Client->>EDCL: POST /api/v1/auth/users/register
+    Client->>EDCL: POST /api/v1/web/auth/users/register
     
     EDCL->>DB: Cek ketersediaan Email
     
@@ -51,7 +51,7 @@ sequenceDiagram
 
 ### Skenario A: Registrasi Berhasil
 1. **Admin** mengisi formulir tambah pengguna dengan lengkap.
-2. Saat menekan tombol **Simpan**, *frontend* memanggil *endpoint* `POST /api/v1/auth/users/register` dengan *payload* (Nama, Email, Password, RoleCode).
+2. Saat menekan tombol **Simpan**, *frontend* memanggil *endpoint* `POST /api/v1/web/auth/users/register` dengan *payload* (Nama, Email, Password, RoleCode).
 3. Backend memvalidasi bahwa email tersebut belum pernah terdaftar.
 4. Data disimpan secara permanen di database. Status akun secara bawaan langsung menjadi **Aktif**.
 
@@ -62,5 +62,5 @@ sequenceDiagram
 
 ### Skenario C: Login Pengguna Baru
 1. Setelah akun terbentuk, pengguna baru (misal staf baru) dapat membuka halaman *login* utama.
-2. Mereka cukup memasukkan **Email** dan **Password** yang sudah dibuatkan (atau yang mereka buat sendiri pada saat *setup* awal) ke *endpoint* `POST /api/v1/auth/users/login`.
+2. Mereka cukup memasukkan **Email** dan **Password** yang sudah dibuatkan (atau yang mereka buat sendiri pada saat *setup* awal) ke *endpoint* `POST /api/v1/web/auth/users/login`.
 3. Backend akan memvalidasi *hash password* dan memberikan JWT Token untuk mereka mengakses *dashboard*.

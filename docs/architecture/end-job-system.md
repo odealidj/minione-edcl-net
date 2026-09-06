@@ -6,7 +6,7 @@ Spesifikasi teknis dan alur eksekusi penyelesaian pekerjaan (*End Job*) pada mod
 
 ## 1. Spesifikasi Endpoint API
 
-- **URL**: `POST /api/v1/mobile/driver/jobs/{PickupOrderId}/end`
+- **URL**: `POST /api/v1/mobile/jobs/{PickupOrderId}/end`
 - **Auth**: `Bearer JWT Token` (Driver)
 - **Headers**: `X-Idempotency-Key` (UUIDv4)
 - **Payload**:

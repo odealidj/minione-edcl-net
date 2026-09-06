@@ -8,9 +8,9 @@ Spesifikasi teknis interaksi antarmuka mobile dan backend saat driver mengekseku
 
 | Endpoint | Method | Deskripsi |
 |---|---|---|
-| `GET /api/v1/mobile/driver/jobs/{id}/route-stops` | `GET` | Daftar perhentian rute dan progres pemindaian kanban. |
-| `POST /api/v1/mobile/driver/jobs/stops/{stopId}/complete` | `POST` | Menyelesaikan perhentian (*Picked Up*). |
-| `POST /api/v1/mobile/driver/jobs/{id}/end` | `POST` | Mengakhiri seluruh tugas pengiriman dengan koordinat GPS. |
+| `GET /api/v1/mobile/jobs/{id}/route-stops` | `GET` | Daftar perhentian rute dan progres pemindaian kanban. |
+| `POST /api/v1/mobile/jobs/stops/{stopId}/complete` | `POST` | Menyelesaikan perhentian (*Picked Up*). |
+| `POST /api/v1/mobile/jobs/{id}/end` | `POST` | Mengakhiri seluruh tugas pengiriman dengan koordinat GPS. |
 
 ---
 
@@ -28,7 +28,7 @@ sequenceDiagram
     rect rgb(240, 248, 255)
         Note over Driver,DB: Fase 1: Memuat Data Rute
         Driver->>Client: Buka "Info Pengiriman"
-        Client->>JobAPI: GET /api/v1/jobs/{id}/route-stops
+        Client->>JobAPI: GET /api/v1/mobile/jobs/{id}/route-stops
         JobAPI->>DB: Query RouteStops & Progress
         DB-->>JobAPI: Data Kanban (Original vs Scanned)
         JobAPI-->>Client: Kembalikan List Supplier
@@ -39,7 +39,7 @@ sequenceDiagram
     rect rgb(255, 250, 240)
         Note over Driver,DB: Fase 2: Selesaikan Pemberhentian (Skenario Sukses Pemindaian)
         Driver->>Client: Selesai Scan & Klik "Selesaikan Titik Ini"
-        Client->>JobAPI: POST /stops/{stopId}/complete
+        Client->>JobAPI: POST /api/v1/mobile/jobs/stops/{stopId}/complete
         JobAPI->>JobAPI: Validasi: Apakah semua Kanban wajib sudah dipindai?
         JobAPI->>DB: Ubah status Stop ke "COMPLETED"
         DB-->>JobAPI: Sukses
@@ -52,7 +52,7 @@ sequenceDiagram
         Note over Driver,DB: Fase 3: Mengakhiri Pekerjaan Seluruh Rute
         Driver->>Client: Klik tombol "END JOB"
         Client->>Client: Dapatkan GPS Location (Lat, Long)
-        Client->>JobAPI: POST /jobs/{id}/end (Body: Lat, Long)
+        Client->>JobAPI: POST /api/v1/mobile/jobs/{id}/end (Body: Lat, Long)
         JobAPI->>JobAPI: Validasi: Apakah semua Stop sudah COMPLETED?
         JobAPI->>JobAPI: Validasi Geofencing (Jarak GPS vs Titik Tujuan)
         JobAPI->>DB: Ubah status Order menjadi "COMPLETED"
