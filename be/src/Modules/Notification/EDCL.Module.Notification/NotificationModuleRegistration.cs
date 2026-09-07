@@ -18,12 +18,59 @@ public static class NotificationModuleRegistration
         services.AddScoped<EDCL.Shared.Kernel.Ports.INotificationPort, EDCL.Module.Notification.Infrastructure.Adapters.NotificationPortAdapter>();
 
         // Initialize Firebase
-        var credentialPath = configuration["Firebase:CredentialPath"];
-        if (!string.IsNullOrEmpty(credentialPath) && System.IO.File.Exists(credentialPath))
+        var credentialPath = configuration["Firebase:CredentialPath"]
+            ?? Environment.GetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS");
+
+        string? resolvedPath = null;
+        if (!string.IsNullOrEmpty(credentialPath))
+        {
+            if (Path.IsPathRooted(credentialPath) && File.Exists(credentialPath))
+            {
+                resolvedPath = credentialPath;
+            }
+            else
+            {
+                var candidatePaths = new[]
+                {
+                    Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), credentialPath)),
+                    Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "be", credentialPath)),
+                    Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, credentialPath))
+                };
+
+                resolvedPath = candidatePaths.FirstOrDefault(File.Exists);
+            }
+        }
+
+        // Auto-discovery fallback for local development if exact file wasn't matched
+        if (string.IsNullOrEmpty(resolvedPath))
+        {
+            var searchDirs = new[]
+            {
+                Path.Combine(Directory.GetCurrentDirectory(), "firebase"),
+                Path.Combine(Directory.GetCurrentDirectory(), "be", "firebase"),
+                Path.Combine(AppContext.BaseDirectory, "firebase")
+            };
+
+            foreach (var dir in searchDirs)
+            {
+                if (Directory.Exists(dir))
+                {
+                    var file = Directory.GetFiles(dir, "*.json")
+                        .FirstOrDefault(f => !f.EndsWith(".example.json", StringComparison.OrdinalIgnoreCase));
+                    if (file != null)
+                    {
+                        resolvedPath = file;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (!string.IsNullOrEmpty(resolvedPath) && File.Exists(resolvedPath))
         {
             if (FirebaseAdmin.FirebaseApp.DefaultInstance == null)
             {
-                Environment.SetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS", credentialPath);
+                Environment.SetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS", resolvedPath);
                 FirebaseAdmin.FirebaseApp.Create(new FirebaseAdmin.AppOptions
                 {
                     Credential = Google.Apis.Auth.OAuth2.GoogleCredential.GetApplicationDefault()
