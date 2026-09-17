@@ -116,7 +116,7 @@ graph TD
   - `EDCLGPSAPI` mem-publish payload event `GpsLastPositionHDto` ke RabbitMQ `topic_exchange` dengan routing key `gps.vendor.{vendorId}`.
   - `EDCL.Api` mengonsumsi event via `GpsTelemetryConsumer` pada queue `edcl_gps_telemetry_queue`.
   - Koordinat live langsung diindeks ke Redis Geospatial dan di-broadcast ke SignalR `TrackingHub`.
-  - **Database SQL Server terbebas 100% dari 1.7 juta baris koordinat GPS mentah per hari!**
+  - **Database SQL Server terbebas 100% dari massive-volume koordinat GPS mentah per hari!**
 
 - **CQRS & MediatR Pipeline**: Pemisahan Command (Write Model) dan Query (Read Model). Didukung pipeline behavior untuk validasi, logging, dan idempotency locking.
 
