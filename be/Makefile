@@ -1,4 +1,4 @@
-.PHONY: help up down be-up be-down
+.PHONY: help up down be-up be-down infra-up infra-down
 
 help:
 	@echo "================================================================="
@@ -6,6 +6,8 @@ help:
 	@echo "================================================================="
 	@echo "  make up (or be-up)    - Start all backend containers (Database, Redis, RabbitMQ, Gateway, API, Workers)"
 	@echo "  make down (or be-down)- Stop and remove all backend containers"
+	@echo "  make infra-up         - Start shared infrastructure only (SQL Server, Redis, RabbitMQ, Postgres, Seq)"
+	@echo "  make infra-down       - Stop shared infrastructure containers"
 	@echo "================================================================="
 
 DOCKER_COMPOSE ?= $(shell if command -v docker-compose >/dev/null 2>&1; then echo "docker-compose"; elif command -v docker >/dev/null 2>&1; then echo "docker compose"; elif command -v podman-compose >/dev/null 2>&1; then echo "podman-compose"; else echo "podman compose"; fi)
@@ -22,3 +24,13 @@ down:
 	$(DOCKER_COMPOSE) down
 
 be-down: down
+
+# =============================================================================
+# Shared Infrastructure Containers Only (Databases, Broker, Cache, Seq)
+# =============================================================================
+infra-up:
+	$(DOCKER_COMPOSE) up -d sqlserver redis rabbitmq ae031db seq
+
+infra-down:
+	$(DOCKER_COMPOSE) stop sqlserver redis rabbitmq ae031db seq
+

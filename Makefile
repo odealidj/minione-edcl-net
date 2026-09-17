@@ -1,4 +1,6 @@
-.PHONY: help be-up be-down idcs-up idcs-down seed-init seed-master-one reset-master-one fe-start
+.PHONY: help be-up be-down infra-up infra-down idcs-up idcs-down seed-init seed-master-one reset-master-one fe-start gps-run gps-build
+
+GPS_PROJECT ?= ../EDCLGPSAPI/src/Bootstrapper/Api/Api.csproj
 
 help:
 	@echo "================================================================="
@@ -6,6 +8,10 @@ help:
 	@echo "================================================================="
 	@echo "  make be-up            - Start all backend containers (Database, Redis, RabbitMQ, Gateway, API, Workers)"
 	@echo "  make be-down          - Stop and remove all backend containers"
+	@echo "  make infra-up         - Start shared infra only (SQL Server, Redis, RabbitMQ, Postgres, Seq)"
+	@echo "  make infra-down       - Stop shared infra containers"
+	@echo "  make gps-run          - Run EDCLGPSAPI service locally via dotnet run (port 5090)"
+	@echo "  make gps-build        - Build EDCLGPSAPI service project"
 	@echo "  make idcs-up          - Start isolated IDCS SQL Server container (port 1466)"
 	@echo "  make idcs-down        - Stop and remove IDCS SQL Server container"
 	@echo "  make seed-init        - Initialize IDCS DB schema & CDC snapshot"
@@ -22,6 +28,13 @@ be-up:
 
 be-down:
 	cd be && $(MAKE) down
+
+infra-up:
+	cd be && $(MAKE) infra-up
+
+infra-down:
+	cd be && $(MAKE) infra-down
+
 
 # =============================================================================
 # IDCS Simulation Container (Port 1466)
@@ -49,3 +62,13 @@ reset-master-one:
 # =============================================================================
 fe-start:
 	cd fe/web && pnpm start
+
+# =============================================================================
+# EDCLGPSAPI Service (.NET 10 / FastEndpoints / Marten)
+# =============================================================================
+gps-build:
+	dotnet build $(GPS_PROJECT)
+
+gps-run:
+	dotnet run --project $(GPS_PROJECT)
+
