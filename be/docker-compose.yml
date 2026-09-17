@@ -61,6 +61,36 @@ services:
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
 
+  ae031db:
+    image: docker.io/library/postgres:16-alpine
+    container_name: edcl_postgres_gps
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=AE031_EDCL_GPS_DB
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d AE031_EDCL_GPS_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: on-failure
+    ports:
+      - "5436:5432"
+    volumes:
+      - postgres_gps_data:/var/lib/postgresql/data
+      - ./sql/init-edclgps-db.sql:/docker-entrypoint-initdb.d/init-edclgps-db.sql:ro
+
+  seq:
+    image: docker.io/datalust/seq:latest
+    container_name: edcl_seq
+    environment:
+      - ACCEPT_EULA=Y
+      - SEQ_FIRSTRUN_NOAUTHENTICATION=true
+    restart: on-failure
+    ports:
+      - "5341:5341"
+      - "9091:80"
+
   edcl-api:
     build:
       context: .
@@ -195,5 +225,6 @@ volumes:
   sql_data:
   redis_data:
   rabbitmq_data:
+  postgres_gps_data:
   debezium_data:
   prometheus_data:

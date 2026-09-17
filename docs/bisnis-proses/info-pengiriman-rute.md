@@ -38,6 +38,13 @@ Skenario ini terjadi saat Driver baru saja mengeklik "Start Job" atau saat merek
 1. Setelah Driver mendatangi seluruh *Supplier* di daftar, mereka akan meluncur menuju destinasi akhir (misalnya gudang/pabrik pusat).
 2. Setibanya di sana, Driver mengeklik tombol merah melingkar bertuliskan **"END JOB"**.
 3. Aplikasi akan meminta konfirmasi.
-4. Aplikasi menangkap koordinat GPS Driver untuk memastikan bahwa tugas diakhiri di zona yang valid (*Geofencing* opsional).
+4. Aplikasi menangkap koordinat GPS Driver untuk memastikan bahwa tugas diakhiri di zona yang valid (*Geofencing*).
 5. Pekerjaan tertutup, status keseluruhan Order menjadi selesai (COMPLETED).
 6. Layar kembali ke Beranda (Dashboard) dan Driver siap menerima rute selanjutnya.
+
+### Skenario D: Pemantauan GPS Tracking Real-Time Selama Perjalanan (Background)
+1. Selama Driver berkendara di jalan raya, unit GPS fisik pada truk secara otomatis mengirimkan koordinat, kecepatan, dan arah (*heading*) ke microservice **`EDCLGPSAPI`**.
+2. Data ini dialirkan ke **RabbitMQ** dan disimpan ke dalam cache **Redis** serta database **PostgreSQL**.
+3. Admin Logistik di kantor pusat dapat memantau pergerakan truk secara langsung (*live streaming*) pada peta Web Dashboard tanpa perlu interaksi manual dari supir.
+4. Ketika armada mendekati gerbang pabrik/supplier (radius 100-150 meter), sistem secara otomatis mencatat waktu kedatangan (*Auto-Arrival detection*) sebagai audit pendukung.
+

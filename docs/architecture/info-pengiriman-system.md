@@ -66,5 +66,7 @@ sequenceDiagram
 
 ## 3. Aturan Bisnis & Validasi
 - **State Validation**: `POST /end` ditolak jika masih ada stop yang belum berstatus `COMPLETED`.
-- **Geofence Audit**: Memvalidasi radius lokasi penyelesaian terhadap plant tujuan.
-- **Idempotency**: Mencegah mutasi ganda pada retries jaringan seluler.
+- **Geofence Audit**: Memvalidasi radius lokasi penyelesaian terhadap plant tujuan menggunakan threshold terkonfigurasi (default 150m untuk Plant, 100m untuk Supplier pada `edcl.tb_m_system`).
+- **GPS Cross-Check**: Sistem membandingkan koordinat GPS dari perangkat HP Driver dengan posisi GPS tracking truk terakhir di Redis (`GEOPOS trucks:locations "<PlatNo>"`) yang disuplai oleh microservice `EDCLGPSAPI` untuk mencegah manipulasi lokasi (*fake GPS spoofing*).
+- **Idempotency**: Mencegah mutasi ganda pada retries jaringan seluler via request token.
+

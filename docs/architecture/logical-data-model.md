@@ -346,3 +346,206 @@ Komunikasi data lintas modul dilarang menggunakan direct SQL JOIN, melainkan mel
 2. **Optimistic Concurrency**: Kolom `row_version` (`varbinary(8)`) pada seluruh entitas transaksi untuk mendeteksi konflik konkurensi.
 3. **Event-Driven Duplication**: Snapshot atribut manifes (`order_type`, `dock_code`, `total_kanban`) disalin ke `PickupOrderManifest` saat pembuatan rute untuk menjamin otonomi modul `Job`.
 4. **Soft Deletes & Audit Trail**: Entitas turunan `AuditableEntity` mencatat `CreatedAt`, `CreatedBy`, `UpdatedAt`, `UpdatedBy`, dan `IsDeleted`.
+
+---
+
+## 5. PostgreSQL GPS Tracking Schema (`edcl`) — Microservice `EDCLGPSAPI`
+
+Pada implementasi pelacakan armada (**GPS Tracking**), sistem memisahkan beban *write-heavy* (koordinat GPS per detik, JSON payload vendor yang bervariasi, dan log panggilan API) dari SQL Server 2022 ke **PostgreSQL 16** (`AE031_EDCL_GPS_DB`, skema `edcl`).
+
+### 5.1. Peta Tabel GPS Tracking (13 Relasi)
+
+| Nama Tabel | Tipe | Deskripsi & Fungsi Operasional |
+|---|---|---|
+| `tb_m_gps_vendor` | Master | Profil vendor penyedia GPS (Hino Connect, Jitra GPS, EasyGo, dll.), strategi pemrosesan (`Individual` / `Batch`), dan tipe autentikasi. |
+| `tb_m_gps_vendor_endpoint` | Master | Endpoint HTTP/REST vendor (URL, HTTP method, JSON headers/params, JSONB path extraction). |
+| `tb_m_gps_vendor_auth` | Master | Konfigurasi kredensial OAuth2/Token auth untuk vendor yang mewajibkan pertukaran token berkala. |
+| `tb_m_mapping` | Master | Kamus pemetaan field dinamis dari payload JSON vendor ke field standar EDCL (`X`, `Y`, `Speed`, `Course`). |
+| `tb_m_gps_vendor_lpcd` | Master | Pemetaan unit kode armada vendor (*LPCD*) ke nomor polisi truk EDCL. |
+| `tb_m_system` | Master | Konfigurasi sistem global (interval polling vendor, threshold geofence supplier/plant, nama exchange RabbitMQ). |
+| `tb_m_gps_api_log` | Logging | Audit trail pemanggilan API eksternal pihak ketiga, mencatat latency, response status, error body, dan caller ID. |
+| `tb_r_delivery_progress` | Transaksi | Status pelacakan rute pengiriman aktif per armada dan driver (geofence state machine). |
+| `tb_r_gps_delivery_h` | Transaksi | Header sesi pengiriman delivery aktif untuk korelasi audit koordinat GPS. |
+| `tb_r_gps_delivery_d` | Transaksi | Detail titik koordinat GPS riwayat (*breadcrumb history*) per armada untuk analisis replay rute. |
+| `tb_r_gps_delivery` | Transaksi | Tabel histori konsolidasi koordinat GPS terpadu lintas vendor dan nomor delivery. |
+| `tb_r_gps_last_position_h` | Transaksi | Header posisi terakhir vendor GPS saat polling periodik dieksekusi. |
+| `tb_r_gps_last_position_d` | Transaksi | Posisi koordinat latitude (`Y`), longitude (`X`), kecepatan (`Speed`), dan arah (`Course`) teraktual per armada. |
+
+### 5.2. GPS Tracking Entity-Relationship Diagram (Mermaid)
+
+```mermaid
+erDiagram
+    %% Master Tables
+    TB_M_GPS_VENDOR ||--o{ TB_M_GPS_VENDOR_ENDPOINT : "memiliki endpoint"
+    TB_M_GPS_VENDOR ||--o{ TB_M_GPS_VENDOR_AUTH : "kredensial auth"
+    TB_M_GPS_VENDOR ||--o{ TB_M_MAPPING : "aturan mapping field"
+    TB_M_GPS_VENDOR ||--o{ TB_M_GPS_VENDOR_LPCD : "daftar armada LPCD"
+    TB_M_GPS_VENDOR ||--o{ TB_R_GPS_LAST_POSITION_H : "menerbitkan snapshot"
+    TB_M_GPS_VENDOR ||--o{ TB_R_GPS_DELIVERY_H : "mencatat delivery"
+
+    TB_M_GPS_VENDOR {
+        uuid Id PK
+        string VendorName
+        string Timezone
+        boolean RequiredAuth
+        string AuthType
+        string ProcessingStrategy
+        timestamp CreatedAt
+    }
+
+    TB_M_GPS_VENDOR_ENDPOINT {
+        uuid Id PK
+        uuid GpsVendorId FK
+        string BaseUrl
+        string Method
+        jsonb Headers
+        jsonb Params
+        jsonb VarParams
+    }
+
+    TB_M_GPS_VENDOR_AUTH {
+        uuid Id PK
+        uuid GpsVendorId FK
+        string BaseUrl
+        string Method
+        string Authtype
+        string TokenPath
+        jsonb Bodies
+    }
+
+    TB_M_MAPPING {
+        serial Id PK
+        uuid GpsVendorId FK
+        string ResponseField
+        string MappedField
+    }
+
+    TB_M_GPS_VENDOR_LPCD {
+        uuid Id PK
+        uuid GpsVendorId FK
+        string Lpcd
+    }
+
+    TB_M_SYSTEM {
+        string SysCat PK
+        string SysSubCat PK
+        string SysCd PK
+        string SysValue
+        string Remarks
+    }
+
+    TB_M_GPS_API_LOG {
+        uuid Id PK
+        string FunctionName
+        string Status
+        text ErrorMessage
+        text Parameter
+        timestamp CreatedAt
+    }
+
+    %% Transactional Tables
+    TB_R_DELIVERY_PROGRESS {
+        uuid Id PK
+        string DeliveryNo UK
+        string PlatNo
+        string NoKtp
+        string VendorName
+        string Lpcd
+        timestamp LastModified
+    }
+
+    TB_R_GPS_LAST_POSITION_H ||--o{ TB_R_GPS_LAST_POSITION_D : "rincian koordinat armada"
+    TB_R_GPS_LAST_POSITION_H {
+        uuid Id PK
+        uuid GpsVendorId FK
+        timestamp CreatedAt
+    }
+
+    TB_R_GPS_LAST_POSITION_D {
+        uuid Id PK
+        uuid GpsLastPositionHId FK
+        string PlatNo
+        string DeviceId
+        timestamp Datetime
+        numeric X "Longitude"
+        numeric Y "Latitude"
+        numeric Speed
+        numeric Course
+        string StreetName
+    }
+
+    TB_R_GPS_DELIVERY_H ||--o{ TB_R_GPS_DELIVERY_D : "riwayat koordinat rute"
+    TB_R_GPS_DELIVERY_H {
+        uuid Id PK
+        uuid GpsVendorId FK
+        string DeliveryNo
+        string NoKtp
+        timestamp CreatedAt
+    }
+
+    TB_R_GPS_DELIVERY_D {
+        uuid Id PK
+        uuid GpsDeliveryHId FK
+        string PlatNo
+        timestamp Datetime
+        numeric X "Longitude"
+        numeric Y "Latitude"
+        numeric Speed
+        numeric Course
+        string StreetName
+    }
+
+    TB_R_GPS_DELIVERY {
+        uuid Id PK
+        uuid GpsVendorId FK
+        string DeliveryNo
+        string PlatNo
+        timestamp Datetime
+        numeric X "Longitude"
+        numeric Y "Latitude"
+        numeric Speed
+    }
+```
+
+---
+
+## 6. Redis Real-Time Geospatial & Telemetry State Machine
+
+Untuk menyajikan peta armada *real-time* dengan latensi sub-milidetik pada Web Dashboard (`EDCL.Web`) tanpa membebani disk SQL Server maupun PostgreSQL, **Redis 7.2** digunakan sebagai layer data in-memory aktif:
+
+### 6.1. Struktur Data Redis
+
+```mermaid
+graph TD
+    subgraph Redis ["Redis 7.2 Cache & In-Memory Store"]
+        GeoSet["ZSET (Geospatial Index)\nKey: 'trucks:locations'\nMember: PlateNumber\nValue: Longitude, Latitude"]
+        TelemetryHash["HASH (Live Telemetry State)\nKey: 'truck:{PlatNo}:telemetry'\nFields: latitude, longitude, speed,\nengineStatus, odometer, heading,\nupdatedAt, vendorCode, deliveryId"]
+        DistLock["STRING (Distributed Lock)\nKey: 'gps:lock:{PlatNo}'\nTTL: 5s (Concurrency Guard)"]
+        IdempotencyKey["STRING (Deduplication Filter)\nKey: 'gps:idempotency:{MessageId}'\nTTL: 86400s (24 Jam)"]
+    end
+
+    Consumer["GpsTelemetryConsumer\n(EDCL.Api Host)"] -->|GEOADD| GeoSet
+    Consumer -->|HSET| TelemetryHash
+    Consumer -->|SET NX EX| DistLock
+    WebDashboard["Web Admin Tracking Map\n(SignalR Hub)"] -->|GEOPOS / GEORADIUS| GeoSet
+    WebDashboard -->|HGETALL| TelemetryHash
+```
+
+1. **`trucks:locations` (Redis Geospatial / Sorted Set)**:
+   - Perintah: `GEOADD trucks:locations <longitude> <latitude> "<plate_number>"`
+   - Query: `GEOPOS trucks:locations "<plate_number>"` untuk posisi terkini, atau `GEORADIUSBYMEMBER` / `GEOSEARCH` untuk mencari armada di sekitar geofence supplier/plant.
+2. **`truck:{PlatNo}:telemetry` (Redis Hash)**:
+   - Menyimpan atribut telemetri lengkap:
+     - `latitude`: Koordinat lintang desimal.
+     - `longitude`: Koordinat bujur desimal.
+     - `speed`: Kecepatan truk saat ini (km/jam).
+     - `engineStatus`: Status mesin (`ON` / `OFF` / `IDLE`).
+     - `heading`: Arah kompas derajat (0-360°).
+     - `vendorCode`: Vendor GPS sumber (`HINO`, `JITRA`, `PUNINAR`).
+     - `deliveryId`: ID penugasan pengiriman aktif.
+     - `updatedAt`: Timestamp ISO-8601 koordinat terakhir.
+3. **`gps:lock:{PlatNo}` (Distributed Lock / RedLock)**:
+   - Menghindari *race condition* saat webhook vendor mengirimkan rentetan paket telemetri paralel secara out-of-order.
+4. **`gps:idempotency:{MessageId}` (Deduplication Shield)**:
+   - Filter idempotensi dengan TTL 24 jam untuk mencegah pemrosesan ganda koordinat yang sama dari RabbitMQ retry.
+

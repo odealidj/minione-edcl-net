@@ -57,6 +57,13 @@ sequenceDiagram
     Driver->>EDCL: Buka Aplikasi, klik "Mulai Perjalanan"
     EDCL-->>Vendor: Status berubah menjadi "On The Way"
     
+    rect rgb(240, 248, 255)
+    note over Driver, EDCL: Pelacakan GPS Otomatis (Background)
+    Driver->>Driver: Menjalankan truk menuju Supplier & Pabrik
+    note right of Driver: Perangkat GPS Vendor (Hino/Jitra/Puninar)<br/>mengirim koordinat per detik ke EDCLGPSAPI.
+    EDCL-->>Vendor: Posisi armada bergerak real-time di Peta Web Dashboard
+    end
+    
     Driver->>Driver: Tiba di Supplier, muat barang, jalan ke Pabrik
     
     Driver->>EDCL: Klik "Selesai / Delivered"
@@ -111,3 +118,7 @@ Sistem telah dirancang untuk tahan banting (resilient) terhadap kondisi tidak id
 
 3. **Bagaimana jika aplikasi Mobile Driver kehilangan sinyal (Offline) saat "Delivered"?**
    - **Solusi Sistem:** (*Future Enhancement*) Aplikasi Mobile menyimpan status "Delivered" secara lokal (SQLite/Room). Begitu sinyal internet kembali (Online), aplikasi otomatis melakukan sinkronisasi dengan EDCL Backend.
+
+4. **Bagaimana jika sinyal GPS Vendor terputus atau terlambat mengirim koordinat di tengah jalan?**
+   - **Solusi Sistem:** Layanan `EDCLGPSAPI` dan `GpsTelemetryConsumer` menyimpan titik koordinat terakhir (*Last Known Position*) di dalam cache **Redis** (`truck:{PlatNo}:telemetry`) dan PostgreSQL (`tb_r_gps_last_position_d`). Peta Web Dashboard akan tetap menampilkan posisi terakhir armada dengan indikator status *Offline/Stale* berdasarkan selisih waktu `updatedAt`, serta secara otomatis melakukan interpolasi rute saat koordinat baru diterima kembali.
+

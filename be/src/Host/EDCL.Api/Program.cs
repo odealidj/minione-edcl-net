@@ -73,6 +73,7 @@ try
         x.AddConsumers(typeof(EDCL.Module.Cargo.CargoModuleRegistration).Assembly);
         x.AddConsumers(typeof(EDCL.Module.Notification.NotificationModuleRegistration).Assembly);
         x.AddConsumer<EDCL.Api.Consumers.TrackingEventConsumer>();
+        x.AddConsumer<EDCL.Api.Consumers.GpsTelemetryConsumer>();
 
         x.UsingRabbitMq((context, cfg) =>
         {
@@ -97,6 +98,19 @@ try
                 e.ClearSerialization();
                 e.UseRawJsonSerializer();
                 e.ConfigureConsumer<EDCL.Module.Cargo.Infrastructure.Consumers.IngestionFaultConsumer>(context);
+            });
+
+            // Consume GPS Telemetry events published by EDCLGPSAPI on topic_exchange
+            cfg.ReceiveEndpoint("edcl_gps_telemetry_queue", e =>
+            {
+                e.ClearSerialization();
+                e.UseRawJsonSerializer();
+                e.Bind("topic_exchange", b =>
+                {
+                    b.ExchangeType = "topic";
+                    b.RoutingKey = "gps.vendor.#";
+                });
+                e.ConfigureConsumer<EDCL.Api.Consumers.GpsTelemetryConsumer>(context);
             });
 
             // Auto configure endpoints for any other consumers not manually configured above

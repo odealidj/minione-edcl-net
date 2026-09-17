@@ -119,8 +119,20 @@ graph TD
 - **Modular Monolith Siap Microservices (Domain-Driven Isolation)**:
   Arsitektur backend dibagi menjadi 5 modul terisolasi (*Auth, Cargo, Driver, Job, Notification*). Setiap modul memiliki skema database fisik masing-masing (`auth.*`, `cargo.*`, `driver.*`, `job.*`, `ingestion.*`) dan **dilarang keras melakukan direct table-join lintas modul**. Komunikasi antar-modul diwajibkan melalui kontrak *interface* di `Shared.Kernel` atau secara asinkron via *domain event* RabbitMQ. Hal ini menjamin kesiapan migrasi menjadi microservices mandiri tanpa perlu refactoring logika bisnis.
 
+- **Hybrid Cloud Architecture & GPS Tracking Microservice (Toyota Case Study)**:
+  Sistem ini mengadopsi integrasi **Hybrid Cloud Event-Driven Architecture** kelas industri:
+  - **AWS Cloud Ingress (`EDCLGPSAPI`)**: Berjalan di **AWS ECS Fargate**, **AWS RDS PostgreSQL (`AE031_EDCL_GPS_DB`)**, dan **Amazon MQ (RabbitMQ TLS AMQPS:5671)**. Menangani polling dan webhook dari ratusan vendor GPS eksternal (*Hino, Jitra, Puninar*) di internet publik tanpa membebani jaringan internal pabrik.
+  - **On-Premises Factory Core (`EDCL Core`)**: Berjalan di server *on-premises* pabrik manufaktur Toyota dengan **SQL Server 2022 Enterprise** untuk kepatuhan tata kelola data manifes/kanban internal (*IDCS*).
+  - **Polyglot Persistence**:
+    - **SQL Server 2022** (Port 1444): Database transaksional inti logistik (Manifest, 1 Juta Kanban, Job Dispatch).
+    - **PostgreSQL 16** (Port 5436): Database GPS tracking terisolasi untuk riwayat mentah koordinat GPS (*Raw GPS Breadcrumbs*).
+    - **Redis 7.2** (Port 6379): In-memory *Geospatial Index* (`GEOADD trucks:locations`) untuk live fleet tracking real-time dan perhitungan geofence tanpa membebani SQL Server dengan jutaan baris koordinat harian.
+
 - **YARP API Gateway (Single Point of Entry & Reverse Proxy)**:
-  Semua lalu lintas klien melewati gateway berbasis **Microsoft YARP (Yet Another Reverse Proxy)**. Gateway mengelola *intelligent path routing*, cluster load balancing, active health check probing ke backend, serta sanitasi *forwarded headers* (`X-Forwarded-For`, `X-Forwarded-Proto`).
+  Semua lalu lintas klien melewati gateway berbasis **Microsoft YARP (Yet Another Reverse Proxy)** di port `5293`. Gateway mengelola *intelligent path routing* multi-service:
+  - `/api/v1/jobs/*`, `/api/v1/manifests/*`, `/api/v1/auth/*` $\to$ diarahkan ke **Logistics Core Svc** (Port `5140`).
+  - `/api/v1/gps/*` $\to$ diarahkan ke **GPS Tracking Svc (`EDCLGPSAPI`)** (Port `5090`).
+  - Active health check probing (`/health` dan `/hc`) ke setiap cluster microservice secara independen.
 
 - **Distributed Idempotency Engine (`IdempotencyBehavior`)**:
   Untuk mencegah *double-submission* kritis pada jaringan seluler yang tidak stabil (seperti sopir memindai kanban atau mengklik *Complete Job* berkali-kali), sistem mengimplementasikan *MediatR pipeline behavior* berbasis **Redis Distributed Lock**. Klien cukup menyertakan header `X-Idempotency-Key` (UUIDv4); request duplikat otomatis mengembalikan *cached response* identik tanpa mengeksekusi ulang database transaction.
@@ -416,11 +428,21 @@ Berikut adalah daftar lengkap URL akses layanan, dashboard operasional, observab
 
 ---
 
-## 📚 Struktur Dokumentasi Teknis
+## 📚 Struktur Dokumentasi Teknis & Bisnis
 
-| Dokumen | Deskripsi |
-|---|---|
-| 📄 [`docs/architecture/architecture-overview.md`](docs/architecture/architecture-overview.md) | Panduan teknis komprehensif arsitektur sistem, domain isolation, dan alur transaksi. |
+| Dokumen | Kategori | Deskripsi |
+|---|---|---|
+| 📄 [`docs/architecture/architecture-overview.md`](docs/architecture/architecture-overview.md) | Arsitektur | Panduan teknis komprehensif arsitektur sistem, Modular Monolith vs Microservices, Hybrid Cloud, dan Polyglot Persistence. |
+| 🛰️ [`docs/architecture/gps-tracking-system.md`](docs/architecture/gps-tracking-system.md) | Arsitektur | Spesifikasi teknis microservice `EDCLGPSAPI`, AWS Fargate/RDS vs Podman, DDL PostgreSQL 16, event RabbitMQ, & Redis Geospatial. |
+| 🗄️ [`docs/architecture/logical-data-model.md`](docs/architecture/logical-data-model.md) | Data Model | Model data logis domain SQL Server 2022, 13 tabel GPS tracking PostgreSQL 16, dan struktur data Redis. |
+| 🔄 [`docs/architecture/api-sequence-diagrams.md`](docs/architecture/api-sequence-diagrams.md) | Integrasi | Sequence diagram endpoint utama (Auth, Job, Cargo, Notification, dan GPS Tracking streaming). |
+| 🌐 [`docs/architecture/web-ui-mapping.md`](docs/architecture/web-ui-mapping.md) | Frontend | Pemetaan antarmuka Web Admin (Angular) ke endpoint API Gateway, observabilitas, dan GPS tracking. |
+| 📱 [`docs/architecture/mobile-ui-mapping.md`](docs/architecture/mobile-ui-mapping.md) | Mobile | Pemetaan layar aplikasi driver (Flutter/Android) ke backend API. |
+| 🏭 [`docs/architecture/idcs-edcl-integration.md`](docs/architecture/idcs-edcl-integration.md) | Integrasi | Arsitektur integrasi data dua arah IDCS ↔ EDCL berbasis Debezium CDC dan Write-Back. |
+| ⏱️ [`docs/architecture/event-driven-backoff-dlx.md`](docs/architecture/event-driven-backoff-dlx.md) | Messaging | Spesifikasi retry bertahap 5-stage delayed backoff dan Dead Letter Queue di RabbitMQ. |
+| 📦 [`docs/bisnis-proses/pengiriman-manifest.md`](docs/bisnis-proses/pengiriman-manifest.md) | Bisnis | Alur bisnis end-to-end penerbitan manifes IDCS, penugasan armada, pelacakan GPS, dan pengantaran. |
+| 🗺️ [`docs/bisnis-proses/info-pengiriman-rute.md`](docs/bisnis-proses/info-pengiriman-rute.md) | Bisnis | Alur operasional driver di lapangan: navigasi rute, pemindaian kanban, geofencing, dan end job. |
+
 
 ---
 

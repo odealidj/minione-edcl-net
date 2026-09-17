@@ -262,8 +262,6 @@ sequenceDiagram
     Ctrl-->>Client: HTTP 200 OK (ManifestDetailDto JSON)
 ```
 
----
-
 ## 4. Module Notification
 
 ### 4.1. Event-Driven Notification Push
@@ -282,3 +280,92 @@ sequenceDiagram
     Push-->>Consumer: OK
     Consumer-->>Broker: Ack Message
 ```
+
+---
+
+## 5. Module GPS Tracking (`EDCLGPSAPI`) & Real-Time Streaming
+
+### 5.1. Ingesti Koordinat GPS Tracking & Streaming Peta Real-Time (End-to-End)
+**Alur:** Polling Vendor $\to$ Sink ke PostgreSQL $\to$ Publish ke RabbitMQ $\to$ Ingesti ke Redis $\to$ Broadcast SignalR Web Admin.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor WebAdmin as Web Admin (Dashboard)
+    participant Vendor as Vendor GPS API (Hino/Jitra/Puninar)
+    participant GpsService as EDCLGPSAPI (:5090)
+    participant PgDB as PostgreSQL (edcl)
+    participant Broker as RabbitMQ (topic_exchange)
+    participant Consumer as GpsTelemetryConsumer (EDCL.Api)
+    participant Redis as Redis 7.2 (:6379)
+    participant Hub as SignalR TrackingHub (:5140)
+
+    rect rgb(240, 248, 255)
+    Note over Vendor, PgDB: 1. Polling & Penyimpanan Posisi GPS Vendor
+    GpsService->>Vendor: GET /api/v1/positions (Auth Token & Headers)
+    Vendor-->>GpsService: JSON GPS Coordinates (PlatNo, Lat, Long, Speed, Course)
+    GpsService->>GpsService: Transform via Dynamic Mapping (tb_m_mapping)
+    GpsService->>PgDB: Insert tb_r_gps_last_position_h & tb_r_gps_last_position_d
+    GpsService->>PgDB: Insert Audit Log tb_m_gps_api_log (Status: 200)
+    end
+
+    rect rgb(255, 250, 240)
+    Note over GpsService, Broker: 2. Publikasi Event Asinkron Lintas Cloud/Service
+    GpsService->>Broker: Publish GpsLastPositionHDto (Exchange: topic_exchange, RoutingKey: gps.vendor.hino)
+    end
+
+    rect rgb(240, 255, 240)
+    Note over Broker, Redis: 3. Konsumsi Event & State Caching
+    Broker-->>Consumer: Deliver Message (Queue: edcl_gps_telemetry_queue)
+    Consumer->>Consumer: Validate Idempotency (gps:idempotency:{id})
+    Consumer->>Redis: GEOADD trucks:locations {Long} {Lat} "{PlatNo}"
+    Consumer->>Redis: HSET truck:{PlatNo}:telemetry (Lat, Long, Speed, UpdatedAt, etc.)
+    Consumer-->>Broker: BasicAck(deliveryTag)
+    end
+
+    rect rgb(255, 240, 245)
+    Note over Consumer, WebAdmin: 4. Push Notifikasi Real-Time ke Web Leaflet Map
+    Consumer->>Hub: Broadcast TruckLocationUpdated (PlatNo, Lat, Long, Speed)
+    Hub-->>WebAdmin: WebSocket Message (Move Marker on Map)
+    end
+```
+
+### 5.2. Historical Route Replay Query via YARP Gateway
+**Endpoint:** `GET /api/v1/gps/deliveries/{id}/history` / `/api/v1/gps/deliveries/{id}/positions`
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor WebUser as Web Admin User
+    participant Gateway as YARP Gateway (:5293)
+    participant GpsApi as EDCLGPSAPI (:5090)
+    participant PgDB as PostgreSQL (edcl)
+
+    WebUser->>Gateway: GET /api/v1/gps/deliveries/DEL-20260917-001/history
+    Note over Gateway: YARP Route Match: PathPrefix("/api/v1/gps/{**catch-all}")<br/>Forward ke Cluster: edcl-gps-cluster (http://localhost:5090)
+    Gateway->>GpsApi: Forward GET /api/v1/gps/deliveries/DEL-20260917-001/history
+    GpsApi->>PgDB: Query edcl.tb_r_gps_delivery_d WHERE DeliveryNo = 'DEL-20260917-001' ORDER BY Datetime ASC
+    PgDB-->>GpsApi: Breadcrumb Lat/Long Coordinates List
+    GpsApi-->>Gateway: HTTP 200 OK (JSON Coordinates Array)
+    Gateway-->>WebUser: HTTP 200 OK (Render Polyline Route Replay di Peta)
+```
+
+### 5.3. Vendor Dynamic Authentication & Token Rotation
+**Endpoint:** `POST /api/v1/gps/auth/refresh`
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Engine as Poller Engine (EDCLGPSAPI)
+    participant PgDB as PostgreSQL (edcl)
+    participant VendorAuth as Vendor OAuth/Auth Endpoint
+
+    Engine->>PgDB: Query tb_m_gps_vendor_auth WHERE GpsVendorId = @Id
+    PgDB-->>Engine: BaseUrl, Method, Authtype, Bodies, TokenPath
+    Engine->>VendorAuth: POST /oauth/token (ClientCredentials / JSON Body)
+    VendorAuth-->>Engine: HTTP 200 OK { "access_token": "xyz...", "expires_in": 3600 }
+    Engine->>Engine: Extract Token via TokenPath JSONPointer
+    Engine->>PgDB: Update tb_m_gps_vendor_auth (CachedToken, ExpiryTimestamp)
+    Note over Engine: Permintaan polling berikutnya menggunakan Bearer Token terbarui
+```
+
