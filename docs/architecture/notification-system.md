@@ -23,8 +23,8 @@ graph TD
         NotifConsumer -->|Save Notification| NotifDB[(Notification DB)]
     end
     
-    NotifConsumer -.->|Future Enhancement| FCM[Firebase Cloud Messaging]
-    FCM -.-> Mobile[Mobile Driver App]
+    NotifConsumer -. "Future Enhancement" .-> FCM[Firebase Cloud Messaging]
+    FCM --> Mobile[Mobile Driver App]
 ```
 
 ---

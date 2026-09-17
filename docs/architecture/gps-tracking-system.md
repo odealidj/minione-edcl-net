@@ -22,7 +22,7 @@ Untuk mencegah beban konkurensi koordinat GPS ini mengganggu transaksi relasiona
 Secara operasional pada skala industri (skenario produksi Toyota Astra Motor / TMMIN), sistem menerapkan topologi **Hybrid Cloud**:
 
 ```mermaid
-flowchart TB
+graph TD
     subgraph AWS_Cloud ["AWS Cloud (Ingress & GPS Tracking Layer)"]
         subgraph Fargate ["AWS ECS Fargate (Serverless Container)"]
             gps_service["EDCLGPSAPI (:5090)\n.NET 8 Minimal API / Carter"]
@@ -64,7 +64,7 @@ flowchart TB
         end
 
         subgraph Plant_DB ["Core Transactional Database"]
-            sql_server[("SQL Server 2022 (:1444)\n[auth], [driver], [job], [ingestion]")]
+            sql_server[("SQL Server 2022 (:1444)\n(auth, driver, job, ingestion)")]
         end
 
         subgraph Observability ["Observability Suite"]
@@ -78,7 +78,7 @@ flowchart TB
     end
 
     %% Network & Stream Connections
-    topic_ex ==>|Site-to-Site VPN / DirectConnect| gps_consumer
+    topic_ex -->|Site-to-Site VPN / DirectConnect| gps_consumer
     gps_consumer -->|GEOADD & HSET| redis
     gps_consumer -->|Broadcast TruckLocationUpdated| edcl_api
     edcl_api -->|Push via WebSocket| web_ui
@@ -88,9 +88,17 @@ flowchart TB
     gateway -->|Proxy /api/v1/*| edcl_api
     edcl_api -->|Transaction Ingestion| sql_server
 
-    gps_service -.->|Serilog GELF/HTTP| seq
-    edcl_api -.->|Serilog GELF/HTTP| seq
+    gps_service -. "Serilog GELF/HTTP" .-> seq
+    edcl_api -. "Serilog GELF/HTTP" .-> seq
 ```
+
+<div align="center">
+
+[![Buka di Mermaid Live Editor](https://img.shields.io/badge/🔍_Eksplorasi_Diagram_Interaktif-Mermaid_Live_Editor-ff3670?style=for-the-badge&logo=mermaid&logoColor=white)](https://mermaid.live/edit#pako:eNqNVmFT2zgQ_Ss7mWkndAghQOHIh86EJCW0CSRxrsxdc-ORbdXRYUtBkoGU8N9vV7YhaciVfAB7tbt6u3r75MdKqCJeaUIl1mw-g0lnKgF_JgtyQ-va89uJyiL4Pq3gC-Qv1QsZa24MvIfzoQcTzcIbIWPoswXXO9PKP3matVSfmY6Z5WWibtt7NlU9ru-4TihjW0nLhPw1Df3iufENeoqQY5Jup93HzVvDC6g2P-6f7u9Mp3LvsjuBP2AgpEhZArRYhzbTluuNdHOVJFz790rfcI0Jv3EZKQ1DZ4aujBEFpqyeYXGxVpmMoK2VxISjDDP-XAeIwVP5StnUwXHHK8umx6EyFtvnjfrQOIZBllhRa_29iS_2o-B7FeO6-4cNn-r1sWC_c4aovHDGU9YEHoUJgRyze2yd0pGQ2FE6GKq9r2KDMHfeiHMwcjBT9hPLxJfqgEkW8wjGLAiEHYw2z8SquQh9_vD4OK2Uz-GMydi1rjUYET36HjQ_Hp80MPzpaSuUtfOAWu3TcpRxvagj17ixy7wfL-4rbHDOY84i6AljFcaUxf82apgFiTAzOJ-bPjMWj0ZYoWSvY9Xyubg8fAXuc9e6D9bPeWPghUI0E0MxYzfwlVsRM5oXZKDkdr2Bdw2M6QmpiPWSh5YObd3jAD2-CKuZS-qmb93hEB2GmcRjz_fdyNBALtwd0J_DvE9dbwLXPJgpdYNcJrrj6C5XO7O93is51Dz1J2qhLKOKr2SNLMJwGl3NocNwoc2pXqgWfsOESbtFFtyaf46kvWcLytiNYg7luxOUTSHIVwsR2Cudq3-1xkNk2sHpIWnBmKOmGA5DrR4WWP9YZag13iyTFgt-0_Dm4EgA0IPAOUNeKNILySZCA17eNbOBk4bTZ3NRAm3NBWlV48hp1UsCl-89eCKWLBlDLwte1b5QSZOlTquQrhOe8JRbvWgX5lwG8kGF0vg2kbqQ_oCnODhU44WsFS-eJXX2cKL4BiDNI2FIncb0ACd7B1ja8eHJKZVWA6uz8MY0ExUymicD1fPu1cpS05bwodpreb03qlR-IJ0zwum6hlePNCykPVDviXwBM5tozW3iyI3NQ8ikvPmVAwf7BwS8cXR0ROiqLLOzXYi0wMVd-FcFuyCc_uAGb8R4FdBOLBCJsK6h6wYvE_YVgPwWPT1-i-3G_tgM--sUjAhzeNTASW2e7p82XjnPbbP6GS8riwtOmVrzRNwwI-BrIrhcS3LPAz975igqA7SiVEhsppkFiumI-tLn7EfCLaDKJrWJSDkM2HwdTKqwQo58nxe5YOAs0HHddPeBjLQSERYjrryX6BX0797BJbd0B9BAWM1ZWooj0Sh3KnXZ6ZmH7axZVaP_8G14ick7QqN_EbZcm508warFJUFytjod3LLndSfLnNxbXM-0YlGIdwVyD4ncLxj-5zzCYYmWz0NflFa8FZcN3jR3gpH8egpFBcHl3S_Lz98Qx0szXWRvMkFtr8O15y1L-SvwFeLn8julq-N29btGHZHXP7yi69sjPvwv-pVRg4tyJpYro1UWsXbH7gHRWotExXDe7X-uUynTCuzVPhHpf93nN-6VXajgQaRMRPTV-kjh-OGB30I4Uk18jPgPhh9U08pUPpEzzrPyFjLERZwrjpbMHVRHMJyStDA__Qdly3u1)
+
+<sub>💡 *Tips: Buka link di tab baru (**Ctrl + Klik** atau **Klik Kanan → Open link in new tab**) untuk navigasi kanvas resolusi penuh, zoom, dan inspeksi arsitektur secara interaktif.*</sub>
+
+</div>
 
 ### Karakteristik Pemisahan Tanggung Jawab:
 1. **AWS ECS Fargate**: Menjalankan *workload* `EDCLGPSAPI` yang berhadapan langsung dengan jaringan publik (Internet) untuk menerima data atau melakukan polling ke API vendor GPS secara elastis tanpa membuka *port incoming* ke server *on-premises* pabrik.

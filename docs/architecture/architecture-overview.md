@@ -79,13 +79,13 @@ graph TD
     CoreSvc -->|Live GEO / Idempotency| Redis
     CoreSvc -->|Publish Domain Events| RabbitMQ
     CoreSvc -->|Push Alerts| FCM
-    CoreSvc -.->|OTLP Traces| Jaeger & Prometheus
+    CoreSvc -. "OTLP Traces" .-> Jaeger & Prometheus
 
     GpsVendors -->|Poll / Webhook| VendorIngress
     VendorIngress -->|Store History| PostgresGPS
     VendorIngress -->|Forward Coordinates| GpsPublisher
     GpsPublisher -->|Publish GpsLastPositionHDto| RabbitMQ
-    GpsTrackingSvc -.->|Serilog Sink| SeqUI
+    GpsTrackingSvc -. "Serilog Sink" .-> SeqUI
 
     RabbitMQ -->|Consume gps.vendor.*| GpsConsumer
     GpsConsumer -->|GEOADD trucks:locations| Redis
